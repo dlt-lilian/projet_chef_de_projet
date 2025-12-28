@@ -1,14 +1,15 @@
 import { Icon } from "@iconify/react";
+import Text from "@/Components/Text";
+import Divider from "@/Components/Layout/Divider";
 
 export default function Home() {
     return (
         <>
-            <p>Je suis la page d’accueil</p>
+            <Text type="h1" iconLeft="lucide:alarm-smoke">Je suis la page d’accueil</Text>
 
-            <button class="btn btn-primary">Primary</button>
             <link rel="icon" href="lucide:armchair" alt-="Coucou"/>
             <Icon icon="lucide:armchair"/>
+            <Divider/>
         </>
-
     )
 }

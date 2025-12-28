@@ -1,7 +1,7 @@
 
 export default function Navbar() {
     return (
-        <nav class="grid grid-cols-3 gap-5 px-32 py-5 shadow-xl">
+        <nav className="grid grid-cols-3 gap-5 px-32 py-5 shadow-xl">
             <img
                 src="/logo.png"
                 alt="Logo"
