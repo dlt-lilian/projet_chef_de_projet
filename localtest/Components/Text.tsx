@@ -4,7 +4,8 @@ import Icon from "@/Components/Icon";
 type TextType = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span';
 type Size = 'sm' | 'md' | 'lg' | 'xl';
 type Weight = 'light' | 'normal' | 'semibold' | 'bold' | 'black';
-type Color = '' | 'white' | 'primary' | 'success' | 'warning' | 'error';
+type Color = '' | 'white' | 'primary' | 'success' | 'warning' | 'error'| 'lightgreen'| 'green';
+type bgColor = '' | 'white' | 'primary' | 'success' | 'warning' | 'error';
 type IconSize = 'xs' | 'sm' | 'md' | 'lg';
 type IconColor = 'default' | 'primary' | 'secondary' | 'accent' | 'info' | 'success' | 'warning' | 'error';
 
@@ -13,8 +14,9 @@ interface TextProps extends React.HTMLAttributes<HTMLElement> {
     size?: Size;
     weight?: Weight;
     color?: Color;
-    bgColor?: Color;
+    bgColor?: bgColor;
     underline?: boolean;
+    through?: boolean;
     iconLeft?: string | null;
     iconRight?: string | null;
     iconSize?: IconSize;
@@ -29,6 +31,7 @@ const Text: React.FC<TextProps> = ({
                                        color = '',
                                        bgColor = '',
                                        underline = false,
+                                       through = false,
                                        iconLeft = null,
                                        iconRight = null,
                                        iconSize = 'xs',
@@ -59,9 +62,11 @@ const Text: React.FC<TextProps> = ({
         'success': 'text-success',
         'warning': 'text-warning',
         'error': 'text-error',
+        'lightgreen': 'text-green-500',
+        'green': 'text-green-700',
     };
 
-    const bgClasses: Record<Color, string> = {
+    const bgClasses: Record<bgColor, string> = {
         '': '',
         'white': 'bg-white',
         'primary': 'bg-primary',
@@ -73,7 +78,7 @@ const Text: React.FC<TextProps> = ({
     const classes = [
         sizeClasses[size],
         weightClasses[weight],
-        colorClasses[color],
+        through ? 'text-gray-400 line-through' : colorClasses[color],
         bgClasses[bgColor],
         bgColor !== '' ? 'px-2 py-1 rounded-full w-max' : '',
         (iconLeft || iconRight) ? 'flex items-center justify-center gap-2' : '',
