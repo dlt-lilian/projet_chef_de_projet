@@ -1,12 +1,14 @@
 import Dropdown from "@/Components/Actions/Dropdown";
 import { navigation } from "@/data/layout/navbar";
 import Icon from "@/Components/Icon";
+import Link from "@/Components/Navigation/Link";
+import Searchbar from "@/Components/Input/Searchbar";
 
 export default function Navbar() {
     const nav = navigation[0];
 
     return (
-        <nav className="grid grid-cols-3 gap-5 px-32 py-5 shadow-xl">
+        <nav className="flex justify-between gap-5 px-32 py-5 shadow-xl">
 
             {/* LEFT */}
             <div className="flex items-center gap-5">
@@ -29,26 +31,27 @@ export default function Navbar() {
                     ))}
                 </Dropdown>
                 </a>
-            </div>
-
-            {/* CENTER */}
-            <div className="flex justify-center items-center gap-5">
-                {nav.centerContent.map((item) => (
-                    <a key={item.href}
-                       href={item.href}>
-                        <Icon name={item.icon} />
-                        {item.label}
-                    </a>
+                {nav.leftContent.pages.map((item) => (
+                <Link key={item.href}
+                      to={item.href}
+                      iconLeft={item.icon}>
+                    {item.label}
+                </Link>
                 ))}
             </div>
 
             {/* RIGHT */}
-            <div className="flex justify-end items-center gap-5">
-                {nav.rightContent.map((item) => (
-                    <span key={item}>
-                        {item}
-                    </span>
-                ))}
+            <div className="flex justify-end  w-max items-center gap-5">
+                <Searchbar iconRight={nav.searchIcon}/>
+                <div className="flex justify-end items-center gap-5 w-full">
+                    {nav.rightContent.map((item) => (
+                        <Link key={item.href}
+                              to={item.href}
+                              iconLeft={item.icon}>
+                            {item.label}
+                        </Link>
+                    ))}
+                </div>
             </div>
 
         </nav>

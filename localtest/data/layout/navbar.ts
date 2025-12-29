@@ -15,12 +15,20 @@ export const navigation = [
                 { label: "Chambre", href: "/chambre" },
                 { label: "Meubles de rangements", href: "/meubles-de-rangements" },
                 { label: "Tables", href: "/tables" }
+            ],
+            pages: [
+                { label: "Le magasin", icon: "lucide:atom", href: "/magasin" },
+                { label: "Le dépôt", icon: "lucide:atom", href: "/depot" },
+                { label: "Vendre", icon: "lucide:atom", href: "/vend" }
             ]
         },
-        centerContent: [
-            { label: "Le magasin", icon: "lucide:atom", href: "/le-magasin" },
-            { label: "Le dépôt", icon: "lucide:atom", href: "/le-depot" },
-        ],
-        rightContent: ["Coucou"]
+
+        searchIcon: "lucide:search",
+
+        rightContent: [
+            { label: "Nous contacter", icon: "lucide:atom", href: "#" },
+            { label: "Se connecter", icon: "lucide:atom", href: "#" },
+            { label: "Panier", icon: "lucide:atom", href: "#" },
+        ]
     }
 ];

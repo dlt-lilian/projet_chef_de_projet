@@ -12,6 +12,7 @@ import Card from "@/Components/Display/Card";
 import Badge from "@/Components/Actions/Badge"
 import Indicator from "@/Components/Layout/Indicator";
 import Link from "@/Components/Navigation/Link"
+import Searchbar from "@/Components/Input/Searchbar"
 
 export default function Home() {
     return (
@@ -53,6 +54,7 @@ export default function Home() {
             </div>
 
             <Link to="/asdasd" iconLeft="lucide:atom">Text</Link>
+            <Searchbar/>
         </>
     )
 }
