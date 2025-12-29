@@ -1,55 +1,56 @@
-import Dropdown from "@/Components/Actions/Dropdown"
+import Dropdown from "@/Components/Actions/Dropdown";
+import { navigation } from "@/data/layout/navbar";
+import Icon from "@/Components/Icon";
 
 export default function Navbar() {
+    const nav = navigation[0];
+
     return (
         <nav className="grid grid-cols-3 gap-5 px-32 py-5 shadow-xl">
+
+            {/* LEFT */}
             <div className="flex items-center gap-5">
-                <img
-                    src="/logo.png"
-                    alt="Logo"
-                />
-                <Dropdown>
-                    <Dropdown variant="ghost" position="right">
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                    </Dropdown>
-                    <Dropdown variant="ghost" position="right">
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                    </Dropdown>
-                    <Dropdown variant="ghost" position="right">
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                        <a href="#">Coucou</a>
-                    </Dropdown>
+                <a href={nav.home}>
+                <img src={nav.logo}
+                     alt="Logo" />
+                </a>
+
+                <a href={nav.leftContent.link}>
+                <Dropdown variant="ghost"
+                          hover
+                          position="right"
+                          title={nav.leftContent.title}>
+                    {nav.leftContent.content.map((item) => (
+                        <a key={item.href}
+                           href={item.href}
+                           className="block px-2 py-1">
+                            {item.label}
+                        </a>
+                    ))}
                 </Dropdown>
-
-                <div className="dropdown dropdown-center">
-                    <div tabIndex="0"
-                         role="button"
-                         className="">Parcourir les catégories</div>
-                    <ul tabIndex="-1" className="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
-                        <li><a>Item 1</a></li>
-                        <li><a>Item 2</a></li>
-                    </ul>
-                </div>
+                </a>
             </div>
 
+            {/* CENTER */}
             <div className="flex justify-center items-center gap-5">
-                <p>Coucou</p>
+                {nav.centerContent.map((item) => (
+                    <a key={item.href}
+                       href={item.href}>
+                        <Icon name={item.icon} />
+                        {item.label}
+                    </a>
+                ))}
             </div>
 
+            {/* RIGHT */}
             <div className="flex justify-end items-center gap-5">
-                <p>Panier user etc...</p>
+                {nav.rightContent.map((item) => (
+                    <span key={item}>
+                        {item}
+                    </span>
+                ))}
             </div>
+
         </nav>
     );
 }

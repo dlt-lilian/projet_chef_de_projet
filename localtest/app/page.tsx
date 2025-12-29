@@ -11,6 +11,7 @@ import Accordion from "@/Components/Display/Accordion";
 import Card from "@/Components/Display/Card";
 import Badge from "@/Components/Actions/Badge"
 import Indicator from "@/Components/Layout/Indicator";
+import Link from "@/Components/Navigation/Link"
 
 export default function Home() {
     return (
@@ -50,6 +51,8 @@ export default function Home() {
                 <Badge color="success">Validé</Badge>
                 <Indicator/>
             </div>
+
+            <Link to="/asdasd" iconLeft="lucide:atom">Text</Link>
         </>
     )
 }

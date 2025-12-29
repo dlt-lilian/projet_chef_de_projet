@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import Button from '@/Components/Actions/Button';
+import Text from '@/Components/Text';
 
 type DropdownAlign = 'start' | 'center' | 'end';
 type DropdownPosition = 'top' | 'bottom' | 'left' | 'right';
@@ -26,6 +26,7 @@ interface DropdownProps extends React.HTMLAttributes<HTMLDivElement> {
     open?: boolean;
     items?: DropdownItem[];
     trigger?: React.ReactNode;
+    title?: React.ReactNode;
     content?: React.ReactNode;
     children?: React.ReactNode;
 }
@@ -39,6 +40,7 @@ const Dropdown: React.FC<DropdownProps> = ({
                                                open = false,
                                                items = [],
                                                trigger,
+                                               title,
                                                content,
                                                children,
                                                className = '',
@@ -95,10 +97,7 @@ const Dropdown: React.FC<DropdownProps> = ({
 
     const defaultTrigger = (
         <>
-            <span>Dropdown</span>
-            <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
+            <Text type="span" iconLeft="lucide:align-justify">{title}</Text>
         </>
     );
 
@@ -111,13 +110,13 @@ const Dropdown: React.FC<DropdownProps> = ({
                 {items.map((item, index) => (
                     <li key={item.id || item.label || index}>
                         {item.href ? (
-                            <Link
+                            <a
                                 href={item.href}
                                 className={item.disabled ? 'disabled' : ''}
                                 onClick={(e) => item.disabled && e.preventDefault()}
                             >
                                 {item.label}
-                            </Link>
+                            </a>
                         ) : (
                             <Button onClick={item.onClick} disabled={item.disabled}>
                                 {item.label}
