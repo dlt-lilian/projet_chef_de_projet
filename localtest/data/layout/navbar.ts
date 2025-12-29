@@ -27,8 +27,8 @@ export const navigation = [
 
         rightContent: [
             { label: "Nous contacter", icon: "lucide:atom", href: "#" },
-            { label: "Se connecter", icon: "lucide:atom", href: "#" },
-            { label: "Panier", icon: "lucide:atom", href: "#" },
+            { label: "Se connecter", icon: "lucide:user-round", href: "#" },
+            { label: "Panier", icon: "lucide:shopping-cart", href: "#" },
         ]
     }
 ];
