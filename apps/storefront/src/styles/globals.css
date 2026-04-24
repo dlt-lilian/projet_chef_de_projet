@@ -49,6 +49,15 @@
   }
 }
 
+body {
+    font-family: 'Recia', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Supreme', serif;
+    font-weight: 600;
+}
+
 @layer components {
   .content-container {
     @apply max-w-[1440px] w-full mx-auto px-6;
