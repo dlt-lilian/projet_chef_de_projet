@@ -26,6 +26,7 @@
     "@stripe/stripe-js": "^8.2.0",
     "clsx": "^2.1.1",
     "daisyui": "4",
+    "embla-carousel-react": "^8.6.0",
     "lodash": "^4.17.21",
     "next": "15.3.9",
     "pg": "^8.11.3",
