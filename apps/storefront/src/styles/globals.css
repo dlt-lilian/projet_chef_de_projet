@@ -3,7 +3,7 @@
 @import "tailwindcss/utilities";
 
 @layer utilities {
-  /* Chrome, Safari and Opera */
+/* Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -13,8 +13,11 @@
   }
 
   .no-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+  /* IE and Edge */
+    -ms-overflow-style: none;
+
+  /* Firefox */
+    scrollbar-width: none;
   }
 
   input:focus ~ label,
@@ -49,12 +52,20 @@
   }
 }
 
+:root {
+    --color-primary: #082f49;
+    --color-black:   #082f49;
+    --color-white:   #f9fafb;
+}
+
 body {
-    font-family: 'Recia', sans-serif;
+    font-family: 'Supreme', sans-serif;
+    color: var(--color-black);
+    background-color: var(--color-white);
 }
 
 h1, h2, h3, h4, h5, h6 {
-    font-family: 'Supreme', serif;
+    font-family: 'Supreme', sans-serif;
     font-weight: 600;
 }
 

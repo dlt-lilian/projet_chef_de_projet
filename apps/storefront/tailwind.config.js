@@ -21,8 +21,8 @@ module.exports = {
       },
       colors: {
         grey: {
-          0: "#FFFFFF",
-          5: "#F9FAFB",
+          0:  "#f9fafb",
+          5:  "#F9FAFB",
           10: "#F3F4F6",
           20: "#E5E7EB",
           30: "#D1D5DB",
@@ -31,8 +31,15 @@ module.exports = {
           60: "#4B5563",
           70: "#374151",
           80: "#1F2937",
-          90: "#111827",
+          90: "#082f49",
         },
+        primary: {
+          DEFAULT: "#082f49",
+          light:   "#0c4a6e",
+          dark:    "#051e30",
+        },
+        black:  "#082f49",
+        white:  "#f9fafb",
       },
       borderRadius: {
         none: "0px",
@@ -58,16 +65,7 @@ module.exports = {
         "3xl": "2rem",
       },
       fontFamily: {
-        sans: [
-          "Inter",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "Roboto",
-          "Helvetica Neue",
-          "Ubuntu",
-          "sans-serif",
-        ],
+        sans: ["var(--font-supreme)", "sans-serif"],
       },
       keyframes: {
         ring: {

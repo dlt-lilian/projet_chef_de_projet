@@ -17,6 +17,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.0",
     "@iconify-json/lucide": "^1.2.102",
+    "@iconify-json/lucide-lab": "^1.2.3",
     "@iconify/react": "^6.0.2",
     "@medusajs/icons": "2.14.0",
     "@medusajs/js-sdk": "2.14.0",
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.17.5",
+    "@iconify-json/hugeicons": "^1.2.26",
     "@medusajs/types": "2.14.0",
     "@types/lodash": "^4.14.195",
     "@types/node": "17.0.21",

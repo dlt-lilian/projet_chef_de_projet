@@ -5,6 +5,11 @@ import clsx from "clsx"
 import { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes } from "react"
 import { Icon as Iconify, addCollection } from "@iconify/react"
 import lucideIcons from "@iconify-json/lucide/icons.json"
+import hugeIcons from "@iconify-json/hugeicons/icons.json"
+import lucideLabIcons from "@iconify-json/lucide-lab/icons.json"
+
+addCollection(hugeIcons)
+addCollection(lucideLabIcons)
 
 addCollection(lucideIcons)
 
@@ -71,15 +76,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button"
 
 // Icon Component
+type IconLibrary = "lucide" | "hugeicons" | "lucide-lab"
+
 type IconProps = HTMLAttributes<HTMLSpanElement> & {
   name: string
+  library?: IconLibrary
   size?: number | string
   strokeWidth?: number
   color?: string
 }
 
 export const Icon = forwardRef<HTMLSpanElement, IconProps>(
-  ({ name, size = 20, strokeWidth, color, className, ...props }, ref) => {
+  ({ name, library = "lucide", size = 20, strokeWidth, color, className, ...props }, ref) => {
     return (
       <span
         ref={ref}
@@ -87,7 +95,7 @@ export const Icon = forwardRef<HTMLSpanElement, IconProps>(
         {...props}
       >
         <Iconify
-          icon={`lucide:${name}`}
+          icon={`${library}:${name}`}
           width={size}
           height={size}
           color={color}
