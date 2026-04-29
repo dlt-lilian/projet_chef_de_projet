@@ -2,7 +2,7 @@ import { Button, Icon, Input } from "@modules/common/components/my_ui";
 
 const Hero = () => {
   return (
-    <div className="space-y-5 mx-32">
+    <div className="space-y-5">
       <p className="text-2xl">Boutons</p>
       <div className="space-x-2">
         <Button variant="primary">Coucou</Button>

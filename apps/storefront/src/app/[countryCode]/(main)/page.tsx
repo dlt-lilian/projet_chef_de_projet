@@ -18,6 +18,9 @@ import { Metadata } from "next"
 
 import FeaturedProducts from "@modules/home/components/featured-products"
 import Hero from "@modules/home/components/hero"
+import ProductGrid from "@modules/home/components/products-grid"
+import Banner from "@modules/home/components/banner"
+import Gallery from "@modules/home/components/gallery"
 import { Slider } from "@modules/home/components/slider"
 import { listCollections } from "@lib/data/collections"
 import { getRegion } from "@lib/data/regions"
@@ -45,12 +48,25 @@ export default async function Home(props: {
   return (
     <>
       <Slider slides={slides} />
+      <div className="my-10 space-y-10">
 
-      <Hero />
-      <div className="py-12">
-        <ul className="flex flex-col gap-x-6">
-          <FeaturedProducts collections={collections} region={region} />
-        </ul>
+        {/*<Hero />*/}
+        <div className="mx-64 ">
+          <ProductGrid regionId={region.id}
+                       countryCode={countryCode}/>
+        </div>
+
+        <Banner />
+
+        <div className="mx-64">
+          <Gallery />
+        </div>
+
+        {/*<div className="py-12">*/}
+        {/*  <ul className="flex flex-col gap-x-6">*/}
+        {/*    <FeaturedProducts collections={collections} region={region} />*/}
+        {/*  </ul>*/}
+        {/*</div>*/}
       </div>
     </>
   )
