@@ -1,68 +1,89 @@
-import fs from "fs"
-import path from "path"
-import type { Article, ArticlePreview } from "./types"
-
-// Les fichiers JSON sont dans src/data/blogs/
-const BLOGS_DIR = path.join(process.cwd(), "src", "data", "blogs")
+import type { BlogPost, BlogPostPreview } from "./types"
 
 /**
- * Retourne la liste de tous les articles (sans les blocs).
- * Triés du plus récent au plus ancien.
+ * URL de base du backend Medusa.
+ * En prod → variable d'env NEXT_PUBLIC_MEDUSA_BACKEND_URL
  */
-export function getAllArticles(): ArticlePreview[] {
-  const files = fs.readdirSync(BLOGS_DIR).filter((f) => f.endsWith(".json"))
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000"
 
-  const articles: ArticlePreview[] = files.map((file) => {
-    const raw = fs.readFileSync(path.join(BLOGS_DIR, file), "utf-8")
-    const { slug, meta } = JSON.parse(raw)
-    return { slug, meta }
+const BASE = `${BACKEND_URL}/store/blogs`
+
+/** Headers communs (publishable API key Medusa) */
+function headers() {
+  return {
+    "Content-Type": "application/json",
+    "x-publishable-api-key":
+      process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? "",
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Liste tous les articles publiés (sans blocs).
+ * Utilisé par la page /blog et l'ArticleGrid.
+ */
+export async function getAllArticles(options?: {
+  category?: string
+}): Promise<BlogPostPreview[]> {
+  const url = new URL(BASE)
+  url.searchParams.set("fields", "meta")
+  if (options?.category) url.searchParams.set("category", options.category)
+
+  const res = await fetch(url.toString(), {
+    headers: headers(),
+    // Revalide toutes les 60 secondes (ISR) — ajuste selon ta fréquence de publication
+    next: { revalidate: 60 },
   })
 
-  const sorted = articles.sort(
-    (a, b) =>
-      new Date(b.meta.dateISO).getTime() - new Date(a.meta.dateISO).getTime()
-  )
+  if (!res.ok) return []
+  const { blogs } = await res.json()
+  return blogs as BlogPostPreview[]
+}
 
-  // Un seul article featured (le plus récent marqué comme tel)
-  let featuredAssigned = false
-  return sorted.map((article) => {
-    if (article.meta.featured && !featuredAssigned) {
-      featuredAssigned = true
-      return article
-    }
-    return { ...article, meta: { ...article.meta, featured: false } }
+/**
+ * Article complet par slug (avec blocs).
+ * Utilisé par la page /blog/[slug].
+ */
+export async function getArticleBySlug(slug: string): Promise<BlogPost | null> {
+  const res = await fetch(`${BASE}/${slug}`, {
+    headers: headers(),
+    next: { revalidate: 60 },
   })
+
+  if (res.status === 404) return null
+  if (!res.ok) return null
+
+  const { blog } = await res.json()
+  return blog as BlogPost
 }
 
 /**
- * Retourne un article complet par slug.
+ * N derniers articles publiés — pour l'ArticleGrid de la homepage.
  */
-export function getArticleBySlug(slug: string): Article | null {
-  const filePath = path.join(BLOGS_DIR, `${slug}.json`)
-  if (!fs.existsSync(filePath)) return null
-  const raw = fs.readFileSync(filePath, "utf-8")
-  return JSON.parse(raw) as Article
+export async function getLatestArticles(count = 3): Promise<BlogPostPreview[]> {
+  const all = await getAllArticles()
+  return all.slice(0, count)
 }
 
 /**
- * Retourne les N derniers articles (pour l'ArticleGrid de la homepage).
+ * Toutes les catégories uniques.
  */
-export function getLatestArticles(count = 3): ArticlePreview[] {
-  return getAllArticles().slice(0, count)
-}
-
-/**
- * Retourne toutes les catégories uniques.
- */
-export function getAllCategories(): string[] {
-  const cats = getAllArticles().map((a) => a.meta.category)
-  return [...new Set(cats)].sort()
+export async function getAllCategories(): Promise<string[]> {
+  const res = await fetch(`${BASE}/categories`, {
+    headers: headers(),
+    next: { revalidate: 300 },
+  })
+  if (!res.ok) return []
+  const { categories } = await res.json()
+  return categories as string[]
 }
 
 /**
  * Pour generateStaticParams de Next.js.
  */
-export function getAllSlugs(): { slug: string }[] {
-  const files = fs.readdirSync(BLOGS_DIR).filter((f) => f.endsWith(".json"))
-  return files.map((f) => ({ slug: f.replace(".json", "") }))
+export async function getAllSlugs(): Promise<{ slug: string }[]> {
+  const articles = await getAllArticles()
+  return articles.map((a) => ({ slug: a.slug }))
 }
