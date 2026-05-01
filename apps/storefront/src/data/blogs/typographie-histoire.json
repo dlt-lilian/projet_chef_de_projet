@@ -1,0 +1,43 @@
+{
+  "slug": "typographie-histoire",
+  "meta": {
+    "title": "L'histoire secrète de la typographie",
+    "excerpt": "De Gutenberg aux fontes variables, chaque lettre porte en elle des siècles de gestes, d'inventions et de querelles esthétiques.",
+    "cover": "https://picsum.photos/1920/1080",
+    "category": "Design",
+    "date": "8 avril 2026",
+    "dateISO": "2026-04-08",
+    "readTime": "7 min",
+    "author": "Théo Marchand",
+    "featured": true
+  },
+  "blocks": [
+    {
+      "type": "banner",
+      "img": "https://picsum.photos/1920/1080",
+      "alt": "Caractères typographiques en plomb",
+      "title": "L'histoire secrète de la typographie",
+      "subtitle": "Design · Histoire"
+    },
+    {
+      "type": "titre",
+      "level": 1,
+      "text": "L'histoire secrète de la typographie"
+    },
+    {
+      "type": "texte",
+      "content": "Avant d'être un outil graphique, la typographie est une technologie. Gutenberg n'a pas inventé l'écriture, il a inventé la reproductibilité. Et avec elle, une nouvelle façon de penser le texte, la page, et le regard.",
+      "dropcap": true
+    },
+    {
+      "type": "img",
+      "src": "https://picsum.photos/1920/1080",
+      "alt": "Presse à caractères mobiles",
+      "caption": "Presse à caractères mobiles, technique inchangée pendant 400 ans"
+    },
+    {
+      "type": "texte",
+      "content": "De la Renaissance au numérique, les grandes révolutions typographiques accompagnent toujours des révolutions culturelles : l'imprimerie et la Réforme, la photocomposition et le rock, les fontes variables et le web responsive."
+    }
+  ]
+}

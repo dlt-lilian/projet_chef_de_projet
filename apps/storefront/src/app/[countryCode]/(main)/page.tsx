@@ -21,6 +21,8 @@ import Hero from "@modules/home/components/hero"
 import ProductGrid from "@modules/home/components/products-grid"
 import Banner from "@modules/home/components/banner"
 import Gallery from "@modules/home/components/gallery"
+import ArticleGrid from "@modules/blog/components/ArticleGrid"
+
 import { Slider } from "@modules/home/components/slider"
 import { listCollections } from "@lib/data/collections"
 import { getRegion } from "@lib/data/regions"
@@ -61,6 +63,8 @@ export default async function Home(props: {
         <div className="mx-64">
           <Gallery />
         </div>
+
+        <ArticleGrid count={3} heading="Du côté du blog" />
 
         {/*<div className="py-12">*/}
         {/*  <ul className="flex flex-col gap-x-6">*/}

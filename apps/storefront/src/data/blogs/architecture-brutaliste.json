@@ -1,0 +1,53 @@
+{
+  "slug": "architecture-brutaliste",
+  "meta": {
+    "title": "Le brutalisme, esthétique du béton brut",
+    "excerpt": "Entre fascination et controverse, le brutalisme architectural continue de diviser. Retour sur un courant qui refuse de passer inaperçu.",
+    "cover": "https://picsum.photos/1920/1080",
+    "category": "Architecture",
+    "date": "22 avril 2026",
+    "dateISO": "2026-04-22",
+    "readTime": "8 min",
+    "author": "Théo Marchand",
+    "featured": false
+  },
+  "blocks": [
+    {
+      "type": "banner",
+      "img": "https://picsum.photos/1920/1080",
+      "alt": "Bâtiment brutaliste en béton",
+      "title": "Le brutalisme, esthétique du béton brut",
+      "subtitle": "Architecture · Design"
+    },
+    {
+      "type": "titre",
+      "level": 1,
+      "text": "Le brutalisme, esthétique du béton brut"
+    },
+    {
+      "type": "texte",
+      "content": "Le terme « brutalisme » ne vient pas de « brutal » mais du français <em>béton brut</em> — le béton laissé apparent, sans enduit ni revêtement. Ce mouvement architectural né dans les années 1950 reste l'un des plus controversés de l'histoire du design.",
+      "dropcap": true
+    },
+    {
+      "type": "titre",
+      "level": 2,
+      "text": "Des formes qui polarisent"
+    },
+    {
+      "type": "texte",
+      "content": "Masses monumentales, fenêtres en fentes, surfaces texturées : le brutalisme revendique l'honnêteté des matériaux. Ses défenseurs y voient une architecture sincère, ses détracteurs une esthétique froide et intimidante."
+    },
+    {
+      "type": "img",
+      "src": "https://picsum.photos/1920/1080",
+      "alt": "Le Barbican Centre à Londres",
+      "caption": "Le Barbican Centre à Londres, icône du brutalisme britannique (1982)",
+      "fullWidth": true
+    },
+    {
+      "type": "texte",
+      "content": "Aujourd'hui, ces bâtiments suscitent un regain d'intérêt auprès des nouvelles générations. Loin d'être de simples vestiges d'une époque révolue, ils incarnent une vision radicale de l'espace urbain qui continue d'inspirer architectes et designers."
+    }
+  ]
+}
