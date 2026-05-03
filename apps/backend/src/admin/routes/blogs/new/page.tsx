@@ -1,6 +1,6 @@
 import { Heading, Text } from "@medusajs/ui"
 import { Link } from "react-router-dom"
-import BlogForm, { type BlogFormData } from "../../../components/blog/BlogForm.tsx";
+import BlogForm, { type BlogFormData } from "../../../components/blog/BlogForm"
 
 async function createPost(data: BlogFormData) {
   const res = await fetch("/admin/blogs", {
@@ -21,7 +21,7 @@ export default function BlogNewPage() {
     <div className="p-8 max-w-4xl">
       <div className="mb-8">
         <div className="flex items-center gap-2 text-ui-fg-muted text-sm mb-2">
-          <Link to="/blog" className="hover:text-ui-fg-interactive transition-colors">
+          <Link to="/blogs" className="hover:text-ui-fg-interactive transition-colors">
             Blog
           </Link>
           <span>/</span>

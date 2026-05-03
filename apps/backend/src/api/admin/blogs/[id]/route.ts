@@ -22,7 +22,6 @@ export const GET = async (
 
 /**
  * PUT /admin/blogs/:id
- * Met à jour un article (merge partiel).
  */
 export const PUT = async (
   req: AuthenticatedMedusaRequest,
@@ -48,14 +47,31 @@ export const PUT = async (
     }
   }
 
-  const updated = await blogService.updateBlogPosts({ id }, body)
+  // MedusaService updateBlogPosts attend : ({ id, ...data })
+  // Le champ blocks (JSONB) doit être explicitement inclus
+  const updated = await blogService.updateBlogPosts([
+    {
+      id,
+      slug:      body.slug      as string,
+      title:     body.title     as string,
+      excerpt:   body.excerpt   as string,
+      cover:     body.cover     as string,
+      category:  body.category  as string,
+      author:    body.author    as string,
+      date:      body.date      as string,
+      date_iso:  body.date_iso  as string,
+      read_time: body.read_time as string,
+      featured:  body.featured  as boolean,
+      published: body.published as boolean,
+      blocks:    body.blocks    as unknown[],
+    },
+  ])
 
-  res.json({ blog: updated })
+  res.json({ blog: Array.isArray(updated) ? updated[0] : updated })
 }
 
 /**
  * DELETE /admin/blogs/:id
- * Supprime définitivement un article.
  */
 export const DELETE = async (
   req: AuthenticatedMedusaRequest,

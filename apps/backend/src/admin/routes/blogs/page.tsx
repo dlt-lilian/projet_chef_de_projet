@@ -93,7 +93,7 @@ export default function BlogListPage() {
             {posts.length} article{posts.length !== 1 ? "s" : ""}
           </Text>
         </div>
-        <Link to="/blog/new">
+        <Link to="/blogs/new">
           <Button size="small">
             <PlusMini className="mr-1" />
             Nouvel article
@@ -170,7 +170,7 @@ export default function BlogListPage() {
                 </Table.Cell>
                 <Table.Cell>
                   <div className="flex items-center gap-2 justify-end">
-                    <Link to={`/blog/${post.id}`}>
+                    <Link to={`/blogs/${post.id}`}>
                       <Button variant="secondary" size="small">
                         Modifier
                       </Button>

@@ -4,7 +4,8 @@ import { getAllSlugs, getArticleBySlug } from "@lib/blog"
 import BlockRenderer from "@modules/blog/components/blocks/BlockRenderer"
 import type { Metadata } from "next"
 
-type Props = { params: { slug: string; countryCode: string } }
+// Next.js 15 : params est une Promise
+type Props = { params: Promise<{ slug: string; countryCode: string }> }
 
 export const revalidate = 60
 
@@ -13,7 +14,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const post = await getArticleBySlug(params.slug)
+  const { slug } = await params
+  const post = await getArticleBySlug(slug)
   if (!post) return {}
   return {
     title: post.title,
@@ -27,7 +29,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function BlogArticlePage({ params }: Props) {
-  const post = await getArticleBySlug(params.slug)
+  const { slug } = await params
+  const post = await getArticleBySlug(slug)
   if (!post) notFound()
 
   const hasBanner    = post.blocks[0]?.type === "banner"
@@ -63,7 +66,7 @@ export default async function BlogArticlePage({ params }: Props) {
         </div>
         <div className="mt-4 flex items-center gap-3">
           <div className="w-7 h-7 rounded-full bg-ui-bg-subtle border border-ui-border-base flex items-center justify-center text-xs font-medium text-ui-fg-base">
-            {post.author.charAt(0)}
+            {post.author?.charAt(0) ?? "?"}
           </div>
           <span className="text-sm text-ui-fg-subtle">{post.author}</span>
         </div>

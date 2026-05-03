@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout(props: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-mode="light" className={supreme.variable}>  {/* ← ICI */}
+    <html lang="en" data-mode="light" className={supreme.variable}>
     <body>
     <main className="relative">{props.children}</main>
     </body>

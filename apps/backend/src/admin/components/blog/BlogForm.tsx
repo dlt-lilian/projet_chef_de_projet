@@ -69,14 +69,14 @@ export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps)
       // Génère le slug uniquement si non modifié manuellement (ou en mode create)
       ...(mode === "create"
         ? {
-            slug: title
-              .toLowerCase()
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "")
-              .replace(/[^a-z0-9\s-]/g, "")
-              .trim()
-              .replace(/\s+/g, "-"),
-          }
+          slug: title
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9\s-]/g, "")
+            .trim()
+            .replace(/\s+/g, "-"),
+        }
         : {}),
     }))
   }
@@ -106,7 +106,7 @@ export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps)
     try {
       await onSubmit(data)
       toast.success(mode === "create" ? "Article créé !" : "Article mis à jour !")
-      if (mode === "create") navigate("/blog")
+      if (mode === "create") navigate("/blogs")
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erreur inconnue"
       toast.error(msg)
@@ -251,7 +251,7 @@ export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps)
         <Button
           type="button"
           variant="secondary"
-          onClick={() => navigate("/blog")}
+          onClick={() => navigate("/blogs")}
         >
           Annuler
         </Button>

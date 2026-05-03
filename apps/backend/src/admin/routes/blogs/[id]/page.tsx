@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Heading, Text, toast } from "@medusajs/ui"
-import BlogForm, { type BlogFormData } from "../../../components/blog/BlogForm.tsx";
+import BlogForm, { type BlogFormData } from "../../../components/blog/BlogForm"
 
 type BlogPost = BlogFormData & { id: string }
 
@@ -59,7 +59,7 @@ export default function BlogEditPage() {
     <div className="p-8 max-w-4xl">
       <div className="mb-8">
         <div className="flex items-center gap-2 text-ui-fg-muted text-sm mb-2">
-          <Link to="/blog" className="hover:text-ui-fg-interactive transition-colors">
+          <Link to="/blogs" className="hover:text-ui-fg-interactive transition-colors">
             Blog
           </Link>
           <span>/</span>

@@ -6,10 +6,10 @@ import {
   ArrowUpMini,
   ArrowDownMini,
   Photo,
-  RectangleStack,
+  DocumentText,
   ChatBubbleLeftRight,
-  Heading,
-  Square2Stack,
+  BarsThree,
+  SquaresPlus,
 } from "@medusajs/icons"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -38,10 +38,10 @@ const BLOCK_LABELS: Record<string, string> = {
 
 const BLOCK_ICONS: Record<string, React.ReactNode> = {
   banner:    <Photo className="w-4 h-4" />,
-  titre:     <Heading className="w-4 h-4" />,
+  titre:     <BarsThree className="w-4 h-4" />,
   texte:     <ChatBubbleLeftRight className="w-4 h-4" />,
-  img:       <RectangleStack className="w-4 h-4" />,
-  doubleimg: <Square2Stack className="w-4 h-4" />,
+  img:       <DocumentText className="w-4 h-4" />,
+  doubleimg: <SquaresPlus className="w-4 h-4" />,
 }
 
 function defaultBlock(type: string): Block {
