@@ -1,18 +1,13 @@
 "use client"
 
-// ──────────────────────────────────────────────────────────────────────
-// <ProductViewerScene />
-// Scène React Three Fiber complète.
-// Gère le cas standard (1 modèle) et le cas Pack (3 modèles côte à côte).
-// ──────────────────────────────────────────────────────────────────────
-
 import { Suspense, Component, ReactNode } from "react"
 import { Canvas } from "@react-three/fiber"
-import { OrbitControls, Environment, ContactShadows } from "@react-three/drei"
+import { OrbitControls, Environment, ContactShadows, Bounds } from "@react-three/drei"
 import * as THREE from "three"
 import { Model } from "./model"
 import { PACK_MODELS, MODEL_PATHS } from "@lib/constants/kogei-customization"
 import type { CustomizationOptions, ProductHandle } from "./types"
+
 
 type Props = {
   handle: ProductHandle
@@ -79,21 +74,29 @@ export function ProductViewerScene({ handle, options }: Props) {
     <Canvas
       className="w-full h-full"
       camera={{ position: [0, 1.5, 4], fov: 45 }}
-      // ✅ Pas de `shadows` → évite PCFSoftShadowMap deprecated + charge GPU
+      dpr={[1, 1.5]}                           // ← limite la résolution rendue
       gl={{
         antialias: true,
         alpha: true,
-        powerPreference: "default",
+        powerPreference: "high-performance",   // ← évite le GPU intégré faible
         failIfMajorPerformanceCaveat: false,
+        preserveDrawingBuffer: false,
       }}
-      // ✅ Ne re-render que sur interaction → évite la perte de contexte WebGL
-      frameloop="demand"
-      onCreated={({ gl }) => {
+      onCreated={({ gl, invalidate }) => {
         gl.shadowMap.enabled = false
         gl.toneMapping = THREE.ACESFilmicToneMapping
         gl.toneMappingExposure = 1.2
-        // Dispose proprement à l'unmount (évite les fuites de contexte WebGL)
-        return () => gl.dispose()
+
+        // ── Récupération automatique du contexte WebGL ──
+        const canvas = gl.domElement
+        canvas.addEventListener("webglcontextlost", (e) => {
+          e.preventDefault()                    // permet la restauration
+          console.warn("[3D] WebGL context lost")
+        }, false)
+        canvas.addEventListener("webglcontextrestored", () => {
+          console.info("[3D] WebGL context restored")
+          invalidate()                          // redemande une frame
+        }, false)
       }}
     >
       <ambientLight intensity={0.5} />
@@ -114,7 +117,9 @@ export function ProductViewerScene({ handle, options }: Props) {
 
       <SceneErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
-          <SceneContent handle={handle} options={options} />
+          <Bounds fit clip observe margin={1.2}>
+            <SceneContent handle={handle} options={options} />
+          </Bounds>
         </Suspense>
       </SceneErrorBoundary>
 
