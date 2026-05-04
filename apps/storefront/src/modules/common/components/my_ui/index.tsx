@@ -110,7 +110,7 @@ Icon.displayName = "Icon"
 // Input Component
 type InputType = "text" | "email" | "password" | "number" | "tel" | "url" | "search" | "date" | "time" | "checkbox" | "radio" | "range" | "file" | "color"
 
-type InputProps = InputHTMLAttributes<HTMLInputElement> & {
+type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
   size?: "max" | "full"
   variant?: "default" | "search"
   type?: InputType

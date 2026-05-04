@@ -1,3 +1,13 @@
+import { Metadata } from "next"
+
+import ProductGrid from "@modules/home/components/products-grid"
+import Banner from "@modules/home/components/banner"
+import Gallery from "@modules/home/components/gallery"
+import ArticleGrid from "@modules/blog/components/ArticleGrid"
+
+import { Slider } from "@modules/home/components/slider"
+import { listCollections } from "@lib/data/collections"
+import { getRegion } from "@lib/data/regions"
 
 const slides = [
   {
@@ -14,23 +24,10 @@ const slides = [
   },
 ]
 
-import { Metadata } from "next"
-
-import FeaturedProducts from "@modules/home/components/featured-products"
-import Hero from "@modules/home/components/hero"
-import ProductGrid from "@modules/home/components/products-grid"
-import Banner from "@modules/home/components/banner"
-import Gallery from "@modules/home/components/gallery"
-import ArticleGrid from "@modules/blog/components/ArticleGrid"
-
-import { Slider } from "@modules/home/components/slider"
-import { listCollections } from "@lib/data/collections"
-import { getRegion } from "@lib/data/regions"
-
 export const metadata: Metadata = {
-  title: "Medusa Next.js Starter Template",
+  title: "Kōgei — Artisanat japonais",
   description:
-    "A performant frontend ecommerce starter template with Next.js 15 and Medusa.",
+    "Pièces d'artisanat japonais : baguettes, éventails, parapluies. Façonnés à la main.",
 }
 
 export default async function Home(props: {
@@ -50,28 +47,18 @@ export default async function Home(props: {
   return (
     <>
       <Slider slides={slides} />
-      <div className="my-10 space-y-10">
 
-        {/*<Hero />*/}
-        <div className="mx-64 ">
-          <ProductGrid regionId={region.id}
-                       countryCode={countryCode}/>
-        </div>
-
-        <Banner />
-
-        <div className="mx-64">
-          <Gallery />
-        </div>
-
-        <ArticleGrid count={3} heading="Du côté du blog" />
-
-        {/*<div className="py-12">*/}
-        {/*  <ul className="flex flex-col gap-x-6">*/}
-        {/*    <FeaturedProducts collections={collections} region={region} />*/}
-        {/*  </ul>*/}
-        {/*</div>*/}
+      <div className="content-container my-12 md:my-16">
+        <ProductGrid regionId={region.id} countryCode={countryCode} />
       </div>
+
+      <Banner />
+
+      <div className="content-container my-12 md:my-16">
+        <Gallery />
+      </div>
+
+      <ArticleGrid count={3} heading="Du côté du blog" />
     </>
   )
 }
