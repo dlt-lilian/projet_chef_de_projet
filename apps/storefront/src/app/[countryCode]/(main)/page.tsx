@@ -59,18 +59,11 @@ export default async function Home(props: {
         </div>
 
         <Banner />
+        <ArticleGrid count={1} heading="Blog" />
 
         <div className="mx-64">
           <Gallery />
         </div>
-
-        <ArticleGrid count={3} heading="Du côté du blog" />
-
-        {/*<div className="py-12">*/}
-        {/*  <ul className="flex flex-col gap-x-6">*/}
-        {/*    <FeaturedProducts collections={collections} region={region} />*/}
-        {/*  </ul>*/}
-        {/*</div>*/}
       </div>
     </>
   )

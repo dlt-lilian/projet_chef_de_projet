@@ -19,9 +19,9 @@ export default async function Nav() {
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
       <header className="relative mx-auto border-b duration-200 bg-white">
-        <nav className="grid grid-cols-3 p-5 items-center">
+        <nav className="grid grid-cols-3 px-20 py-5 items-center">
 
-          {/* LEFT — Logo + SideMenu (mobile) */}
+          {/* Left and mobile SideMenu */}
           <div className="flex items-center gap-4">
             {/* SideMenu visible only on mobile */}
             <div className="small:hidden">
@@ -41,10 +41,10 @@ export default async function Nav() {
             </LocalizedClientLink>
           </div>
 
-          {/* CENTER — Nav links (desktop only) */}
+          {/* Center */}
           <div className="hidden small:flex gap-5 justify-center">
             <LocalizedClientLink
-              href="/baguettes"
+              href="/products/baguettes"
               className="flex items-center gap-1 transition-colors"
             >
               <Icon library="hugeicons" name="chopsticks" />
@@ -76,7 +76,7 @@ export default async function Nav() {
             </LocalizedClientLink>
           </div>
 
-          {/* RIGHT — Search, Account, Cart */}
+          {/* Right */}
           <div className="flex items-center gap-5 justify-end">
             <div className="hidden small:block">
               <Input variant="search" placeholder="Rechercher..." />

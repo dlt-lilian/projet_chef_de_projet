@@ -3,7 +3,16 @@ import { notFound } from "next/navigation"
 import { listProducts } from "@lib/data/products"
 import { getRegion, listRegions } from "@lib/data/regions"
 import ProductTemplate from "@modules/products/templates"
+import ProductTemplate3D from "@modules/products/templates/product-template-3d"
 import { HttpTypes } from "@medusajs/types"
+
+/** Handles des produits Kogei → viewer 3D + customizer */
+const KOGEI_HANDLES = [
+  "baguettes-japonaises",
+  "eventail-japonais",
+  "parapluie-japonais",
+  "pack-kogei",
+] as const
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
@@ -118,6 +127,20 @@ export default async function ProductPage(props: Props) {
 
   if (!pricedProduct) {
     notFound()
+  }
+
+  const isKogei = KOGEI_HANDLES.includes(
+    pricedProduct.handle as (typeof KOGEI_HANDLES)[number]
+  )
+
+  if (isKogei) {
+    return (
+      <ProductTemplate3D
+        product={pricedProduct}
+        region={region}
+        countryCode={params.countryCode}
+      />
+    )
   }
 
   return (

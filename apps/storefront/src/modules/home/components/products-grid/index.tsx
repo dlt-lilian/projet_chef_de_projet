@@ -52,7 +52,7 @@ export default async function ProductGrid({
 
   return (
     <div className="space-y-5">
-      <h3 className="text-center text-2xl">Articles</h3>
+      <h3 className="text-center text-2xl ">Produits</h3>
       <ul
         className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 w-full"
         data-testid="product-grid"
