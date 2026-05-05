@@ -3,6 +3,11 @@ import { notFound } from "next/navigation"
 import { listProducts } from "@lib/data/products"
 import { getRegion, listRegions } from "@lib/data/regions"
 import ProductTemplate from "@modules/products/templates"
+import ConfiguratorLayout from "@modules/configurator/components/ConfiguratorLayout"
+import {
+  getProductConfig,
+  isConfigurableProduct,
+} from "@modules/configurator/config/configurableProducts"
 import { HttpTypes } from "@medusajs/types"
 
 type Props = {
@@ -118,6 +123,15 @@ export default async function ProductPage(props: Props) {
 
   if (!pricedProduct) {
     notFound()
+  }
+
+  if (isConfigurableProduct(pricedProduct.handle)) {
+    return (
+      <ConfiguratorLayout
+        product={pricedProduct}
+        config={getProductConfig(pricedProduct.handle)}
+      />
+    )
   }
 
   return (

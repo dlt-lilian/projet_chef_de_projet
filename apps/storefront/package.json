@@ -25,6 +25,7 @@
     "@radix-ui/react-accordion": "^1.2.3",
     "@stripe/react-stripe-js": "^5.3.0",
     "@stripe/stripe-js": "^8.2.0",
+    "@types/three": "^0.184.0",
     "clsx": "^2.1.1",
     "daisyui": "4",
     "embla-carousel-react": "^8.6.0",
@@ -36,7 +37,8 @@
     "react-country-flag": "^3.1.0",
     "react-dom": "19.0.5",
     "server-only": "^0.0.1",
-    "tailwindcss-radix": "^2.8.0"
+    "tailwindcss-radix": "^2.8.0",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@babel/core": "^7.17.5",

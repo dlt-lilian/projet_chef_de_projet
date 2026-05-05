@@ -54,3 +54,10 @@ yarn-error.log*
 ehthumbs.db
 Thumbs.db
 **/.DS_Store
+
+# 3D configurator assets (kept out of repo, served from /public/3d)
+apps/storefront/public/3d/**/*.glb
+apps/storefront/public/3d/**/*.gltf
+apps/storefront/public/3d/**/textures/*
+!apps/storefront/public/3d/**/textures/.gitkeep
+!apps/storefront/public/3d/**/.gitkeep
