@@ -16,7 +16,7 @@ export default function DoubleImgBlock({ images }: TDoubleImgBlock) {
               width={800}
               height={600}
               sizes="(max-width: 768px) 100vw, 50vw"
-              className="w-full aspect-[4/3] object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+              className="w-full aspect-[4/3] object-cover transition-transform duration-700 rounded-lg"
             />
           </div>
           {img.caption && (

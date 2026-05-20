@@ -16,14 +16,14 @@ export default function BannerBlock({ img, alt, title, subtitle }: TBannerBlock)
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
       {(title || subtitle) && (
-        <div className="absolute bottom-0 left-0 right-0 px-8 pb-12 md:px-16">
+        <div className="absolute bottom-0 left-0 translate-x-0.5 right-0 px-8 pb-12 md:px-16">
           {subtitle && (
             <p className="text-xs tracking-[0.3em] uppercase text-ui-fg-on-inverted/70 mb-2 font-normal">
               {subtitle}
             </p>
           )}
           {title && (
-            <h1 className="text-4xl md:text-6xl text-ui-fg-on-inverted leading-tight max-w-3xl font-normal">
+            <h1 className="text-4xl md:text-6xl text-ui-fg-on-inverted leading-tight max-w-3xl mx-auto font-normal text-center">
               {title}
             </h1>
           )}
