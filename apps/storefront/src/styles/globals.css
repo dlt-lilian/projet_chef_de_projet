@@ -53,9 +53,12 @@
 }
 
 :root {
-    --color-primary: #082f49;
-    --color-black:   #082f49;
-    --color-white:   #f9fafb;
+    --color-primary: #052F4A;
+    --color-black:   #052F4A;
+    --color-white:   #F9FAFB;
+    --color-gray-200: #E5E7EB;
+    --color-gray-400: #99A1AF;
+    --shadow-card: 0 4px 10px 0 rgba(30, 41, 57, 0.25);
 }
 
 body {

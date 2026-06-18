@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(xxd apps/storefront/public/3d/chopsticks/chopsticks.glb)"
+    ]
+  }
+}

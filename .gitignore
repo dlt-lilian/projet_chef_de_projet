@@ -55,4 +55,5 @@ ehthumbs.db
 Thumbs.db
 **/.DS_Store
 
-.claude
+# 3D configurator assets : committés pour que Railpack les inclue au build
+# (Railway build depuis git → tout asset non versionné = 404 en prod).

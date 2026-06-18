@@ -56,7 +56,7 @@ export default async function BlogArticlePage({ params }: Props) {
       {bannerBlocks.length > 0 && <BlockRenderer blocks={bannerBlocks} />}
 
       {/* ── Méta ─────────────────────────────────────────────────────── */}
-      <div className="content-container max-w-3xl mb-6">
+      <div className="content-container max-w-5xl mb-6">
         <div className="flex items-center gap-3 text-xs text-ui-fg-muted flex-wrap">
           <span className="text-ui-fg-interactive">{post.category}</span>
           <span>·</span>
@@ -74,13 +74,13 @@ export default async function BlogArticlePage({ params }: Props) {
       </div>
 
       {/* ── Corps ────────────────────────────────────────────────────── */}
-      <article className="content-container max-w-3xl pb-24">
+      <article className="content-container max-w-5xl pb-24">
         <BlockRenderer blocks={bodyBlocks} />
       </article>
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
       <div className="border-t border-ui-border-base bg-ui-bg-subtle">
-        <div className="content-container max-w-3xl py-10 flex items-center justify-between">
+        <div className="content-container max-w-5xl py-10 flex items-center justify-between">
           <div>
             <p className="text-xs text-ui-fg-muted uppercase tracking-widest mb-1">Écrit par</p>
             <p className="text-ui-fg-base">{post.author}</p>

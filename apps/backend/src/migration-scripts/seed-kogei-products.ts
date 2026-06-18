@@ -15,34 +15,28 @@ import { createProductsWorkflow } from "@medusajs/medusa/core-flows";
 // produit dont le handle existe déjà.
 // ──────────────────────────────────────────────────────────────────────
 
+// Handles alignés avec CONFIGURABLE_HANDLES du storefront (module configurator).
 const KOGEI_PRODUCTS = [
   {
-    handle: "baguettes-japonaises",
+    handle: "chopsticks",
     title: "Baguettes Japonaises",
     description:
-      "Baguettes japonaises en bois, personnalisables : couleur, motif et gravure. Façonnées dans la tradition Kōgei.",
+      "Baguettes japonaises en bois, personnalisables : essence de bois et gravure. Façonnées dans la tradition Kōgei.",
     price: 25,
   },
   {
-    handle: "eventail-japonais",
+    handle: "eventail",
     title: "Éventail Japonais",
     description:
-      "Éventail japonais (sensu) personnalisable. Élégance et savoir-faire artisanal.",
+      "Éventail japonais (sensu) personnalisable : tissu et motif. Élégance et savoir-faire artisanal.",
     price: 35,
   },
   {
-    handle: "parapluie-japonais",
+    handle: "parapluie",
     title: "Parapluie Japonais",
     description:
       "Parapluie japonais (wagasa) personnalisable. Pièce d'exception inspirée de l'artisanat traditionnel.",
     price: 45,
-  },
-  {
-    handle: "pack-kogei",
-    title: "Pack Kōgei",
-    description:
-      "Le coffret Kōgei : baguettes, éventail et parapluie réunis dans un pack personnalisable.",
-    price: 95,
   },
 ];
 

@@ -3,16 +3,12 @@ import { notFound } from "next/navigation"
 import { listProducts } from "@lib/data/products"
 import { getRegion, listRegions } from "@lib/data/regions"
 import ProductTemplate from "@modules/products/templates"
-import ProductTemplate3D from "@modules/products/templates/product-template-3d"
+import ConfiguratorLayout from "@modules/configurator/components/ConfiguratorLayout"
+import {
+  getProductConfig,
+  isConfigurableProduct,
+} from "@modules/configurator/config/configurableProducts"
 import { HttpTypes } from "@medusajs/types"
-
-/** Handles des produits Kogei → viewer 3D + customizer */
-const KOGEI_HANDLES = [
-  "baguettes-japonaises",
-  "eventail-japonais",
-  "parapluie-japonais",
-  "pack-kogei",
-] as const
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
@@ -127,21 +123,16 @@ export default async function ProductPage(props: Props) {
     notFound()
   }
 
-  const images = getImagesForVariant(pricedProduct, selectedVariantId)
-
-  const isKogei = KOGEI_HANDLES.includes(
-    pricedProduct.handle as (typeof KOGEI_HANDLES)[number]
-  )
-
-  if (isKogei) {
+  if (isConfigurableProduct(pricedProduct.handle)) {
     return (
-      <ProductTemplate3D
+      <ConfiguratorLayout
         product={pricedProduct}
-        region={region}
-        countryCode={params.countryCode}
+        config={getProductConfig(pricedProduct.handle)}
       />
     )
   }
+
+  const images = getImagesForVariant(pricedProduct, selectedVariantId)
 
   return (
     <ProductTemplate

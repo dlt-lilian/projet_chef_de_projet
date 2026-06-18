@@ -6,18 +6,22 @@ import { ArrowRightMini, XMark } from "@medusajs/icons"
 import { HttpTypes } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { Text, clx } from "@modules/common/components/ui"
+import { Icon, Input } from "@modules/common/components/my_ui"
 import { Fragment } from "react"
 import CountrySelect from "../country-select"
 import LanguageSelect from "../language-select"
 import { Locale } from "@lib/data/locales"
 
-
-const SideMenuItems = {
-  Home: "/",
-  Store: "/store",
-  Account: "/account",
-  Cart: "/cart",
-}
+const NavItems = [
+  { name: "Accueil", href: "/", icon: "home" },
+  { name: "Baguettes", href: "/baguettes", icon: "chopsticks", library: "hugeicons" as const },
+  { name: "Éventail", href: "/eventail", icon: "fan-handheld", library: "lucide-lab" as const },
+  { name: "Parapluie", href: "/parapluie", icon: "umbrella" },
+  { name: "Blog", href: "/blog", icon: "letter-text" },
+  { name: "Contact", href: "/contact", icon: "mail" },
+  { name: "Compte", href: "/account", icon: "user-round" },
+  { name: "Panier", href: "/cart", icon: "shopping-cart" },
+]
 
 type SideMenuProps = {
   regions: HttpTypes.StoreRegion[] | null
@@ -38,15 +42,16 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
               <div className="relative flex h-full">
                 <Popover.Button
                   data-testid="nav-menu-button"
-                  className="relative h-full flex items-center transition-all ease-out duration-200 focus:outline-none hover:text-ui-fg-base"
+                  className="relative h-full flex items-center transition-all ease-out duration-200 focus:outline-none hover:text-primary"
+                  aria-label="Ouvrir le menu"
                 >
-                  Menu
+                  <Icon name="menu" size={22} />
                 </Popover.Button>
               </div>
 
               {open && (
                 <div
-                  className="fixed inset-0 z-[50] bg-black/0 pointer-events-auto"
+                  className="fixed inset-0 z-[50] bg-black/30 pointer-events-auto"
                   onClick={close}
                   data-testid="side-menu-backdrop"
                 />
@@ -55,43 +60,62 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
               <Transition
                 show={open}
                 as={Fragment}
-                enter="transition ease-out duration-150"
-                enterFrom="opacity-0"
-                enterTo="opacity-100 backdrop-blur-2xl"
+                enter="transition ease-out duration-200"
+                enterFrom="opacity-0 -translate-x-2"
+                enterTo="opacity-100 translate-x-0"
                 leave="transition ease-in duration-150"
-                leaveFrom="opacity-100 backdrop-blur-2xl"
-                leaveTo="opacity-0"
+                leaveFrom="opacity-100 translate-x-0"
+                leaveTo="opacity-0 -translate-x-2"
               >
-                <PopoverPanel className="flex flex-col absolute w-full pr-4 sm:pr-0 sm:w-1/3 2xl:w-1/4 sm:min-w-min h-[calc(100vh-1rem)] z-[51] inset-x-0 text-sm text-ui-fg-on-color m-2 backdrop-blur-2xl">
+                <PopoverPanel className="fixed top-0 left-0 w-[85%] max-w-[360px] h-screen z-[51] bg-white shadow-xl">
                   <div
                     data-testid="nav-menu-popup"
-                    className="flex flex-col h-full bg-[rgba(3,7,18,0.5)] rounded-rounded justify-between p-6"
+                    className="flex flex-col h-full p-6 gap-6"
                   >
-                    <div className="flex justify-end" id="xmark">
-                      <button data-testid="close-menu-button" onClick={close}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold uppercase text-lg text-grey-90">
+                        KŌGEI 工芸
+                      </span>
+                      <button
+                        data-testid="close-menu-button"
+                        onClick={close}
+                        aria-label="Fermer le menu"
+                        className="text-grey-70 hover:text-primary"
+                      >
                         <XMark />
                       </button>
                     </div>
-                    <ul className="flex flex-col gap-6 items-start justify-start">
-                      {Object.entries(SideMenuItems).map(([name, href]) => {
-                        return (
-                          <li key={name}>
-                            <LocalizedClientLink
-                              href={href}
-                              className="text-3xl leading-10 hover:text-ui-fg-disabled"
-                              onClick={close}
-                              data-testid={`${name.toLowerCase()}-link`}
-                            >
-                              {name}
-                            </LocalizedClientLink>
-                          </li>
-                        )
-                      })}
+
+                    <Input
+                      variant="search"
+                      placeholder="Rechercher..."
+                      size="full"
+                    />
+
+                    <ul className="flex flex-col gap-1">
+                      {NavItems.map((item) => (
+                        <li key={item.href}>
+                          <LocalizedClientLink
+                            href={item.href}
+                            className="flex items-center gap-3 px-3 py-3 rounded-xl text-grey-90 hover:bg-grey-20 transition-colors"
+                            onClick={close}
+                            data-testid={`${item.name.toLowerCase()}-link`}
+                          >
+                            <Icon
+                              name={item.icon}
+                              library={item.library ?? "lucide"}
+                              size={18}
+                            />
+                            <span className="text-sm">{item.name}</span>
+                          </LocalizedClientLink>
+                        </li>
+                      ))}
                     </ul>
-                    <div className="flex flex-col gap-y-6">
+
+                    <div className="mt-auto flex flex-col gap-y-4 pt-6 border-t border-grey-20">
                       {!!locales?.length && (
                         <div
-                          className="flex justify-between"
+                          className="flex justify-between text-grey-70"
                           onMouseEnter={languageToggleState.open}
                           onMouseLeave={languageToggleState.close}
                         >
@@ -109,7 +133,7 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
                         </div>
                       )}
                       <div
-                        className="flex justify-between"
+                        className="flex justify-between text-grey-70"
                         onMouseEnter={countryToggleState.open}
                         onMouseLeave={countryToggleState.close}
                       >
@@ -126,9 +150,8 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
                           )}
                         />
                       </div>
-                      <Text className="flex justify-between txt-compact-small">
-                        © {new Date().getFullYear()} Medusa Store. All rights
-                        reserved.
+                      <Text className="text-xs text-gray-500">
+                        © {new Date().getFullYear()} Kōgei.
                       </Text>
                     </div>
                   </div>
