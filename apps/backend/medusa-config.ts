@@ -7,8 +7,6 @@ module.exports = defineConfig({
     databaseUrl: process.env.DATABASE_URL,
     workerMode: (process.env.MEDUSA_WORKER_MODE as "shared" | "server" | "worker") || "shared",
     http: {
-      port: Number(process.env.PORT) || 9000,
-      host: "0.0.0.0",
       storeCors: process.env.STORE_CORS!,
       adminCors: process.env.ADMIN_CORS!,
       authCors: process.env.AUTH_CORS!,
