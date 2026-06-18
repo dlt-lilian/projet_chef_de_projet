@@ -49,23 +49,21 @@ export const PUT = async (
 
   // MedusaService updateBlogPosts attend : ({ id, ...data })
   // Le champ blocks (JSONB) doit être explicitement inclus
-  const updated = await blogService.updateBlogPosts([
-    {
-      id,
-      slug:      body.slug      as string,
-      title:     body.title     as string,
-      excerpt:   body.excerpt   as string,
-      cover:     body.cover     as string,
-      category:  body.category  as string,
-      author:    body.author    as string,
-      date:      body.date      as string,
-      date_iso:  body.date_iso  as string,
-      read_time: body.read_time as string,
-      featured:  body.featured  as boolean,
-      published: body.published as boolean,
-      blocks:    body.blocks    as unknown[],
-    },
-  ])
+  const updated = await blogService.updateBlogPosts({
+    id,
+    slug:      body.slug      as string,
+    title:     body.title     as string,
+    excerpt:   body.excerpt   as string,
+    cover:     body.cover     as string,
+    category:  body.category  as string,
+    author:    body.author    as string,
+    date:      body.date      as string,
+    date_iso:  body.date_iso  as string,
+    read_time: body.read_time as string,
+    featured:  body.featured  as boolean,
+    published: body.published as boolean,
+    blocks:    body.blocks    as Record<string, unknown>,
+  })
 
   res.json({ blog: Array.isArray(updated) ? updated[0] : updated })
 }
