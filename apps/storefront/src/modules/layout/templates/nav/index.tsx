@@ -44,7 +44,7 @@ export default async function Nav() {
           {/* Center */}
           <div className="hidden small:flex gap-5 justify-center">
             <LocalizedClientLink
-              href="/products/baguettes"
+              href="/products/baguettes-japonaises"
               className="flex items-center gap-1 transition-colors"
             >
               <Icon library="hugeicons" name="chopsticks" />
@@ -52,7 +52,7 @@ export default async function Nav() {
             </LocalizedClientLink>
 
             <LocalizedClientLink
-              href="/eventail"
+              href="/products/eventail-japonais"
               className="flex items-center gap-1 transition-colors"
             >
               <Icon library="lucide-lab" name="fan-handheld" />
@@ -60,7 +60,7 @@ export default async function Nav() {
             </LocalizedClientLink>
 
             <LocalizedClientLink
-              href="/parapluie"
+              href="/products/parapluie-japonais"
               className="flex items-center gap-1 transition-colors"
             >
               <Icon name="umbrella" />
