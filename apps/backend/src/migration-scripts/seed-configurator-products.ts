@@ -3,19 +3,31 @@ import {
   ContainerRegistrationKeys,
   ProductStatus,
 } from "@medusajs/framework/utils";
-import { createProductsWorkflow } from "@medusajs/medusa/core-flows";
+import {
+  createProductsWorkflow,
+  deleteProductsWorkflow,
+} from "@medusajs/medusa/core-flows";
 
 // ──────────────────────────────────────────────────────────────────────
-// Seed des produits Kogei (viewer 3D + customizer).
-// Les handles DOIVENT correspondre à KOGEI_HANDLES / MODEL_PATHS côté
-// storefront, sinon la page produit ne déclenche pas le template 3D.
+// Seed des produits du configurator 3D.
+// Handles alignés sur CONFIGURABLE_HANDLES du storefront :
+//   chopsticks · eventail · parapluie
 //
-// S'exécute automatiquement via `medusa db:migrate` (predeploy), une seule
-// fois (tracké dans script_migrations). Idempotent : ne recrée pas un
-// produit dont le handle existe déjà.
+// Remplace l'ancien seed (handles baguettes-japonaises / pack-kogei) :
+//   1. supprime les anciens produits orphelins (try/catch — non bloquant)
+//   2. crée les nouveaux produits (idempotent)
+//
+// Nouveau NOM de fichier volontaire : un migration-script est tracké par
+// nom dans script_migrations ; renommer force la ré-exécution.
 // ──────────────────────────────────────────────────────────────────────
 
-// Handles alignés avec CONFIGURABLE_HANDLES du storefront (module configurator).
+const OLD_HANDLES = [
+  "baguettes-japonaises",
+  "eventail-japonais",
+  "parapluie-japonais",
+  "pack-kogei",
+];
+
 const KOGEI_PRODUCTS = [
   {
     handle: "chopsticks",
@@ -40,7 +52,7 @@ const KOGEI_PRODUCTS = [
   },
 ];
 
-export default async function seed_kogei_products({
+export default async function seed_configurator_products({
   container,
 }: {
   container: MedusaContainer;
@@ -48,7 +60,31 @@ export default async function seed_kogei_products({
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
   const query = container.resolve(ContainerRegistrationKeys.QUERY);
 
-  // Sales channel par défaut (créé par le seed initial)
+  // 1. Supprime les anciens produits orphelins (ancien système 3D).
+  //    Non bloquant : un échec ici ne doit pas empêcher la création.
+  try {
+    const { data: allProducts } = await query.graph({
+      entity: "product",
+      fields: ["id", "handle"],
+    });
+    const toDelete = allProducts.filter((p) => OLD_HANDLES.includes(p.handle));
+    if (toDelete.length > 0) {
+      logger.info(
+        `Configurator seed: suppression de ${toDelete.length} ancien(s) produit(s) orphelin(s)...`
+      );
+      await deleteProductsWorkflow(container).run({
+        input: { ids: toDelete.map((p) => p.id) },
+      });
+    }
+  } catch (e) {
+    logger.warn(
+      `Configurator seed: suppression des anciens produits ignorée (${
+        e instanceof Error ? e.message : "erreur inconnue"
+      }).`
+    );
+  }
+
+  // 2. Sales channel par défaut + shipping profile
   const { data: salesChannels } = await query.graph({
     entity: "sales_channel",
     fields: ["id", "name"],
@@ -59,19 +95,18 @@ export default async function seed_kogei_products({
 
   if (!defaultSalesChannel) {
     logger.warn(
-      "Kogei seed: aucun sales channel trouvé (lancez d'abord le seed initial). Skipping."
+      "Configurator seed: aucun sales channel trouvé (lancez d'abord le seed initial). Skipping."
     );
     return;
   }
 
-  // Shipping profile par défaut (créé par le core)
   const { data: shippingProfiles } = await query.graph({
     entity: "shipping_profile",
     fields: ["id"],
   });
   const shippingProfile = shippingProfiles[0];
 
-  // Idempotence : ne crée que les handles absents
+  // 3. Crée les produits du configurator (idempotent)
   const { data: existingProducts } = await query.graph({
     entity: "product",
     fields: ["handle"],
@@ -82,11 +117,11 @@ export default async function seed_kogei_products({
   );
 
   if (toCreate.length === 0) {
-    logger.info("Kogei seed: produits déjà présents. Skipping.");
+    logger.info("Configurator seed: produits déjà présents. Skipping.");
     return;
   }
 
-  logger.info(`Kogei seed: création de ${toCreate.length} produit(s)...`);
+  logger.info(`Configurator seed: création de ${toCreate.length} produit(s)...`);
 
   await createProductsWorkflow(container).run({
     input: {
@@ -111,5 +146,5 @@ export default async function seed_kogei_products({
     },
   });
 
-  logger.info("Kogei seed: terminé.");
+  logger.info("Configurator seed: terminé.");
 }
