@@ -1,11 +1,13 @@
 export type ConfigurableHandle = "chopsticks" | "eventail" | "parapluie"
 
-export type ConfiguratorOptionType = "texture" | "motif" | "engraving"
+export type ConfiguratorOptionType = "texture" | "motif" | "color" | "engraving"
 
 export type ConfiguratorChoice = {
   id: string
   label: string
   texturePath?: string
+  /** Couleur unie (hex) — utilisée par les options de type "color". */
+  colorHex?: string
 }
 
 type BaseOption = {
@@ -24,12 +26,19 @@ export type ConfiguratorTextureOption = BaseOption & {
   choices: ConfiguratorChoice[]
 }
 
+export type ConfiguratorColorOption = BaseOption & {
+  type: "color"
+  targetMesh: string
+  choices: ConfiguratorChoice[]
+}
+
 export type ConfiguratorEngravingOption = BaseOption & {
   type: "engraving"
 }
 
 export type ConfiguratorOption =
   | ConfiguratorTextureOption
+  | ConfiguratorColorOption
   | ConfiguratorEngravingOption
 
 export type ConfiguratorProductConfig = {
@@ -48,10 +57,27 @@ export const CONFIGURABLE_HANDLES: ConfigurableHandle[] = [
   "parapluie",
 ]
 
+/** Palette de couleurs unies Kogei (laque / bois teinté), partagée par les produits. */
+export const COLOR_CHOICES: ConfiguratorChoice[] = [
+  { id: "naturel", label: "Naturel", colorHex: "#C4A882" },
+  { id: "noir", label: "Noir Laqué", colorHex: "#1A1A1A" },
+  { id: "vermillon", label: "Vermillon", colorHex: "#C0392B" },
+  { id: "or", label: "Or", colorHex: "#D4AF37" },
+  { id: "nacre", label: "Blanc Nacré", colorHex: "#F5F0E8" },
+  { id: "indigo", label: "Bleu Indigo", colorHex: "#1B3A6B" },
+]
+
 export const PRODUCT_CONFIG: ProductConfigMap = {
   chopsticks: {
     glbPath: "/3d/chopsticks/chopsticks.glb",
     options: [
+      {
+        id: "color",
+        label: "Couleur",
+        type: "color",
+        targetMesh: "Material_0",
+        choices: COLOR_CHOICES,
+      },
       {
         id: "wood",
         label: "Essence de bois",
@@ -85,6 +111,13 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
   eventail: {
     glbPath: "/3d/eventail/eventail.glb",
     options: [
+      {
+        id: "color",
+        label: "Couleur",
+        type: "color",
+        targetMesh: "Material_0",
+        choices: COLOR_CHOICES,
+      },
       {
         id: "fabric",
         label: "Tissu",
@@ -136,6 +169,13 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
   parapluie: {
     glbPath: "/3d/parapluie/parapluie.glb",
     options: [
+      {
+        id: "color",
+        label: "Couleur",
+        type: "color",
+        targetMesh: "Material_0",
+        choices: COLOR_CHOICES,
+      },
       {
         id: "canopy",
         label: "Toile",

@@ -3,8 +3,8 @@
 import { HttpTypes } from "@medusajs/types"
 import { useCallback, useRef } from "react"
 import {
+  ConfiguratorOption,
   ConfiguratorProductConfig,
-  ConfiguratorTextureOption,
 } from "../config/configurableProducts"
 import { useProductConfigurator } from "../hooks/useProductConfigurator"
 import ConfiguratorSidebar from "./ConfiguratorSidebar"
@@ -24,25 +24,37 @@ export default function ConfiguratorLayout({
   const viewerRef = useRef<ConfiguratorViewerHandle>(null)
   const controller = useProductConfigurator(config)
 
-  const handleTextureChange = useCallback(
-    (option: ConfiguratorTextureOption, choiceId: string) => {
+  // Applique une sélection : couleur unie → applyColor, texture/motif → swapTexture.
+  const applyOption = useCallback(
+    (option: ConfiguratorOption, choiceId: string) => {
+      if (option.type === "engraving") return
       const choice = option.choices.find((c) => c.id === choiceId)
-      if (!choice?.texturePath) return
-      void viewerRef.current?.swapTexture(option.targetMesh, choice.texturePath)
+      if (!choice) return
+      if (option.type === "color") {
+        if (choice.colorHex) {
+          viewerRef.current?.applyColor(option.targetMesh, choice.colorHex)
+        }
+        return
+      }
+      if (choice.texturePath) {
+        void viewerRef.current?.swapTexture(option.targetMesh, choice.texturePath)
+      }
     },
     []
   )
 
-  // Apply initial selections as soon as the GLB is ready, so the model
-  // reflects the swatches highlighted in the sidebar without requiring a click.
+  // Apply initial selections as soon as the GLB is ready, so the model reflects
+  // the swatches highlighted in the sidebar without requiring a click.
+  // Textures/motifs d'abord, puis couleurs : sur un mesh partagé la couleur unie
+  // l'emporte par défaut (cohérent avec l'ancien système où "uni" = couleur).
   const handleModelReady = useCallback(() => {
-    for (const option of config.options) {
-      if (option.type === "engraving") continue
-      const path = controller.getSelectedTexturePath(option.id)
-      if (!path) continue
-      void viewerRef.current?.swapTexture(option.targetMesh, path)
+    const apply = (option: ConfiguratorOption) => {
+      const choiceId = controller.getSelectedChoiceId(option.id)
+      if (choiceId) applyOption(option, choiceId)
     }
-  }, [config, controller])
+    config.options.filter((o) => o.type !== "color").forEach(apply)
+    config.options.filter((o) => o.type === "color").forEach(apply)
+  }, [config, controller, applyOption])
 
   return (
     <section
@@ -60,7 +72,7 @@ export default function ConfiguratorLayout({
         product={product}
         config={config}
         controller={controller}
-        onTextureChange={handleTextureChange}
+        onOptionChange={applyOption}
       />
     </section>
   )

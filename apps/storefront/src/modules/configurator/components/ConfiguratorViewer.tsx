@@ -10,6 +10,7 @@ import {
 import type { Object3D } from "three"
 import {
   ThreeContext,
+  applyColorToMesh,
   disposeContext,
   initThreeScene,
   loadGLB,
@@ -19,6 +20,7 @@ import {
 
 export type ConfiguratorViewerHandle = {
   swapTexture: (meshName: string, texturePath: string) => Promise<void>
+  applyColor: (meshName: string, hex: string) => void
 }
 
 type ConfiguratorViewerProps = {
@@ -50,6 +52,11 @@ const ConfiguratorViewer = forwardRef<
         const root = modelRef.current
         if (!root) return
         await swapTextureOnMesh(root, meshName, texturePath)
+      },
+      applyColor(meshName: string, hex: string) {
+        const root = modelRef.current
+        if (!root) return
+        applyColorToMesh(root, meshName, hex)
       },
     }),
     []

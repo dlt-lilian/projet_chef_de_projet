@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react"
 import {
+  ConfiguratorColorOption,
   ConfiguratorProductConfig,
   ConfiguratorTextureOption,
 } from "../config/configurableProducts"
@@ -41,7 +42,7 @@ export function useProductConfigurator(
   }))
 
   const optionsById = useMemo(() => {
-    const map = new Map<string, ConfiguratorTextureOption>()
+    const map = new Map<string, ConfiguratorTextureOption | ConfiguratorColorOption>()
     for (const option of config.options) {
       if (option.type !== "engraving") {
         map.set(option.id, option)

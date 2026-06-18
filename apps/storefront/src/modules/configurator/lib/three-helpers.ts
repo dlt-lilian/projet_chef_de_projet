@@ -306,6 +306,29 @@ export async function swapTextureOnMesh(
   }
 }
 
+/**
+ * Applique une couleur unie aux meshes ciblés : retire la map diffuse et pose
+ * `color` (couleur XOR texture, comme l'ancien système). On ne dispose PAS la
+ * map (potentiellement partagée via le cache de textures).
+ */
+export function applyColorToMesh(
+  root: Object3D,
+  meshName: string,
+  hex: string
+): void {
+  const meshes = findMeshes(root, meshName)
+  for (const mesh of meshes) {
+    const current = mesh.material
+    if (current instanceof MeshStandardMaterial) {
+      current.map = null
+      current.color.set(hex)
+      current.needsUpdate = true
+      continue
+    }
+    mesh.material = new MeshStandardMaterial({ color: new Color(hex) })
+  }
+}
+
 export function disposeContext(ctx: ThreeContext, root: Object3D | null): void {
   if (root) {
     root.traverse((child) => {

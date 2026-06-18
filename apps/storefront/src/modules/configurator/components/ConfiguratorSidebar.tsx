@@ -9,7 +9,6 @@ import { useState } from "react"
 import {
   ConfiguratorOption,
   ConfiguratorProductConfig,
-  ConfiguratorTextureOption,
 } from "../config/configurableProducts"
 import { UseProductConfiguratorReturn } from "../hooks/useProductConfigurator"
 
@@ -17,7 +16,7 @@ type ConfiguratorSidebarProps = {
   product: HttpTypes.StoreProduct
   config: ConfiguratorProductConfig
   controller: UseProductConfiguratorReturn
-  onTextureChange: (option: ConfiguratorTextureOption, choiceId: string) => void
+  onOptionChange: (option: ConfiguratorOption, choiceId: string) => void
 }
 
 const ENGRAVING_MAX_LENGTH = 30
@@ -26,7 +25,7 @@ export default function ConfiguratorSidebar({
   product,
   config,
   controller,
-  onTextureChange,
+  onOptionChange,
 }: ConfiguratorSidebarProps) {
   const countryCode = useParams().countryCode as string
   const [isAdding, setIsAdding] = useState(false)
@@ -60,7 +59,7 @@ export default function ConfiguratorSidebar({
             key={option.id}
             option={option}
             controller={controller}
-            onTextureChange={onTextureChange}
+            onOptionChange={onOptionChange}
           />
         ))}
       </div>
@@ -85,10 +84,10 @@ export default function ConfiguratorSidebar({
 type OptionRowProps = {
   option: ConfiguratorOption
   controller: UseProductConfiguratorReturn
-  onTextureChange: (option: ConfiguratorTextureOption, choiceId: string) => void
+  onOptionChange: (option: ConfiguratorOption, choiceId: string) => void
 }
 
-function OptionRow({ option, controller, onTextureChange }: OptionRowProps) {
+function OptionRow({ option, controller, onOptionChange }: OptionRowProps) {
   if (option.type === "engraving") {
     return (
       <div className="flex flex-col gap-2">
@@ -127,7 +126,7 @@ function OptionRow({ option, controller, onTextureChange }: OptionRowProps) {
               title={choice.label}
               onClick={() => {
                 controller.setSelection(option.id, choice.id)
-                onTextureChange(option, choice.id)
+                onOptionChange(option, choice.id)
               }}
               className={clx(
                 "w-12 h-12 rounded border bg-stone-100 bg-cover bg-center transition-shadow",
@@ -136,9 +135,11 @@ function OptionRow({ option, controller, onTextureChange }: OptionRowProps) {
                   : "border-stone-300 hover:border-stone-500"
               )}
               style={
-                choice.texturePath
-                  ? { backgroundImage: `url(${choice.texturePath})` }
-                  : undefined
+                choice.colorHex
+                  ? { backgroundColor: choice.colorHex }
+                  : choice.texturePath
+                    ? { backgroundImage: `url(${choice.texturePath})` }
+                    : undefined
               }
             >
               <span className="sr-only">{choice.label}</span>
