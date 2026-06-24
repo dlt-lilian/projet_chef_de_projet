@@ -1,4 +1,4 @@
-export type ConfigurableHandle = "chopsticks" | "eventail" | "parapluie"
+export type ConfigurableHandle = "baguettes" | "eventail" | "parapluie"
 
 export type ConfiguratorOptionType = "texture" | "motif" | "color" | "engraving"
 
@@ -52,7 +52,7 @@ export type ProductConfigMap = Record<
 >
 
 export const CONFIGURABLE_HANDLES: ConfigurableHandle[] = [
-  "chopsticks",
+  "baguettes",
   "eventail",
   "parapluie",
 ]
@@ -68,8 +68,8 @@ export const COLOR_CHOICES: ConfiguratorChoice[] = [
 ]
 
 export const PRODUCT_CONFIG: ProductConfigMap = {
-  chopsticks: {
-    glbPath: "/3d/chopsticks/chopsticks.glb",
+  baguettes: {
+    glbPath: "/3d/baguettes/baguettes.glb",
     options: [
       {
         id: "color",
@@ -87,17 +87,17 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
           {
             id: "blue",
             label: "Bleu",
-            texturePath: "/3d/chopsticks/textures/Wood_Color_white_and_blue.jpg",
+            texturePath: "/3d/baguettes/textures/Wood_Color_white_and_blue.jpg",
           },
           {
             id: "pink",
             label: "rose",
-            texturePath: "/3d/chopsticks/textures/metal_pink.jpg",
+            texturePath: "/3d/baguettes/textures/metal_pink.jpg",
           },
           {
             id: "pastelpink",
             label: "rose pastel",
-            texturePath: "/3d/chopsticks/textures/pastel_pink_japanese_style_wave_pattern_background_1611.jpg",
+            texturePath: "/3d/baguettes/textures/pastel_pink_japanese_style_wave_pattern_background_1611.jpg",
           },
         ],
       },

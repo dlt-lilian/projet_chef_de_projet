@@ -11,7 +11,7 @@ import {
 // ──────────────────────────────────────────────────────────────────────
 // Seed des produits du configurator 3D.
 // Handles alignés sur CONFIGURABLE_HANDLES du storefront :
-//   chopsticks · eventail · parapluie
+//   baguettes · eventail · parapluie
 //
 // Remplace l'ancien seed (handles baguettes-japonaises / pack-kogei) :
 //   1. supprime les anciens produits orphelins (try/catch — non bloquant)
@@ -30,7 +30,7 @@ const OLD_HANDLES = [
 
 const KOGEI_PRODUCTS = [
   {
-    handle: "chopsticks",
+    handle: "baguettes",
     title: "Baguettes Japonaises",
     description:
       "Baguettes japonaises en bois, personnalisables : essence de bois et gravure. Façonnées dans la tradition Kōgei.",

@@ -43,7 +43,7 @@ export default async function Nav() {
           {/* CENTER — Nav links (desktop only) */}
           <div className="hidden small:flex gap-6 justify-center text-sm text-grey-90">
             <LocalizedClientLink
-              href="/products/chopsticks"
+              href="/products/baguettes"
               className="flex items-center gap-1.5 hover:text-primary transition-colors"
             >
               <Icon library="hugeicons" name="chopsticks" size={18} />
