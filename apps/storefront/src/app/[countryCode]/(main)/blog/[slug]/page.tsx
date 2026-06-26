@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { getAllSlugs, getArticleBySlug } from "@lib/blog"
+import { listRegions } from "@lib/data/regions"
 import BlockRenderer from "@modules/blog/components/blocks/BlockRenderer"
 import type { Metadata } from "next"
 
@@ -10,7 +11,31 @@ type Props = { params: Promise<{ slug: string; countryCode: string }> }
 export const revalidate = 60
 
 export async function generateStaticParams() {
-  return getAllSlugs()
+  try {
+    // La route a DEUX segments dynamiques : [countryCode] et [slug].
+    // generateStaticParams doit fournir les deux (cf. products/[handle]),
+    // sinon le build de prod échoue faute de countryCode.
+    const countryCodes = await listRegions().then((regions) =>
+      regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
+    )
+
+    if (!countryCodes) return []
+
+    const slugs = await getAllSlugs()
+
+    return countryCodes
+      .filter(Boolean)
+      .flatMap((countryCode) =>
+        slugs.map(({ slug }) => ({ countryCode: countryCode as string, slug }))
+      )
+  } catch (error) {
+    console.error(
+      `Failed to generate static paths for blog pages: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }.`
+    )
+    return []
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
