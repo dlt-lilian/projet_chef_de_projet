@@ -18,7 +18,7 @@ export type UseProductConfiguratorReturn = {
   setEngraving: (text: string) => void
   getSelectedTexturePath: (optionId: string) => string | undefined
   getSelectedChoiceId: (optionId: string) => string | undefined
-  getTargetMesh: (optionId: string) => string | undefined
+  getTargetMesh: (optionId: string) => string | string[] | undefined
 }
 
 function buildInitialSelections(
@@ -78,7 +78,7 @@ export function useProductConfigurator(
   )
 
   const getTargetMesh = useCallback(
-    (optionId: string): string | undefined =>
+    (optionId: string): string | string[] | undefined =>
       optionsById.get(optionId)?.targetMesh,
     [optionsById]
   )

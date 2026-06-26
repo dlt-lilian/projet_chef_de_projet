@@ -122,7 +122,8 @@ export function resizeRendererToCanvas(ctx: ThreeContext): void {
  */
 export function loadGLB(
   path: string,
-  ctx?: Pick<ThreeContext, "camera" | "controls">
+  ctx?: Pick<ThreeContext, "camera" | "controls">,
+  rotationDeg?: [number, number, number]
 ): Promise<Object3D> {
   const loader = new GLTFLoader()
   return new Promise((resolve, reject) => {
@@ -137,7 +138,7 @@ export function loadGLB(
         const pivot = new Group()
         pivot.name = "configurator-pivot"
         pivot.add(inner)
-        fitToView(pivot, inner, 2, ctx)
+        fitToView(pivot, inner, 2, ctx, rotationDeg)
         resolve(pivot)
       },
       undefined,
@@ -195,7 +196,10 @@ function fitToView(
   pivot: Object3D,
   inner: Object3D,
   targetSize: number,
-  ctx?: Pick<ThreeContext, "camera" | "controls">
+  ctx?: Pick<ThreeContext, "camera" | "controls">,
+  // Orientation du modèle en degrés [x, y, z]. Par défaut [0, 0, 90] pour
+  // conserver l'orientation historique des autres produits.
+  rotationDeg: [number, number, number] = [0, 0, 90]
 ): void {
   const box = new Box3().setFromObject(inner)
   const size = new Vector3()
@@ -206,7 +210,12 @@ function fitToView(
   const maxDim = Math.max(size.x, size.y, size.z) || 1
   const scale = targetSize / maxDim
   pivot.scale.setScalar(scale)
-  pivot.rotation.z = (90 * Math.PI) / 180
+  const deg2rad = Math.PI / 180
+  pivot.rotation.set(
+    rotationDeg[0] * deg2rad,
+    rotationDeg[1] * deg2rad,
+    rotationDeg[2] * deg2rad
+  )
 
   if (!ctx) return
   const { camera, controls } = ctx
@@ -233,23 +242,28 @@ function getMaterialName(mesh: Mesh): string | undefined {
 
 /**
  * Retourne tous les meshes de la hiérarchie dont le nom OU le nom de matériau
- * matche `meshName`. Si rien ne matche, log un avertissement et retourne tous
- * les meshes (fallback : applique la texture sur l'ensemble du modèle).
+ * matche `meshName`. `meshName` peut être un nom unique ou une liste de noms
+ * (ex. les 2 vis ciblées par une même option). Si rien ne matche, log un
+ * avertissement et retourne tous les meshes (fallback : applique sur tout le modèle).
  */
-export function findMeshes(root: Object3D, meshName?: string): Mesh[] {
+export function findMeshes(
+  root: Object3D,
+  meshName?: string | string[]
+): Mesh[] {
   const all: Mesh[] = []
   root.traverse((child) => {
     if (child instanceof Mesh) all.push(child)
   })
   if (!meshName) return all
+  const names = Array.isArray(meshName) ? meshName : [meshName]
   const matched = all.filter(
-    (m) => m.name === meshName || getMaterialName(m) === meshName
+    (m) => names.includes(m.name) || names.includes(getMaterialName(m) ?? "")
   )
   if (matched.length > 0) return matched
 
   // eslint-disable-next-line no-console
   console.warn(
-    `[configurator] targetMesh "${meshName}" introuvable. ` +
+    `[configurator] targetMesh "${names.join(", ")}" introuvable. ` +
       `Fallback sur tous les meshes. Noms disponibles :`,
     all.map((m) => ({ mesh: m.name, material: getMaterialName(m) }))
   )
@@ -279,54 +293,156 @@ export function loadTexture(path: string): Promise<Texture> {
 }
 
 /**
- * Remplace la map diffuse de tous les meshes ciblés par la texture chargée
- * depuis `texturePath`. Si un mesh utilise un matériau non-standard, on le
- * remplace par un MeshStandardMaterial qui conserve la map.
+ * Charge une image brute (pour la composition canvas du motif). Cache partagé.
  */
-export async function swapTextureOnMesh(
-  root: Object3D,
-  meshName: string,
-  texturePath: string
-): Promise<void> {
-  const meshes = findMeshes(root, meshName)
-  if (meshes.length === 0) return
-  const texture = await loadTexture(texturePath)
+const imageCache = new Map<string, Promise<HTMLImageElement>>()
 
-  for (const mesh of meshes) {
-    const current = mesh.material
-    if (current instanceof MeshStandardMaterial) {
-      if (current.map && current.map !== texture) {
-        current.map.dispose()
-      }
-      current.map = texture
-      current.needsUpdate = true
-      continue
-    }
-    mesh.material = new MeshStandardMaterial({ map: texture })
-  }
+function loadImage(path: string): Promise<HTMLImageElement> {
+  const cached = imageCache.get(path)
+  if (cached) return cached
+  const promise = new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => resolve(img)
+    img.onerror = (e) => reject(e)
+    img.src = path
+  })
+  imageCache.set(path, promise)
+  return promise
 }
 
 /**
- * Applique une couleur unie aux meshes ciblés : retire la map diffuse et pose
- * `color` (couleur XOR texture, comme l'ancien système). On ne dispose PAS la
- * map (potentiellement partagée via le cache de textures).
+ * Calques d'un mesh. `color` et `texturePath` sont deux bases mutuellement
+ * exclusives (couleur unie OU texture). `motifPath` est un overlay transparent
+ * composé par-dessus la base — il coexiste avec elle.
  */
+export type MeshLayers = {
+  color?: string | null
+  texturePath?: string | null
+  motifPath?: string | null
+}
+
+type MeshUserData = { layers?: MeshLayers }
+
+function ensureStandardMaterial(mesh: Mesh): MeshStandardMaterial {
+  if (mesh.material instanceof MeshStandardMaterial) return mesh.material
+  const mat = new MeshStandardMaterial()
+  mesh.material = mat
+  return mat
+}
+
+/**
+ * Compose la base (texture de soie/bois OU couleur unie) puis dessine le motif
+ * transparent par-dessus, sur un canvas, et retourne la texture résultante.
+ */
+async function compositeLayers(layers: MeshLayers): Promise<Texture> {
+  const motif = await loadImage(layers.motifPath as string)
+  let baseImg: HTMLImageElement | null = null
+  if (layers.texturePath) {
+    baseImg = await loadImage(layers.texturePath).catch(() => null)
+  }
+  const w = baseImg?.naturalWidth || motif.naturalWidth || 1024
+  const h = baseImg?.naturalHeight || motif.naturalHeight || 1024
+  const canvas = document.createElement("canvas")
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext("2d")!
+  // Base : image de tissu, sinon couleur unie, sinon blanc.
+  if (baseImg) {
+    ctx.drawImage(baseImg, 0, 0, w, h)
+  } else {
+    ctx.fillStyle = layers.color || "#ffffff"
+    ctx.fillRect(0, 0, w, h)
+  }
+  // Overlay motif (PNG transparent) étiré sur toute la surface.
+  ctx.drawImage(motif, 0, 0, w, h)
+  const texture = new Texture(canvas)
+  texture.colorSpace = SRGBColorSpace
+  texture.flipY = false
+  texture.needsUpdate = true
+  return texture
+}
+
+/**
+ * Reconstruit le matériau d'un mesh à partir de ses calques courants.
+ */
+async function rebuildMeshMaterial(
+  mesh: Mesh,
+  layers: MeshLayers
+): Promise<void> {
+  const mat = ensureStandardMaterial(mesh)
+  if (layers.motifPath) {
+    // Base (couleur ou tissu) + motif composés en une seule texture.
+    const tex = await compositeLayers(layers).catch(() => null)
+    if (tex) {
+      mat.map = tex
+      mat.color.set("#ffffff")
+      mat.needsUpdate = true
+      return
+    }
+    // Composition impossible (motif manquant/illisible) → on retombe sur la
+    // base ci-dessous au lieu de laisser une texture obsolète figée.
+  }
+  if (layers.texturePath) {
+    const tex = await loadTexture(layers.texturePath).catch(() => null)
+    if (tex) {
+      mat.map = tex
+      mat.color.set("#ffffff")
+    }
+  } else {
+    mat.map = null
+    if (layers.color) mat.color.set(layers.color)
+  }
+  mat.needsUpdate = true
+}
+
+/**
+ * Met à jour les calques des meshes ciblés et reconstruit leur matériau.
+ * `color` et `texturePath` sont exclusifs : poser l'un efface l'autre.
+ */
+export async function applyMeshLayers(
+  root: Object3D,
+  meshName: string | string[],
+  patch: MeshLayers
+): Promise<void> {
+  const meshes = findMeshes(root, meshName)
+  await Promise.all(
+    meshes.map((mesh) => {
+      const data = mesh.userData as MeshUserData
+      const next: MeshLayers = { ...(data.layers ?? {}), ...patch }
+      if (patch.color != null) next.texturePath = null
+      if (patch.texturePath != null) next.color = null
+      data.layers = next
+      return rebuildMeshMaterial(mesh, next)
+    })
+  )
+}
+
+/** Base texture (tissu / bois) : remplace la couleur unie, conserve le motif. */
+export function swapTextureOnMesh(
+  root: Object3D,
+  meshName: string | string[],
+  texturePath: string
+): Promise<void> {
+  return applyMeshLayers(root, meshName, { texturePath })
+}
+
+/** Couleur unie : remplace la texture de base, conserve le motif. */
 export function applyColorToMesh(
   root: Object3D,
-  meshName: string,
+  meshName: string | string[],
   hex: string
-): void {
-  const meshes = findMeshes(root, meshName)
-  for (const mesh of meshes) {
-    const current = mesh.material
-    if (current instanceof MeshStandardMaterial) {
-      current.map = null
-      current.color.set(hex)
-      current.needsUpdate = true
-      continue
-    }
-    mesh.material = new MeshStandardMaterial({ color: new Color(hex) })
-  }
+): Promise<void> {
+  return applyMeshLayers(root, meshName, { color: hex })
+}
+
+/** Overlay motif composé par-dessus la base. `path` vide/undefined = retire le motif. */
+export function applyMotifToMesh(
+  root: Object3D,
+  meshName: string | string[],
+  path: string | null | undefined
+): Promise<void> {
+  return applyMeshLayers(root, meshName, { motifPath: path ?? null })
 }
 
 export function disposeContext(ctx: ThreeContext, root: Object3D | null): void {

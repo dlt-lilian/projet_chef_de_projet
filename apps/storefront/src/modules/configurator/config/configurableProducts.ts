@@ -14,21 +14,22 @@ type BaseOption = {
   id: string
   label: string
   /**
-   * Name of the mesh (or material) inside the GLB this option targets.
-   * Required for `texture` and `motif` so the viewer knows which mesh to repaint.
+   * Nom du mesh (ou du matériau) à l'intérieur du GLB ciblé par cette option.
+   * Peut être une liste de noms pour cibler plusieurs meshes d'un coup
+   * (ex. les 2 vis de l'éventail). Requis pour `texture`/`motif`/`color`.
    */
-  targetMesh?: string
+  targetMesh?: string | string[]
 }
 
 export type ConfiguratorTextureOption = BaseOption & {
   type: "texture" | "motif"
-  targetMesh: string
+  targetMesh: string | string[]
   choices: ConfiguratorChoice[]
 }
 
 export type ConfiguratorColorOption = BaseOption & {
   type: "color"
-  targetMesh: string
+  targetMesh: string | string[]
   choices: ConfiguratorChoice[]
 }
 
@@ -44,6 +45,10 @@ export type ConfiguratorOption =
 export type ConfiguratorProductConfig = {
   glbPath: string
   options: ConfiguratorOption[]
+  /** Auto-rotation du modèle dans le viewer (défaut : true). */
+  autoRotate?: boolean
+  /** Orientation initiale du modèle en degrés [x, y, z] (défaut : [0, 0, 90]). */
+  modelRotationDeg?: [number, number, number]
 }
 
 export type ProductConfigMap = Record<
@@ -109,44 +114,66 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
     ],
   },
   eventail: {
+    // GLB multi-mesh : nodes `Bois`, `Papier`, `vis_1`, `vis_2`.
+    // Chaque option cible son node par son nom → modification indépendante.
     glbPath: "/3d/eventail/eventail.glb",
+    // Éventail figé et redressé : la normale du modèle est sur X ; une rotation
+    // de 90° autour de Y l'amène face caméra et debout (la rotation z=90° par
+    // défaut la mettait vers le haut → éventail à plat). Auto-rotation coupée.
+    autoRotate: false,
+    modelRotationDeg: [0, 90, 0],
     options: [
+      // ── BOIS (monture) — texture bois seule ────────────────────────────
       {
-        id: "color",
-        label: "Couleur",
-        type: "color",
-        targetMesh: "Material_0",
-        choices: COLOR_CHOICES,
-      },
-      {
-        id: "fabric",
-        label: "Tissu",
+        id: "bois",
+        label: "Bois (monture)",
         type: "texture",
-        targetMesh: "Material_0",
+        targetMesh: "Bois",
         choices: [
+          // TODO assets : déposer les vraies textures dans
+          // /3d/eventail/textures/. Placeholders = images baguettes existantes.
           {
-            id: "silk-red",
-            label: "Soie rouge",
-            texturePath: "/3d/eventail/textures/silk-red.jpg",
+            id: "bois-clair",
+            label: "Bois clair",
+            texturePath:
+              "/3d/baguettes/textures/Wood_Color_white_and_blue.jpg",
           },
           {
-            id: "silk-blue",
-            label: "Soie bleue",
-            texturePath: "/3d/eventail/textures/silk-blue.jpg",
+            id: "bois-rose",
+            label: "Bois rosé",
+            texturePath: "/3d/baguettes/textures/metal_pink.jpg",
           },
           {
-            id: "silk-cream",
-            label: "Soie crème",
-            texturePath: "/3d/eventail/textures/silk-cream.jpg",
+            id: "bois-motif",
+            label: "Bois à motif",
+            texturePath:
+              "/3d/baguettes/textures/pastel_pink_japanese_style_wave_pattern_background_1611.jpg",
           },
         ],
       },
+      // ── PAPIER (toile) — couleur + tissu + motif ───────────────────────
       {
-        id: "motif",
-        label: "Motif",
+        id: "papier-color",
+        label: "Couleur du papier",
+        type: "color",
+        targetMesh: "Papier",
+        choices: COLOR_CHOICES,
+      },
+      {
+        id: "papier-motif",
+        label: "Motif du papier",
         type: "motif",
-        targetMesh: "Material_0",
+        targetMesh: "Papier",
         choices: [
+          // « Aucun » (sans texturePath) = retire l'overlay motif.
+          { id: "none", label: "Aucun" },
+          {
+            id: "motif-1",
+            label: "Motif 1",
+            texturePath: "/3d/eventail/textures/motif_1.jpg",
+          },
+          // TODO assets : déposer des PNG TRANSPARENTS dans
+          // /3d/eventail/textures/ (sinon le motif couvre toute la base).
           {
             id: "sakura",
             label: "Sakura",
@@ -157,6 +184,19 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
             label: "Vague",
             texturePath: "/3d/eventail/textures/motif-wave.png",
           },
+        ],
+      },
+      // ── VIS — couleur, les 2 vis ensemble ──────────────────────────────
+      {
+        id: "vis",
+        label: "Vis (finition)",
+        type: "color",
+        targetMesh: ["vis_1", "vis_2"],
+        choices: [
+          { id: "or", label: "Or", colorHex: "#D4AF37" },
+          { id: "argent", label: "Argent", colorHex: "#C0C0C0" },
+          { id: "bronze", label: "Bronze", colorHex: "#8C6A3F" },
+          { id: "noir", label: "Noir", colorHex: "#1A1A1A" },
         ],
       },
       {

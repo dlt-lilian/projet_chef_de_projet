@@ -32,8 +32,13 @@ export default function ConfiguratorLayout({
       if (!choice) return
       if (option.type === "color") {
         if (choice.colorHex) {
-          viewerRef.current?.applyColor(option.targetMesh, choice.colorHex)
+          void viewerRef.current?.applyColor(option.targetMesh, choice.colorHex)
         }
+        return
+      }
+      if (option.type === "motif") {
+        // `choice.texturePath` peut être absent (choix « Aucun ») → retire l'overlay.
+        void viewerRef.current?.applyMotif(option.targetMesh, choice.texturePath)
         return
       }
       if (choice.texturePath) {
@@ -65,6 +70,8 @@ export default function ConfiguratorLayout({
         <ConfiguratorViewer
           ref={viewerRef}
           glbPath={config.glbPath}
+          rotationSpeed={config.autoRotate === false ? 0 : 1}
+          modelRotationDeg={config.modelRotationDeg}
           onModelReady={handleModelReady}
         />
       </div>

@@ -11,6 +11,7 @@ import type { Object3D } from "three"
 import {
   ThreeContext,
   applyColorToMesh,
+  applyMotifToMesh,
   disposeContext,
   initThreeScene,
   loadGLB,
@@ -18,15 +19,23 @@ import {
   swapTextureOnMesh,
 } from "../lib/three-helpers"
 
+type MeshTarget = string | string[]
+
 export type ConfiguratorViewerHandle = {
-  swapTexture: (meshName: string, texturePath: string) => Promise<void>
-  applyColor: (meshName: string, hex: string) => void
+  swapTexture: (meshName: MeshTarget, texturePath: string) => Promise<void>
+  applyColor: (meshName: MeshTarget, hex: string) => Promise<void>
+  applyMotif: (
+    meshName: MeshTarget,
+    path: string | null | undefined
+  ) => Promise<void>
 }
 
 type ConfiguratorViewerProps = {
   glbPath: string
   /** Vitesse d'auto-rotation des OrbitControls. 0 désactive l'auto-rotation. */
   rotationSpeed?: number
+  /** Orientation initiale du modèle en degrés [x, y, z] (défaut : [0, 0, 90]). */
+  modelRotationDeg?: [number, number, number]
   onModelReady?: () => void
 }
 
@@ -34,7 +43,7 @@ const ConfiguratorViewer = forwardRef<
   ConfiguratorViewerHandle,
   ConfiguratorViewerProps
 >(function ConfiguratorViewer(
-  { glbPath, rotationSpeed = 1.0, onModelReady },
+  { glbPath, rotationSpeed = 1.0, modelRotationDeg, onModelReady },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -48,15 +57,20 @@ const ConfiguratorViewer = forwardRef<
   useImperativeHandle(
     ref,
     () => ({
-      async swapTexture(meshName: string, texturePath: string) {
+      async swapTexture(meshName: MeshTarget, texturePath: string) {
         const root = modelRef.current
         if (!root) return
         await swapTextureOnMesh(root, meshName, texturePath)
       },
-      applyColor(meshName: string, hex: string) {
+      async applyColor(meshName: MeshTarget, hex: string) {
         const root = modelRef.current
         if (!root) return
-        applyColorToMesh(root, meshName, hex)
+        await applyColorToMesh(root, meshName, hex)
+      },
+      async applyMotif(meshName: MeshTarget, path: string | null | undefined) {
+        const root = modelRef.current
+        if (!root) return
+        await applyMotifToMesh(root, meshName, path)
       },
     }),
     []
@@ -85,7 +99,7 @@ const ConfiguratorViewer = forwardRef<
     setLoading(true)
     setError(null)
 
-    loadGLB(glbPath, ctx)
+    loadGLB(glbPath, ctx, modelRotationDeg)
       .then((root) => {
         if (cancelled) return
         modelRef.current = root
@@ -114,7 +128,7 @@ const ConfiguratorViewer = forwardRef<
       modelRef.current = null
       ctxRef.current = null
     }
-  }, [glbPath, rotationSpeed])
+  }, [glbPath, rotationSpeed, modelRotationDeg])
 
   return (
     <div className="relative w-full h-full min-h-[320px] md:min-h-[480px] bg-stone-100">
