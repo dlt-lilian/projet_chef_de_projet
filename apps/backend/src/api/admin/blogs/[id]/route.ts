@@ -62,7 +62,7 @@ export const PUT = async (
     read_time: body.read_time as string,
     featured:  body.featured  as boolean,
     published: body.published as boolean,
-    blocks:    body.blocks    as Record<string, unknown>,
+    blocks:    Array.isArray(body.blocks) ? body.blocks : existing.blocks,
   })
 
   res.json({ blog: Array.isArray(updated) ? updated[0] : updated })

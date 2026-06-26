@@ -111,7 +111,6 @@ export default async function Footer() {
 
         <div className="border-t border-grey-20 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <span>© {new Date().getFullYear()} Kōgei. Tous droits réservés.</span>
-          <span>Conçu avec soin · Made in Japan</span>
         </div>
       </div>
     </footer>

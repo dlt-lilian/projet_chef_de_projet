@@ -31,15 +31,20 @@ export async function getAllArticles(options?: {
   url.searchParams.set("fields", "meta")
   if (options?.category) url.searchParams.set("category", options.category)
 
-  const res = await fetch(url.toString(), {
-    headers: headers(),
-    // Revalide toutes les 60 secondes (ISR) — ajuste selon ta fréquence de publication
-    next: { revalidate: 60 },
-  })
+  try {
+    const res = await fetch(url.toString(), {
+      headers: headers(),
+      // Revalide toutes les 60 secondes (ISR) — ajuste selon ta fréquence de publication
+      next: { revalidate: 60 },
+    })
 
-  if (!res.ok) return []
-  const { blogs } = await res.json()
-  return blogs as BlogPostPreview[]
+    if (!res.ok) return []
+    const { blogs } = await res.json()
+    return blogs as BlogPostPreview[]
+  } catch (err) {
+    console.error(`[blog] getAllArticles a échoué (${BASE}) :`, err)
+    return []
+  }
 }
 
 /**
@@ -47,16 +52,42 @@ export async function getAllArticles(options?: {
  * Utilisé par la page /blog/[slug].
  */
 export async function getArticleBySlug(slug: string): Promise<BlogPost | null> {
-  const res = await fetch(`${BASE}/${slug}`, {
-    headers: headers(),
-    next: { revalidate: 60 },
-  })
+  try {
+    const res = await fetch(`${BASE}/${slug}`, {
+      headers: headers(),
+      next: { revalidate: 60 },
+    })
 
-  if (res.status === 404) return null
-  if (!res.ok) return null
+    if (res.status === 404) return null
+    if (!res.ok) return null
 
-  const { blog } = await res.json()
-  return blog as BlogPost
+    const { blog } = await res.json()
+    if (!blog) return null
+
+    return { ...blog, blocks: normalizeBlocks(blog.blocks) } as BlogPost
+  } catch (err) {
+    console.error(`[blog] getArticleBySlug("${slug}") a échoué (${BASE}) :`, err)
+    return null
+  }
+}
+
+/**
+ * Garantit que `blocks` est toujours un tableau.
+ * Le backend peut stocker `{}` (création sans blocs) ou `null`, et un JSONB
+ * mal encodé peut revenir sous forme de chaîne — tous ces cas feraient planter
+ * le rendu (`blocks.map` n'existe pas sur un objet/null/string).
+ */
+function normalizeBlocks(blocks: unknown): BlogPost["blocks"] {
+  if (Array.isArray(blocks)) return blocks as BlogPost["blocks"]
+  if (typeof blocks === "string") {
+    try {
+      const parsed = JSON.parse(blocks)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
 }
 
 /**

@@ -62,7 +62,7 @@ export const POST = async (
     read_time: (body.read_time as string) ?? "",
     featured:  (body.featured as boolean) ?? false,
     published: (body.published as boolean) ?? false,
-    blocks:    (body.blocks   as Record<string, unknown>) ?? {},
+    blocks:    Array.isArray(body.blocks) ? body.blocks : [],
   })
 
   res.status(201).json({ blog: post })

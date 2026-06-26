@@ -6,6 +6,7 @@ import ImgBlock from "./ImgBlock"
 import DoubleImgBlock from "./DoubleImgBlock"
 
 export default function BlockRenderer({ blocks }: { blocks: Block[] }) {
+  if (!Array.isArray(blocks)) return null
   return (
     <>
       {blocks.map((block, i) => {
