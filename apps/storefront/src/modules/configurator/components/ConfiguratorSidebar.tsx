@@ -21,6 +21,8 @@ type ConfiguratorSidebarProps = {
   config: ConfiguratorProductConfig
   controller: UseProductConfiguratorReturn
   onOptionChange: (option: ConfiguratorOption, choiceId: string) => void
+  /** Menu mobile ouvert (id d'option) ou null si replié — pilote le zoom 3D. */
+  onActiveOptionChange?: (optionId: string | null) => void
 }
 
 const ENGRAVING_MAX_LENGTH = 30
@@ -58,6 +60,7 @@ export default function ConfiguratorSidebar({
   config,
   controller,
   onOptionChange,
+  onActiveOptionChange,
 }: ConfiguratorSidebarProps) {
   const countryCode = useParams().countryCode as string
   const [isAdding, setIsAdding] = useState(false)
@@ -116,6 +119,7 @@ export default function ConfiguratorSidebar({
         <AccordionPrimitive.Root
           type="single"
           collapsible
+          onValueChange={(value) => onActiveOptionChange?.(value || null)}
           className="min-h-0 flex-1 divide-y divide-stone-200 overflow-y-auto overscroll-contain"
         >
           {config.options.map((option) => (
@@ -289,7 +293,12 @@ function OptionControl({
               choice.colorHex
                 ? { backgroundColor: choice.colorHex }
                 : choice.texturePath
-                  ? { backgroundImage: `url(${choice.texturePath})` }
+                  ? {
+                      // Aperçu : bois éventuellement assombri par un calque noir.
+                      backgroundImage: choice.darken
+                        ? `linear-gradient(rgba(0,0,0,${choice.darken}),rgba(0,0,0,${choice.darken})),url(${choice.texturePath})`
+                        : `url(${choice.texturePath})`,
+                    }
                   : undefined
             }
           >

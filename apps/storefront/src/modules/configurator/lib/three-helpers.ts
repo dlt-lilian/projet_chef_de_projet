@@ -20,12 +20,23 @@ import {
 import { GLTFLoader, GLTF } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"
 
+export type CameraAnim = {
+  fromPos: Vector3
+  toPos: Vector3
+  fromTarget: Vector3
+  toTarget: Vector3
+  start: number
+  duration: number
+}
+
 export type ThreeContext = {
   scene: Scene
   camera: PerspectiveCamera
   renderer: WebGLRenderer
   canvas: HTMLCanvasElement
   controls: OrbitControls
+  /** Animation caméra en cours (focus/reset) ; interpolée par la boucle de rendu. */
+  anim: CameraAnim | null
 }
 
 const DEFAULT_BG = new Color(0xf5f3ef)
@@ -67,7 +78,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): ThreeContext {
 
   setupStudioLighting(scene)
 
-  return { scene, camera, renderer, canvas, controls }
+  return { scene, camera, renderer, canvas, controls, anim: null }
 }
 
 /**
@@ -249,6 +260,75 @@ function fitToView(
   controls.update()
 }
 
+/** Contexte minimal requis pour piloter une animation de caméra. */
+type AnimCtx = Pick<ThreeContext, "camera" | "controls"> & {
+  anim: CameraAnim | null
+}
+
+/**
+ * Démarre une animation de caméra vers une position/cible. La boucle de rendu
+ * (ConfiguratorViewer) interpole `ctx.anim` à chaque frame.
+ */
+export function animateCameraTo(
+  ctx: AnimCtx,
+  toPosition: Vector3,
+  toTarget: Vector3,
+  duration = 500
+): void {
+  ctx.anim = {
+    fromPos: ctx.camera.position.clone(),
+    toPos: toPosition.clone(),
+    fromTarget: ctx.controls.target.clone(),
+    toTarget: toTarget.clone(),
+    start: typeof performance !== "undefined" ? performance.now() : Date.now(),
+    duration,
+  }
+}
+
+/**
+ * Cadre la caméra sur un (ou plusieurs) mesh(es) ciblé(s), en conservant la
+ * direction de vue courante et en se rapprochant pour remplir le cadre.
+ * Retourne false si aucun mesh exploitable n'est trouvé.
+ */
+export function focusOnMeshes(
+  ctx: AnimCtx,
+  root: Object3D,
+  meshName: string | string[],
+  opts: { duration?: number; maxDistance?: number } = {}
+): boolean {
+  root.updateWorldMatrix(true, true)
+  const meshes = findMeshes(root, meshName)
+  if (meshes.length === 0) return false
+
+  const box = new Box3()
+  for (const mesh of meshes) box.expandByObject(mesh)
+  if (box.isEmpty()) return false
+
+  const center = box.getCenter(new Vector3())
+  const size = box.getSize(new Vector3())
+  const radius = Math.max(0.5 * size.length(), 0.05)
+
+  const vFov = (ctx.camera.fov * Math.PI) / 180
+  const aspect = ctx.camera.aspect || 1
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect)
+  const fitVertical = radius / Math.sin(vFov / 2)
+  const fitHorizontal = radius / Math.sin(hFov / 2)
+  let distance = Math.max(Math.max(fitVertical, fitHorizontal) * 1.3, 0.25)
+  // Ne jamais reculer au-delà de la vue maison : pour un grand mesh (le papier),
+  // la distance de cadrage dépasserait la vue initiale → on la plafonne, ce qui
+  // garantit un léger zoom avant plutôt qu'un recul.
+  if (opts.maxDistance != null) distance = Math.min(distance, opts.maxDistance)
+
+  // Conserve la direction de vue actuelle (même angle, simplement plus proche).
+  const dir = new Vector3().subVectors(ctx.camera.position, ctx.controls.target)
+  if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1)
+  dir.normalize()
+  const toPos = center.clone().addScaledVector(dir, distance)
+
+  animateCameraTo(ctx, toPos, center, opts.duration ?? 500)
+  return true
+}
+
 function getMaterialName(mesh: Mesh): string | undefined {
   const mat = mesh.material
   return Array.isArray(mat)
@@ -336,6 +416,12 @@ export type MeshLayers = {
   color?: string | null
   texturePath?: string | null
   motifPath?: string | null
+  /**
+   * Teinte multiplicatrice appliquée par-dessus une texture (`material.color *
+   * map`). Sert à assombrir le bois : gris clair = quasi intact, gris foncé =
+   * sombre. Ignorée quand il n'y a pas de texture (couleur unie).
+   */
+  tint?: string | null
 }
 
 type MeshUserData = { layers?: MeshLayers }
@@ -392,7 +478,7 @@ async function rebuildMeshMaterial(
     const tex = await compositeLayers(layers).catch(() => null)
     if (tex) {
       mat.map = tex
-      mat.color.set("#ffffff")
+      mat.color.set(layers.tint ?? "#ffffff")
       mat.needsUpdate = true
       return
     }
@@ -403,7 +489,8 @@ async function rebuildMeshMaterial(
     const tex = await loadTexture(layers.texturePath).catch(() => null)
     if (tex) {
       mat.map = tex
-      mat.color.set("#ffffff")
+      // Teinte multiplicatrice (assombrissement du bois) ; blanc = texture intacte.
+      mat.color.set(layers.tint ?? "#ffffff")
     }
   } else {
     mat.map = null
@@ -434,13 +521,17 @@ export async function applyMeshLayers(
   )
 }
 
-/** Base texture (tissu / bois) : remplace la couleur unie, conserve le motif. */
+/**
+ * Base texture (tissu / bois) : remplace la couleur unie, conserve le motif.
+ * `tint` (optionnel) assombrit la texture (multiplicateur) — sinon texture intacte.
+ */
 export function swapTextureOnMesh(
   root: Object3D,
   meshName: string | string[],
-  texturePath: string
+  texturePath: string,
+  tint?: string | null
 ): Promise<void> {
-  return applyMeshLayers(root, meshName, { texturePath })
+  return applyMeshLayers(root, meshName, { texturePath, tint: tint ?? null })
 }
 
 /** Couleur unie : remplace la texture de base, conserve le motif. */

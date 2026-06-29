@@ -8,6 +8,11 @@ export type ConfiguratorChoice = {
   texturePath?: string
   /** Couleur unie (hex) — utilisée par les options de type "color". */
   colorHex?: string
+  /**
+   * Assombrissement du bois (0 = naturel, 1 = noir), appliqué comme calque noir
+   * semi-transparent par-dessus `bois_1.jpg`. Utilisé par les options « bois ».
+   */
+  darken?: number
 }
 
 type BaseOption = {
@@ -72,39 +77,49 @@ export const COLOR_CHOICES: ConfiguratorChoice[] = [
   { id: "indigo", label: "Bleu Indigo", colorHex: "#1B3A6B" },
 ]
 
+/** Texture bois unique, partagée par toutes les options « bois ». */
+export const WOOD_TEXTURE = "/3d/textures/bois_1.jpg"
+
+/**
+ * Paliers d'assombrissement du bois : même texture `bois_1.jpg`, recouverte d'un
+ * calque noir d'opacité croissante (`darken`).
+ */
+export const WOOD_CHOICES: ConfiguratorChoice[] = [
+  { id: "naturel", label: "Naturel", texturePath: WOOD_TEXTURE, darken: 0 },
+  { id: "miel", label: "Miel", texturePath: WOOD_TEXTURE, darken: 0.18 },
+  { id: "chataigne", label: "Châtaigne", texturePath: WOOD_TEXTURE, darken: 0.35 },
+  { id: "noyer", label: "Noyer", texturePath: WOOD_TEXTURE, darken: 0.55 },
+  { id: "ebene", label: "Ébène", texturePath: WOOD_TEXTURE, darken: 0.72 },
+]
+
+/**
+ * Convertit un niveau d'assombrissement (0 = naturel, 1 = noir) en gris servant
+ * de multiplicateur sur la texture (`material.color * map`) : 0 → blanc (texture
+ * intacte), 1 → noir.
+ */
+export function darkenToTint(darken = 0): string {
+  const v = Math.round((1 - Math.min(Math.max(darken, 0), 1)) * 255)
+  const h = v.toString(16).padStart(2, "0")
+  return `#${h}${h}${h}`
+}
+
 export const PRODUCT_CONFIG: ProductConfigMap = {
   baguettes: {
     glbPath: "/3d/baguettes/baguettes.glb",
     options: [
       {
         id: "color",
-        label: "Couleur",
+        label: "Couleur du bois",
         type: "color",
         targetMesh: "Material_0",
         choices: COLOR_CHOICES,
       },
       {
         id: "wood",
-        label: "Essence de bois",
+        label: "Teinte du bois",
         type: "texture",
         targetMesh: "Material_0",
-        choices: [
-          {
-            id: "blue",
-            label: "Bleu",
-            texturePath: "/3d/baguettes/textures/Wood_Color_white_and_blue.jpg",
-          },
-          {
-            id: "pink",
-            label: "rose",
-            texturePath: "/3d/baguettes/textures/metal_pink.jpg",
-          },
-          {
-            id: "pastelpink",
-            label: "rose pastel",
-            texturePath: "/3d/baguettes/textures/pastel_pink_japanese_style_wave_pattern_background_1611.jpg",
-          },
-        ],
+        choices: WOOD_CHOICES,
       },
       {
         id: "engraving",
@@ -129,27 +144,7 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
         label: "Bois (monture)",
         type: "texture",
         targetMesh: "Bois",
-        choices: [
-          // TODO assets : déposer les vraies textures dans
-          // /3d/eventail/textures/. Placeholders = images baguettes existantes.
-          {
-            id: "bois-clair",
-            label: "Bois clair",
-            texturePath:
-              "/3d/baguettes/textures/Wood_Color_white_and_blue.jpg",
-          },
-          {
-            id: "bois-rose",
-            label: "Bois rosé",
-            texturePath: "/3d/baguettes/textures/metal_pink.jpg",
-          },
-          {
-            id: "bois-motif",
-            label: "Bois à motif",
-            texturePath:
-              "/3d/baguettes/textures/pastel_pink_japanese_style_wave_pattern_background_1611.jpg",
-          },
-        ],
+        choices: WOOD_CHOICES,
       },
       // ── PAPIER (toile) — couleur + tissu + motif ───────────────────────
       {

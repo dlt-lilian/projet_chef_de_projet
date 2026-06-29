@@ -5,6 +5,7 @@ import { useCallback, useRef } from "react"
 import {
   ConfiguratorOption,
   ConfiguratorProductConfig,
+  darkenToTint,
 } from "../config/configurableProducts"
 import { useProductConfigurator } from "../hooks/useProductConfigurator"
 import ConfiguratorSidebar from "./ConfiguratorSidebar"
@@ -42,7 +43,14 @@ export default function ConfiguratorLayout({
         return
       }
       if (choice.texturePath) {
-        void viewerRef.current?.swapTexture(option.targetMesh, choice.texturePath)
+        // `darken` (options bois) → teinte multiplicatrice qui assombrit bois_1.jpg.
+        const tint =
+          choice.darken != null ? darkenToTint(choice.darken) : undefined
+        void viewerRef.current?.swapTexture(
+          option.targetMesh,
+          choice.texturePath,
+          tint
+        )
       }
     },
     []
@@ -60,6 +68,23 @@ export default function ConfiguratorLayout({
     config.options.filter((o) => o.type !== "color").forEach(apply)
     config.options.filter((o) => o.type === "color").forEach(apply)
   }, [config, controller, applyOption])
+
+  // Zoom contextuel : à l'ouverture d'un menu d'option, cadre la caméra sur le
+  // mesh ciblé (Bois, Vis, Papier…) ; à la fermeture (ou option sans mesh, ex.
+  // gravure), revient à la vue initiale du modèle.
+  const handleActiveOption = useCallback(
+    (optionId: string | null) => {
+      const viewer = viewerRef.current
+      if (!viewer) return
+      const option = optionId
+        ? config.options.find((o) => o.id === optionId)
+        : undefined
+      const target = option?.targetMesh
+      if (target) viewer.focusMeshes(target)
+      else viewer.resetView()
+    },
+    [config]
+  )
 
   return (
     <section
@@ -80,6 +105,7 @@ export default function ConfiguratorLayout({
         config={config}
         controller={controller}
         onOptionChange={applyOption}
+        onActiveOptionChange={handleActiveOption}
       />
     </section>
   )
