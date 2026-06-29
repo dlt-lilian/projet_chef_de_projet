@@ -284,7 +284,7 @@ function OptionControl({
               onOptionChange(option, choice.id)
             }}
             className={clx(
-              "h-12 w-12 rounded border bg-stone-100 bg-cover bg-center transition-shadow",
+              "h-12 w-12 rounded border bg-stone-950 bg-cover bg-center transition-shadow",
               isActive
                 ? "border-stone-900 ring-2 ring-stone-900 ring-offset-1"
                 : "border-stone-300 hover:border-stone-500"

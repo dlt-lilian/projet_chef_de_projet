@@ -161,7 +161,10 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
         targetMesh: "Papier",
         choices: [
           // « Aucun » (sans texturePath) = retire l'overlay motif.
-          { id: "none", label: "Aucun" },
+          {
+            id: "none",
+            label: "Aucun"
+          },
           {
             id: "motif-1",
             label: "Motif 1",
@@ -170,9 +173,9 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
           // TODO assets : déposer des PNG TRANSPARENTS dans
           // /3d/eventail/textures/ (sinon le motif couvre toute la base).
           {
-            id: "sakura",
-            label: "Sakura",
-            texturePath: "/3d/eventail/textures/motif-sakura.png",
+            id: "rose",
+            label: "rose",
+            texturePath: "/3d/eventail/textures/motif_rose.svg",
           },
           {
             id: "wave",
