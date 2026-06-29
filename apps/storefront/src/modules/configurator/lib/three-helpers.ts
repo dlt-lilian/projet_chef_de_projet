@@ -219,16 +219,32 @@ function fitToView(
 
   if (!ctx) return
   const { camera, controls } = ctx
-  const fov = (camera.fov * Math.PI) / 180
-  const distance = targetSize / (2 * Math.tan(fov / 2)) + targetSize * 0.6
-  camera.position.set(0, targetSize * 0.25, distance)
-  camera.near = distance / 100
+
+  // Rayon de la sphère englobante après mise à l'échelle : garantit que le
+  // modèle tient entièrement quelle que soit l'orientation (auto-rotation),
+  // sans rognage de ses extrémités.
+  const radius = 0.5 * size.length() * scale || targetSize / 2
+
+  // Cadrage qui tient compte du ratio du canvas. Sur un écran étroit/portrait
+  // (mobile) c'est le FOV horizontal qui limite ; sinon le vertical. On retient
+  // la distance la plus contraignante, puis une petite marge pour « rapprocher »
+  // le produit au lieu de le laisser flotter au loin.
+  const vFov = (camera.fov * Math.PI) / 180
+  const aspect = camera.aspect || 1
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect)
+  const fitVertical = radius / Math.sin(vFov / 2)
+  const fitHorizontal = radius / Math.sin(hFov / 2)
+  const margin = 1.08
+  const distance = Math.max(fitVertical, fitHorizontal) * margin
+
+  camera.position.set(0, radius * 0.35, distance)
+  camera.near = Math.max(distance / 100, 0.01)
   camera.far = distance * 100
   camera.lookAt(0, 0, 0)
   camera.updateProjectionMatrix()
 
   controls.target.set(0, 0, 0)
-  controls.minDistance = targetSize * 0.6
+  controls.minDistance = radius * 1.1
   controls.maxDistance = distance * 2.5
   controls.update()
 }

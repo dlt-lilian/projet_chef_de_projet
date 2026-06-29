@@ -131,7 +131,7 @@ const ConfiguratorViewer = forwardRef<
   }, [glbPath, rotationSpeed, modelRotationDeg])
 
   return (
-    <div className="relative w-full h-full min-h-[320px] md:min-h-[480px] bg-stone-100">
+    <div className="relative w-full h-full min-h-[240px] md:min-h-[480px] bg-stone-100">
       <canvas
         ref={canvasRef}
         className="block w-full h-full"

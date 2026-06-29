@@ -63,10 +63,10 @@ export default function ConfiguratorLayout({
 
   return (
     <section
-      className="flex flex-col md:flex-row w-full min-h-[80vh]"
+      className="flex flex-col md:flex-row w-full h-[calc(100dvh-61px)] md:h-auto md:min-h-[80vh]"
       data-testid="configurator-layout"
     >
-      <div className="flex-1 md:w-[60%] bg-stone-50">
+      <div className="flex-1 min-h-0 w-full md:w-[60%] bg-stone-50">
         <ConfiguratorViewer
           ref={viewerRef}
           glbPath={config.glbPath}

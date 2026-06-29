@@ -66,7 +66,9 @@ export default async function BlogArticlePage({ params }: Props) {
     <div className="bg-ui-bg-base min-h-screen">
 
       {/* ── Breadcrumb / retour ───────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-ui-bg-base/90 backdrop-blur-sm border-b border-ui-border-base">
+      {/* Non sticky : la navbar globale est déjà `sticky top-0 z-50`. Deux
+          barres collées en haut se chevaucheraient au scroll. */}
+      <nav className="bg-ui-bg-base/90 backdrop-blur-sm border-b border-ui-border-base">
         <div className="content-container py-3 flex items-center justify-between">
           <Link href="/blog" className="text-xs tracking-widest uppercase text-ui-fg-muted hover:text-ui-fg-interactive transition-colors">
             ← Blog

@@ -24,18 +24,18 @@ type SliderProps = {
 function SlideItem({ slide }: { slide: SlideData }) {
   return (
     <div
-      className="relative flex-[0_0_100%] aspect-[21/9] bg-cover bg-center"
+      className="relative flex-[0_0_100%] bg-cover bg-center min-h-[420px] h-[70vh] max-h-[560px] sm:h-auto sm:max-h-none sm:aspect-[16/9] lg:aspect-[21/9]"
       style={{ backgroundImage: `url(${slide.img})` }}
     >
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/40" />
 
       {/* Contenu */}
-      <div className="relative z-10 flex flex-col justify-end items-center h-full pb-12 text-center">
-        <h2 className="text-white text-4xl font-semibold mb-3 leading-tight max-w-2xl">
+      <div className="relative z-10 flex flex-col justify-end items-center h-full px-4 pb-10 sm:pb-12 text-center">
+        <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-semibold mb-3 leading-tight max-w-2xl">
           {slide.title}
         </h2>
-        <p className="text-white/80 text-base mb-6 leading-relaxed max-w-xl">
+        <p className="text-white/80 text-sm sm:text-base mb-6 leading-relaxed max-w-xl">
           {slide.text}
         </p>
         <Link
