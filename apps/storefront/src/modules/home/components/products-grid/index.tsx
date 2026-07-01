@@ -61,7 +61,7 @@ export default async function ProductGrid({
         </h2>
       </div>
       <ul
-        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5 md:gap-6 w-full"
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-5 md:gap-6 w-full"
         data-testid="product-grid"
       >
         {products.map((product: HttpTypes.StoreProduct) => (
