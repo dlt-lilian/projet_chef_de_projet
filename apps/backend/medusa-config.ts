@@ -21,6 +21,9 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/blog",
     },
+    {
+      resolve: "./src/modules/configurator",
+    },
     ...(process.env.REDIS_URL
       ? [
           {

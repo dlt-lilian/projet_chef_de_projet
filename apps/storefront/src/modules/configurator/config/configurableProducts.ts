@@ -13,6 +13,8 @@ export type ConfiguratorChoice = {
    * semi-transparent par-dessus `bois_1.jpg`. Utilisé par les options « bois ».
    */
   darken?: number
+  /** Choix sélectionné par défaut à l'ouverture (défini côté admin). */
+  isDefault?: boolean
 }
 
 type BaseOption = {
@@ -69,11 +71,10 @@ export const CONFIGURABLE_HANDLES: ConfigurableHandle[] = [
 
 /** Palette de couleurs unies Kogei (laque / bois teinté), partagée par les produits. */
 export const COLOR_CHOICES: ConfiguratorChoice[] = [
-  { id: "naturel", label: "Naturel", colorHex: "#C4A882" },
+  { id: "nacre", label: "Blanc Nacré", colorHex: "#F5F0E8" },
   { id: "noir", label: "Noir Laqué", colorHex: "#1A1A1A" },
   { id: "vermillon", label: "Vermillon", colorHex: "#C0392B" },
   { id: "or", label: "Or", colorHex: "#D4AF37" },
-  { id: "nacre", label: "Blanc Nacré", colorHex: "#F5F0E8" },
   { id: "indigo", label: "Bleu Indigo", colorHex: "#1B3A6B" },
 ]
 
