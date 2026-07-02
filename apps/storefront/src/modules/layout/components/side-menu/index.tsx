@@ -14,9 +14,9 @@ import { Locale } from "@lib/data/locales"
 
 const NavItems = [
   { name: "Accueil", href: "/", icon: "home" },
-  { name: "Baguettes", href: "/baguettes", icon: "chopsticks", library: "hugeicons" as const },
-  { name: "Éventail", href: "/eventail", icon: "fan-handheld", library: "lucide-lab" as const },
-  { name: "Parapluie", href: "/parapluie", icon: "umbrella" },
+  { name: "Baguettes", href: "/products/baguettes", icon: "chopsticks", library: "hugeicons" as const },
+  { name: "Éventail", href: "/products/eventail", icon: "fan-handheld", library: "lucide-lab" as const },
+  { name: "Parapluie", href: "/products/parapluie", icon: "umbrella" },
   { name: "Blog", href: "/blog", icon: "letter-text" },
   { name: "Contact", href: "/contact", icon: "mail" },
   { name: "Compte", href: "/account", icon: "user-round" },
