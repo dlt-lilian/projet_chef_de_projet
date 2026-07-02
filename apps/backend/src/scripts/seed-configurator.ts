@@ -139,7 +139,10 @@ export default async function seedConfigurator({ container }: ExecArgs) {
       handle: p.handle,
       glb_path: p.glbPath,
       auto_rotate: p.autoRotate ?? true,
-      model_rotation_deg: p.modelRotationDeg ?? null,
+      // json() est typé Record<…> par Medusa DML, mais on y stocke un [x, y, z].
+      model_rotation_deg: (p.modelRotationDeg ?? null) as unknown as
+        | Record<string, unknown>
+        | null,
     })
 
     for (let oi = 0; oi < p.options.length; oi++) {
@@ -148,7 +151,10 @@ export default async function seedConfigurator({ container }: ExecArgs) {
         option_key: o.id,
         label: o.label,
         type: o.type,
-        target_mesh: o.targetMesh ?? null,
+        // json() est typé Record<…> par Medusa DML, mais target_mesh est string|string[].
+        target_mesh: (o.targetMesh ?? null) as unknown as
+          | Record<string, unknown>
+          | null,
         rank: oi,
         product_id: product.id,
       })
