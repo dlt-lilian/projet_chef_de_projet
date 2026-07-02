@@ -79,7 +79,7 @@ export const COLOR_CHOICES: ConfiguratorChoice[] = [
 ]
 
 /** Texture bois unique, partagée par toutes les options « bois ». */
-export const WOOD_TEXTURE = "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/bois_1-01KWHATQ1K7HMRMRMMTFKQMDQM.jpg"
+export const WOOD_TEXTURE = "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/Textures/General/bois_1-01KWHATQ1K7HMRMRMMTFKQMDQM.jpg"
 
 /**
  * Paliers d'assombrissement du bois : même texture `bois_1.jpg`, recouverte d'un
@@ -106,7 +106,7 @@ export function darkenToTint(darken = 0): string {
 
 export const PRODUCT_CONFIG: ProductConfigMap = {
   baguettes: {
-    glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/baguettes-01KWHATP1VTEQNVFJXFX0B1TGX.glb",
+    glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/baguettes-01KWHATP1VTEQNVFJXFX0B1TGX.glb",
     options: [
       {
         id: "color",
@@ -132,7 +132,7 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
   eventail: {
     // GLB multi-mesh : nodes `Bois`, `Papier`, `vis_1`, `vis_2`.
     // Chaque option cible son node par son nom → modification indépendante.
-    glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/eventail-01KWHATQ9DDDK63QTNGXCJ666C.glb",
+    glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/eventail-01KWHATQ9DDDK63QTNGXCJ666C.glb",
     // Éventail figé et redressé : la normale du modèle est sur X ; une rotation
     // de 90° autour de Y l'amène face caméra et debout (la rotation z=90° par
     // défaut la mettait vers le haut → éventail à plat). Auto-rotation coupée.
@@ -169,19 +169,19 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
           {
             id: "motif-1",
             label: "Motif 1",
-            texturePath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/motif_1-01KWHATQZWP3YWZCEVGWMD42Y0.jpg",
+            texturePath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/Textures/Eventail/motif_1-01KWHATQZWP3YWZCEVGWMD42Y0.jpg",
           },
           // TODO assets : déposer des PNG TRANSPARENTS dans
           // /3d/eventail/textures/ (sinon le motif couvre toute la base).
           {
             id: "rose",
             label: "rose",
-            texturePath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/motif_rose-01KWHATR6PXW5EAY4PDV7EDTV1.svg",
+            texturePath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/Textures/Eventail/motif_rose-01KWHATR6PXW5EAY4PDV7EDTV1.svg",
           },
           {
             id: "wave",
             label: "Vague",
-            texturePath: "/3d/eventail/textures/motif-wave.png",
+            texturePath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/Textures/Eventail/motif_vague.jpg",
           },
         ],
       },
@@ -206,7 +206,7 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
     ],
   },
   parapluie: {
-    glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/parapluie-01KWHATRDETE4AB94S8X16PJ67.glb",
+    glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/parapluie-01KWHATRDETE4AB94S8X16PJ67.glb",
     options: [
       {
         id: "color",
