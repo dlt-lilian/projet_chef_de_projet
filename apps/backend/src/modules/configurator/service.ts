@@ -47,6 +47,19 @@ class ConfiguratorModuleService extends MedusaService({
       )
     )
   }
+
+  /**
+   * Supprime une option et ses choix. Nécessaire car la contrainte FK entre
+   * configurator_choice et configurator_option n'a pas de ON DELETE CASCADE
+   * (seulement ON UPDATE CASCADE, cf. la migration Lot 1).
+   */
+  async deleteOptionCascade(optionId: string) {
+    const choices = await this.listConfiguratorChoices({ option_id: optionId })
+    if (choices.length) {
+      await this.deleteConfiguratorChoices(choices.map((c: { id: string }) => c.id))
+    }
+    await this.deleteConfiguratorOptions(optionId)
+  }
 }
 
 export default ConfiguratorModuleService
