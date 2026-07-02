@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from "react"
+import { useEffect, useRef, useState, type ChangeEvent } from "react"
 import { Button, Heading, Text, Input, Label, Badge, toast } from "@medusajs/ui"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -31,6 +31,8 @@ export type Product = {
   model_rotation_deg?: number[] | null
   options: Option[]
 }
+// Noms disponibles dans le .glb (pour le menu de target_mesh).
+export type MeshNames = { objects: string[]; materials: string[] }
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 const JSON_HEADERS = { "Content-Type": "application/json" }
@@ -72,6 +74,205 @@ function parseTargetMesh(raw: string): string | string[] | null {
 async function errorMessage(res: Response, fallback: string): Promise<string> {
   const body = await res.json().catch(() => null)
   return (body?.message as string) || fallback
+}
+
+// ─── Upload d'un fichier vers R2 (/admin/uploads) → renvoie l'URL publique ─────
+function useR2Upload() {
+  const [uploading, setUploading] = useState(false)
+  const upload = async (file: File): Promise<string | null> => {
+    setUploading(true)
+    try {
+      const form = new FormData()
+      form.append("files", file)
+      // Pas de Content-Type manuel : le navigateur pose le boundary multipart.
+      const res = await fetch("/admin/uploads", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      })
+      if (!res.ok) throw new Error(await errorMessage(res, "Échec de l'upload"))
+      const data = await res.json()
+      const url = data?.files?.[0]?.url as string | undefined
+      if (!url) throw new Error("Réponse d'upload inattendue")
+      toast.success("Fichier envoyé")
+      return url
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de l'upload")
+      return null
+    } finally {
+      setUploading(false)
+    }
+  }
+  return { upload, uploading }
+}
+
+// ─── Bouton d'upload d'un modèle .glb vers R2 ──────────────────────────────────
+function GlbUploadButton({ onUploaded }: { onUploaded: (url: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const { upload, uploading } = useR2Upload()
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".glb,.gltf,model/gltf-binary"
+        className="hidden"
+        onChange={async (e: ChangeEvent<HTMLInputElement>) => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          const url = await upload(file)
+          if (url) onUploaded(url)
+          if (inputRef.current) inputRef.current.value = ""
+        }}
+      />
+      <Button
+        size="small"
+        variant="secondary"
+        type="button"
+        isLoading={uploading}
+        onClick={() => inputRef.current?.click()}
+      >
+        Upload .glb
+      </Button>
+    </>
+  )
+}
+
+// ─── Champ image : upload vers R2 + aperçu + URL manuelle ──────────────────────
+function ImageField({
+  value,
+  onChange,
+  label,
+}: {
+  value: string
+  onChange: (v: string) => void
+  label: string
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const { upload, uploading } = useR2Upload()
+
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = await upload(file)
+    if (url) onChange(url)
+    if (inputRef.current) inputRef.current.value = ""
+  }
+
+  return (
+    <div className="w-72">
+      <Label size="xsmall" className="text-ui-fg-muted">{label}</Label>
+      <div className="flex items-center gap-2">
+        {value ? (
+          <img
+            src={value}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded border border-ui-border-base object-cover"
+          />
+        ) : (
+          <div className="h-9 w-9 shrink-0 rounded border border-dashed border-ui-border-base" />
+        )}
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://… ou /3d/…"
+          className="flex-1 font-mono text-xs"
+        />
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onFile}
+        />
+        <Button
+          size="small"
+          variant="secondary"
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          isLoading={uploading}
+        >
+          Upload
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Sélecteur de meshes ciblés : champ texte (CSV) + puces cliquables ─────────
+function MeshSelect({
+  value,
+  onChange,
+  available,
+}: {
+  value: string
+  onChange: (v: string) => void
+  available: MeshNames | null
+}) {
+  const selected = value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+  const toggle = (name: string) => {
+    const set = new Set(selected)
+    if (set.has(name)) set.delete(name)
+    else set.add(name)
+    onChange([...set].join(", "))
+  }
+
+  const Chip = ({ name }: { name: string }) => {
+    const on = selected.includes(name)
+    return (
+      <button
+        type="button"
+        onClick={() => toggle(name)}
+        className={`rounded border px-2 py-0.5 text-xs ${
+          on
+            ? "border-ui-fg-interactive bg-ui-bg-interactive text-ui-fg-on-color"
+            : "border-ui-border-base bg-ui-bg-subtle text-ui-fg-subtle"
+        }`}
+      >
+        {name}
+      </button>
+    )
+  }
+
+  const hasNames =
+    !!available &&
+    (available.objects.length > 0 || available.materials.length > 0)
+
+  return (
+    <div className="w-72">
+      <Label size="xsmall" className="text-ui-fg-muted">Mesh(es) ciblé(s)</Label>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Papier ou vis_1, vis_2"
+        className="font-mono text-xs"
+      />
+      {hasNames && (
+        <div className="mt-1 flex flex-col gap-1">
+          {available!.objects.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="text-[10px] uppercase text-ui-fg-muted">Objets</span>
+              {available!.objects.map((n) => (
+                <Chip key={`o-${n}`} name={n} />
+              ))}
+            </div>
+          )}
+          {available!.materials.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="text-[10px] uppercase text-ui-fg-muted">Matériaux</span>
+              {available!.materials.map((n) => (
+                <Chip key={`m-${n}`} name={n} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ─── En-tête produit (glb, rotation) ──────────────────────────────────────────
@@ -131,6 +332,9 @@ function ProductHeader({
           className="font-mono text-xs"
         />
       </div>
+      <div className="pb-0.5">
+        <GlbUploadButton onUploaded={setGlbPath} />
+      </div>
       <div className="flex items-center gap-2 pb-1.5">
         <input
           type="checkbox"
@@ -163,10 +367,12 @@ function ProductHeader({
 // ─── Édition d'une option existante ──────────────────────────────────────────
 function OptionRow({
   option,
+  meshes,
   onChanged,
   onDeleted,
 }: {
   option: Option
+  meshes: MeshNames | null
   onChanged: () => void
   onDeleted: () => void
 }) {
@@ -255,15 +461,7 @@ function OptionRow({
           <option value="engraving">engraving</option>
         </select>
       </div>
-      <div className="w-48">
-        <Label size="xsmall" className="text-ui-fg-muted">Mesh(es) ciblé(s)</Label>
-        <Input
-          value={targetMesh}
-          onChange={(e) => setTargetMesh(e.target.value)}
-          placeholder="Papier ou vis_1, vis_2"
-          className="font-mono text-xs"
-        />
-      </div>
+      <MeshSelect value={targetMesh} onChange={setTargetMesh} available={meshes} />
       <div className="w-16">
         <Label size="xsmall" className="text-ui-fg-muted">Rang</Label>
         <Input
@@ -293,10 +491,12 @@ function OptionRow({
 // ─── Ajout d'une option ───────────────────────────────────────────────────────
 function AddOption({
   productId,
+  meshes,
   existingCount,
   onAdded,
 }: {
   productId: string
+  meshes: MeshNames | null
   existingCount: number
   onAdded: () => void
 }) {
@@ -362,98 +562,10 @@ function AddOption({
           <option value="engraving">engraving</option>
         </select>
       </div>
-      <div className="w-48">
-        <Label size="xsmall" className="text-ui-fg-muted">Mesh(es) ciblé(s)</Label>
-        <Input
-          value={targetMesh}
-          onChange={(e) => setTargetMesh(e.target.value)}
-          placeholder="Papier ou vis_1, vis_2"
-          className="font-mono text-xs"
-        />
-      </div>
+      <MeshSelect value={targetMesh} onChange={setTargetMesh} available={meshes} />
       <Button size="small" variant="secondary" onClick={add} isLoading={busy}>
         + Ajouter l'option
       </Button>
-    </div>
-  )
-}
-
-// ─── Champ image : upload vers R2 (/admin/uploads) + aperçu + URL manuelle ─────
-function ImageField({
-  value,
-  onChange,
-  label,
-}: {
-  value: string
-  onChange: (v: string) => void
-  label: string
-}) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
-
-  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    try {
-      const form = new FormData()
-      form.append("files", file)
-      // Pas de Content-Type manuel : le navigateur pose le boundary multipart.
-      const res = await fetch("/admin/uploads", {
-        method: "POST",
-        credentials: "include",
-        body: form,
-      })
-      if (!res.ok) throw new Error(await errorMessage(res, "Échec de l'upload"))
-      const data = await res.json()
-      const url = data?.files?.[0]?.url as string | undefined
-      if (!url) throw new Error("Réponse d'upload inattendue")
-      onChange(url)
-      toast.success("Image envoyée")
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Échec de l'upload")
-    } finally {
-      setUploading(false)
-      if (inputRef.current) inputRef.current.value = ""
-    }
-  }
-
-  return (
-    <div className="w-72">
-      <Label size="xsmall" className="text-ui-fg-muted">{label}</Label>
-      <div className="flex items-center gap-2">
-        {value ? (
-          <img
-            src={value}
-            alt=""
-            className="h-9 w-9 shrink-0 rounded border border-ui-border-base object-cover"
-          />
-        ) : (
-          <div className="h-9 w-9 shrink-0 rounded border border-dashed border-ui-border-base" />
-        )}
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="https://… ou /3d/…"
-          className="flex-1 font-mono text-xs"
-        />
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={onFile}
-        />
-        <Button
-          size="small"
-          variant="secondary"
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          isLoading={uploading}
-        >
-          Upload
-        </Button>
-      </div>
     </div>
   )
 }
@@ -723,6 +835,31 @@ export function ProductConfigBlock({
   product: Product
   onChanged: () => void
 }) {
+  // Liste des meshes/matériaux du .glb, chargée une seule fois par produit et
+  // partagée par toutes les options (pour le menu de target_mesh).
+  const [meshes, setMeshes] = useState<MeshNames | null>(null)
+  useEffect(() => {
+    if (!product.glb_path) {
+      setMeshes(null)
+      return
+    }
+    let cancelled = false
+    fetch(
+      `/admin/configurator/meshes?glb=${encodeURIComponent(product.glb_path)}`,
+      { credentials: "include" }
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled) setMeshes(d)
+      })
+      .catch(() => {
+        if (!cancelled) setMeshes(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [product.glb_path])
+
   return (
     <>
       <ProductHeader product={product} onChanged={onChanged} />
@@ -737,7 +874,12 @@ export function ProductConfigBlock({
               <Badge size="2xsmall">{option.type}</Badge>
             </div>
 
-            <OptionRow option={option} onChanged={onChanged} onDeleted={onChanged} />
+            <OptionRow
+              option={option}
+              meshes={meshes}
+              onChanged={onChanged}
+              onDeleted={onChanged}
+            />
 
             {option.type !== "engraving" && (
               <>
@@ -758,6 +900,7 @@ export function ProductConfigBlock({
 
         <AddOption
           productId={product.id}
+          meshes={meshes}
           existingCount={product.options.length}
           onAdded={onChanged}
         />
@@ -801,8 +944,8 @@ export function AddProduct({ onAdded }: { onAdded: () => void }) {
     <div className="px-6 py-5">
       <Heading level="h2">Nouveau produit configurable</Heading>
       <Text size="small" className="text-ui-fg-muted mb-3">
-        Le fichier .glb doit déjà être déposé dans apps/storefront/public/3d/ —
-        cette section ne fait que le référencer.
+        Dépose le fichier .glb (upload vers R2) ou référence un chemin
+        statique existant dans apps/storefront/public/3d/.
       </Text>
       <div className="flex items-end gap-3 flex-wrap">
         <div className="w-40">
@@ -816,13 +959,16 @@ export function AddProduct({ onAdded }: { onAdded: () => void }) {
           />
         </div>
         <div className="w-64">
-          <Label size="xsmall" className="text-ui-fg-muted">Chemin du .glb</Label>
+          <Label size="xsmall" className="text-ui-fg-muted">Chemin / URL du .glb</Label>
           <Input
             value={glbPath}
             onChange={(e) => setGlbPath(e.target.value)}
             placeholder="/3d/lampe/lampe.glb"
             className="font-mono text-xs"
           />
+        </div>
+        <div className="pb-0.5">
+          <GlbUploadButton onUploaded={setGlbPath} />
         </div>
         <Button size="small" variant="secondary" onClick={add} isLoading={busy}>
           + Créer le produit
@@ -845,7 +991,7 @@ export function CreateForHandle({
 
   const create = async () => {
     if (!glbPath.trim()) {
-      toast.error("Le chemin du .glb est obligatoire.")
+      toast.error("Le chemin / l'URL du .glb est obligatoire.")
       return
     }
     setBusy(true)
@@ -869,18 +1015,21 @@ export function CreateForHandle({
   return (
     <div>
       <Text size="small" className="text-ui-fg-muted mb-3">
-        Ce produit n'a pas encore de configurateur 3D. Renseigne le chemin du
-        fichier .glb (déjà déposé dans apps/storefront/public/3d/) pour l'activer.
+        Ce produit n'a pas encore de configurateur 3D. Uploade son modèle .glb
+        (ou renseigne un chemin statique) pour l'activer.
       </Text>
       <div className="flex items-end gap-3 flex-wrap">
         <div className="w-64">
-          <Label size="xsmall" className="text-ui-fg-muted">Chemin du .glb</Label>
+          <Label size="xsmall" className="text-ui-fg-muted">Chemin / URL du .glb</Label>
           <Input
             value={glbPath}
             onChange={(e) => setGlbPath(e.target.value)}
             placeholder={`/3d/${handle}/${handle}.glb`}
             className="font-mono text-xs"
           />
+        </div>
+        <div className="pb-0.5">
+          <GlbUploadButton onUploaded={setGlbPath} />
         </div>
         <Button size="small" variant="secondary" onClick={create} isLoading={busy}>
           + Activer le configurateur
