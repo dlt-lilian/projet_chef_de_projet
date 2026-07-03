@@ -1,4 +1,4 @@
-type GalleryImage = {
+export type GalleryImage = {
   src: string
   alt: string
   aspect?: "portrait" | "square"

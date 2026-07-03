@@ -7,6 +7,7 @@ import ArticleGrid from "@modules/blog/components/ArticleGrid"
 
 import { Slider } from "@modules/home/components/slider"
 import { getSlides } from "@lib/slider"
+import { getGalleryImages } from "@lib/gallery"
 import { listCollections } from "@lib/data/collections"
 import { getRegion } from "@lib/data/regions"
 
@@ -26,6 +27,7 @@ export default async function Home(props: {
     fields: "id, handle, title",
   })
   const slides = await getSlides()
+  const galleryImages = await getGalleryImages()
 
   if (!collections || !region) {
     return null
@@ -42,7 +44,7 @@ export default async function Home(props: {
       <Banner />
 
       <div className="content-container my-12 md:my-16">
-        <Gallery />
+        <Gallery images={galleryImages} />
       </div>
 
       <ArticleGrid count={3} heading="Du côté du blog" />

@@ -27,6 +27,9 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/slider",
     },
+    {
+      resolve: "./src/modules/gallery",
+    },
     ...(process.env.S3_BUCKET
       ? [
           {
