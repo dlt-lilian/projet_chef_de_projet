@@ -1,13 +1,13 @@
 import { defineMiddlewares } from "@medusajs/framework/http"
 import multer from "multer"
 
-// Upload en mémoire pour la route custom du configurateur (choix du dossier R2).
+// Upload en mémoire pour la route générique d'upload R2 (choix du dossier).
 const upload = multer({ storage: multer.memoryStorage() })
 
 export default defineMiddlewares({
   routes: [
     {
-      matcher: "/admin/configurator/upload",
+      matcher: "/admin/media/upload",
       method: ["POST"],
       middlewares: [upload.array("files")],
     },

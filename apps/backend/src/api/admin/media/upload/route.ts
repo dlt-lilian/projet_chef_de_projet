@@ -7,17 +7,21 @@ import { randomUUID } from "crypto"
 import path from "path"
 
 /**
- * POST /admin/configurator/upload  (multipart : `files` + `folder`)
- * Upload une image/texture vers R2 dans le DOSSIER choisi (ex.
- * "3D/Textures/General" ou "3D/Textures/Eventail"), contrairement à
- * /admin/uploads qui écrit toujours à la racine.
- * Renvoie { url, key }.
+ * POST /admin/media/upload  (multipart : `files` + `folder`)
+ *
+ * Upload GÉNÉRIQUE d'un fichier vers R2 dans le DOSSIER choisi. Reprend la
+ * logique de l'ancienne route configurator, mais avec une whitelist de dossiers
+ * ÉLARGIE aux zones éditables du storefront (3D, Slider, Gallery, Blog…), pour
+ * être réutilisée par tous les écrans admin (configurateur, slider, galerie,
+ * blog…). Renvoie { url, key }.
  */
 
 type UploadedFile = { originalname: string; mimetype: string; buffer: Buffer }
 
-// Sécurité : uniquement des dossiers sous 3D/ (pas de "..", pas de chemin absolu).
-const SAFE_FOLDER = /^3D(\/[A-Za-z0-9][A-Za-z0-9 _-]*)*$/
+// Sécurité : le dossier doit commencer par un préfixe de 1er niveau autorisé,
+// puis uniquement des segments simples (alphanum + espace/underscore/tiret).
+// Interdit de fait les ".." et les chemins absolus.
+const SAFE_FOLDER = /^(3D|Slider|Gallery|Blog)(\/[A-Za-z0-9][A-Za-z0-9 _-]*)*$/
 
 export const POST = async (
   req: AuthenticatedMedusaRequest,
@@ -35,7 +39,7 @@ export const POST = async (
     return res.status(400).json({ message: "Aucun fichier fourni (champ « files »)." })
   }
 
-  const folder = String((req.body as { folder?: string })?.folder ?? "3D/Textures/General")
+  const folder = String((req.body as { folder?: string })?.folder ?? "")
     .trim()
     .replace(/^\/+|\/+$/g, "")
   if (!SAFE_FOLDER.test(folder)) {

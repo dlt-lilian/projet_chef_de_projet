@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react"
 import { Button, Heading, Text, Input, Label, Badge, toast } from "@medusajs/ui"
+import { ImageField, useR2Upload, type FolderOption } from "./common/ImageField"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 export type Choice = {
@@ -59,6 +60,16 @@ function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
 }
 
+// Dossiers R2 proposés pour les textures/motifs d'un produit : le dossier dédié
+// au produit (ex. « 3D/Textures/Eventail ») + le dossier « Général » partagé.
+function textureFolders(productHandle: string): FolderOption[] {
+  const p = capitalize(productHandle)
+  return [
+    { value: `3D/Textures/${p}`, label: p },
+    { value: "3D/Textures/General", label: "Général" },
+  ]
+}
+
 function formatTargetMesh(value?: string | string[] | null): string {
   if (!value) return ""
   return Array.isArray(value) ? value.join(", ") : value
@@ -79,37 +90,6 @@ function parseTargetMesh(raw: string): string | string[] | null {
 async function errorMessage(res: Response, fallback: string): Promise<string> {
   const body = await res.json().catch(() => null)
   return (body?.message as string) || fallback
-}
-
-// ─── Upload d'un fichier vers R2 (/admin/uploads) → renvoie l'URL publique ─────
-function useR2Upload() {
-  const [uploading, setUploading] = useState(false)
-  const upload = async (file: File, folder: string): Promise<string | null> => {
-    setUploading(true)
-    try {
-      const form = new FormData()
-      form.append("files", file)
-      form.append("folder", folder)
-      // Route custom : upload dans le dossier R2 choisi (pas la racine).
-      const res = await fetch("/admin/configurator/upload", {
-        method: "POST",
-        credentials: "include",
-        body: form,
-      })
-      if (!res.ok) throw new Error(await errorMessage(res, "Échec de l'upload"))
-      const data = await res.json()
-      const url = data?.url as string | undefined
-      if (!url) throw new Error("Réponse d'upload inattendue")
-      toast.success("Fichier envoyé")
-      return url
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Échec de l'upload")
-      return null
-    } finally {
-      setUploading(false)
-    }
-  }
-  return { upload, uploading }
 }
 
 // ─── Bouton d'upload d'un modèle .glb vers R2 ──────────────────────────────────
@@ -141,84 +121,6 @@ function GlbUploadButton({ onUploaded }: { onUploaded: (url: string) => void }) 
         Upload .glb
       </Button>
     </>
-  )
-}
-
-// ─── Champ image : upload vers R2 + aperçu + URL manuelle ──────────────────────
-function ImageField({
-  value,
-  onChange,
-  label,
-  productHandle,
-}: {
-  value: string
-  onChange: (v: string) => void
-  label: string
-  productHandle: string
-}) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const { upload, uploading } = useR2Upload()
-  const productFolder = `3D/Textures/${capitalize(productHandle)}`
-  const [folder, setFolder] = useState(productFolder)
-
-  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const url = await upload(file, folder)
-    if (url) onChange(url)
-    if (inputRef.current) inputRef.current.value = ""
-  }
-
-  return (
-    <div className="w-72">
-      <Label size="xsmall" className="text-ui-fg-muted">{label}</Label>
-      <div className="flex items-center gap-2">
-        {value ? (
-          <img
-            src={value}
-            alt=""
-            className="h-9 w-9 shrink-0 rounded border border-ui-border-base object-cover"
-          />
-        ) : (
-          <div className="h-9 w-9 shrink-0 rounded border border-dashed border-ui-border-base" />
-        )}
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="https://… ou /3d/…"
-          className="flex-1 font-mono text-xs"
-        />
-      </div>
-      <div className="mt-1 flex items-center gap-2">
-        <span className="shrink-0 text-[10px] uppercase text-ui-fg-muted">
-          Ranger dans
-        </span>
-        <select
-          value={folder}
-          onChange={(e) => setFolder(e.target.value)}
-          className="txt-compact-small flex-1 rounded-md border border-ui-border-base bg-ui-bg-field px-2 py-1"
-        >
-          <option value={productFolder}>{capitalize(productHandle)}</option>
-          <option value="3D/Textures/General">Général</option>
-        </select>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={onFile}
-        />
-        <Button
-          size="small"
-          variant="secondary"
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          isLoading={uploading}
-        >
-          Upload
-        </Button>
-      </div>
-    </div>
   )
 }
 
@@ -702,7 +604,7 @@ function ChoiceRow({
           value={texture}
           onChange={setTexture}
           label={`Image ${option.type === "motif" ? "(motif)" : "(texture)"}`}
-          productHandle={productHandle}
+          folders={textureFolders(productHandle)}
         />
       )}
 
@@ -833,7 +735,7 @@ function AddChoice({
           value={texture}
           onChange={setTexture}
           label={`Image ${option.type === "motif" ? "(motif)" : "(texture)"}`}
-          productHandle={productHandle}
+          folders={textureFolders(productHandle)}
         />
       )}
       {isTexture && (
