@@ -12,6 +12,7 @@ import {
   Divider,
 } from "@medusajs/ui"
 import BlockBuilder from "./BlockBuilder"
+import { ImageField } from "../common/ImageField"
 
 type Block = Record<string, unknown>
 
@@ -160,7 +161,13 @@ export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps)
 
           <div className="col-span-2">
             <Label>Image de couverture</Label>
-            <Input value={data.cover} onChange={set("cover")} placeholder="/images/cover.jpg ou https://..." />
+            <ImageField
+              value={data.cover}
+              onChange={(v) => setData(prev => ({ ...prev, cover: v }))}
+              label=""
+              folders={[{ value: data.slug ? `Blog/${data.slug}` : "Blog", label: data.slug || "Blog" }]}
+              defaultFolder={data.slug ? `Blog/${data.slug}` : "Blog"}
+            />
           </div>
 
           <div>
@@ -241,6 +248,7 @@ export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps)
         <BlockBuilder
           value={data.blocks as never}
           onChange={blocks => setData(prev => ({ ...prev, blocks }))}
+          slug={data.slug}
         />
       </div>
 

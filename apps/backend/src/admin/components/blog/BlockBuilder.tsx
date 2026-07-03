@@ -11,6 +11,7 @@ import {
   BarsThree,
   SquaresPlus,
 } from "@medusajs/icons"
+import { ImageField, type FolderOption } from "../common/ImageField"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ type Block =
 type BlockBuilderProps = {
   value: Block[]
   onChange: (blocks: Block[]) => void
+  slug?: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -57,12 +59,17 @@ function defaultBlock(type: string): Block {
 
 // ─── Sous-éditeurs par type ───────────────────────────────────────────────────
 
-function BannerEditor({ block, onChange }: { block: Extract<Block, { type: "banner" }>; onChange: (b: Block) => void }) {
+function BannerEditor({ block, onChange, folders }: { block: Extract<Block, { type: "banner" }>; onChange: (b: Block) => void; folders: FolderOption[] }) {
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="col-span-2">
-        <Label size="xsmall">URL de l'image *</Label>
-        <Input size="small" value={block.img}      onChange={e => onChange({ ...block, img:      e.target.value })} placeholder="/images/banner.jpg" />
+        <ImageField
+          value={block.img}
+          onChange={(v) => onChange({ ...block, img: v })}
+          label="Image *"
+          folders={folders}
+          defaultFolder={folders[0]?.value}
+        />
       </div>
       <div>
         <Label size="xsmall">Texte alternatif *</Label>
@@ -126,12 +133,17 @@ function TextEditor({ block, onChange }: { block: Extract<Block, { type: "texte"
   )
 }
 
-function ImgEditor({ block, onChange }: { block: Extract<Block, { type: "img" }>; onChange: (b: Block) => void }) {
+function ImgEditor({ block, onChange, folders }: { block: Extract<Block, { type: "img" }>; onChange: (b: Block) => void; folders: FolderOption[] }) {
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="col-span-2">
-        <Label size="xsmall">URL de l'image *</Label>
-        <Input size="small" value={block.src}     onChange={e => onChange({ ...block, src:       e.target.value })} placeholder="/images/photo.jpg" />
+        <ImageField
+          value={block.src}
+          onChange={(v) => onChange({ ...block, src: v })}
+          label="Image *"
+          folders={folders}
+          defaultFolder={folders[0]?.value}
+        />
       </div>
       <div>
         <Label size="xsmall">Texte alternatif *</Label>
@@ -154,7 +166,7 @@ function ImgEditor({ block, onChange }: { block: Extract<Block, { type: "img" }>
   )
 }
 
-function DoubleImgEditor({ block, onChange }: { block: Extract<Block, { type: "doubleimg" }>; onChange: (b: Block) => void }) {
+function DoubleImgEditor({ block, onChange, folders }: { block: Extract<Block, { type: "doubleimg" }>; onChange: (b: Block) => void; folders: FolderOption[] }) {
   const update = (idx: 0 | 1, field: string, val: string) => {
     const images = [...block.images] as typeof block.images
     images[idx] = { ...images[idx], [field]: val }
@@ -167,8 +179,13 @@ function DoubleImgEditor({ block, onChange }: { block: Extract<Block, { type: "d
         <div key={idx} className="space-y-2">
           <Text size="small" weight="plus" className="text-ui-fg-subtle">{label}</Text>
           <div>
-            <Label size="xsmall">URL *</Label>
-            <Input size="small" value={block.images[idx as 0|1].src}     onChange={e => update(idx as 0|1, "src",     e.target.value)} placeholder="/images/photo.jpg" />
+            <ImageField
+              value={block.images[idx as 0|1].src}
+              onChange={(v) => update(idx as 0|1, "src", v)}
+              label="Image *"
+              folders={folders}
+              defaultFolder={folders[0]?.value}
+            />
           </div>
           <div>
             <Label size="xsmall">Alt *</Label>
@@ -184,20 +201,24 @@ function DoubleImgEditor({ block, onChange }: { block: Extract<Block, { type: "d
   )
 }
 
-function BlockEditor({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
+function BlockEditor({ block, onChange, folders }: { block: Block; onChange: (b: Block) => void; folders: FolderOption[] }) {
   switch (block.type) {
-    case "banner":    return <BannerEditor    block={block} onChange={onChange} />
+    case "banner":    return <BannerEditor    block={block} onChange={onChange} folders={folders} />
     case "titre":     return <TitleEditor     block={block} onChange={onChange} />
     case "texte":     return <TextEditor      block={block} onChange={onChange} />
-    case "img":       return <ImgEditor       block={block} onChange={onChange} />
-    case "doubleimg": return <DoubleImgEditor block={block} onChange={onChange} />
+    case "img":       return <ImgEditor       block={block} onChange={onChange} folders={folders} />
+    case "doubleimg": return <DoubleImgEditor block={block} onChange={onChange} folders={folders} />
   }
 }
 
 // ─── BlockBuilder principal ───────────────────────────────────────────────────
 
-export default function BlockBuilder({ value, onChange }: BlockBuilderProps) {
+export default function BlockBuilder({ value, onChange, slug }: BlockBuilderProps) {
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({})
+  // Dossier R2 des images du blog : Blog/<slug> (ou Blog si le slug est vide).
+  const folders: FolderOption[] = [
+    { value: slug ? `Blog/${slug}` : "Blog", label: slug || "Blog" },
+  ]
 
   const addBlock = (type: string) => {
     onChange([...value, defaultBlock(type)])
@@ -297,7 +318,7 @@ export default function BlockBuilder({ value, onChange }: BlockBuilderProps) {
           {/* Corps du bloc */}
           {!collapsed[i] && (
             <div className="p-4">
-              <BlockEditor block={block} onChange={b => updateBlock(i, b)} />
+              <BlockEditor block={block} onChange={b => updateBlock(i, b)} folders={folders} />
             </div>
           )}
         </div>

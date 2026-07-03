@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from "react"
+import { useEffect, useRef, useState, type ChangeEvent } from "react"
 import { Button, Input, Label, toast } from "@medusajs/ui"
 
 // ─── Upload d'un fichier vers R2 (/admin/media/upload) → URL publique ──────────
@@ -59,6 +59,13 @@ export function ImageField({
   const inputRef = useRef<HTMLInputElement>(null)
   const { upload, uploading } = useR2Upload()
   const [folder, setFolder] = useState(defaultFolder ?? folders[0]?.value ?? "")
+
+  // Si le dossier par défaut change après le montage (ex. blog : le slug se
+  // remplit après coup), on suit ce changement. Sans `defaultFolder` fourni
+  // (slider/galerie), aucun effet → la sélection manuelle reste préservée.
+  useEffect(() => {
+    if (defaultFolder) setFolder(defaultFolder)
+  }, [defaultFolder])
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
