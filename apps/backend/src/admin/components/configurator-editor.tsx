@@ -54,6 +54,11 @@ function slugify(s: string): string {
     .replace(/\s+/g, "-")
 }
 
+// "eventail" -> "Eventail" (pour le nom de dossier R2 du produit).
+function capitalize(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
+}
+
 function formatTargetMesh(value?: string | string[] | null): string {
   if (!value) return ""
   return Array.isArray(value) ? value.join(", ") : value
@@ -79,20 +84,21 @@ async function errorMessage(res: Response, fallback: string): Promise<string> {
 // ─── Upload d'un fichier vers R2 (/admin/uploads) → renvoie l'URL publique ─────
 function useR2Upload() {
   const [uploading, setUploading] = useState(false)
-  const upload = async (file: File): Promise<string | null> => {
+  const upload = async (file: File, folder: string): Promise<string | null> => {
     setUploading(true)
     try {
       const form = new FormData()
       form.append("files", file)
-      // Pas de Content-Type manuel : le navigateur pose le boundary multipart.
-      const res = await fetch("/admin/uploads", {
+      form.append("folder", folder)
+      // Route custom : upload dans le dossier R2 choisi (pas la racine).
+      const res = await fetch("/admin/configurator/upload", {
         method: "POST",
         credentials: "include",
         body: form,
       })
       if (!res.ok) throw new Error(await errorMessage(res, "Échec de l'upload"))
       const data = await res.json()
-      const url = data?.files?.[0]?.url as string | undefined
+      const url = data?.url as string | undefined
       if (!url) throw new Error("Réponse d'upload inattendue")
       toast.success("Fichier envoyé")
       return url
@@ -120,7 +126,7 @@ function GlbUploadButton({ onUploaded }: { onUploaded: (url: string) => void }) 
         onChange={async (e: ChangeEvent<HTMLInputElement>) => {
           const file = e.target.files?.[0]
           if (!file) return
-          const url = await upload(file)
+          const url = await upload(file, "3D")
           if (url) onUploaded(url)
           if (inputRef.current) inputRef.current.value = ""
         }}
@@ -143,18 +149,22 @@ function ImageField({
   value,
   onChange,
   label,
+  productHandle,
 }: {
   value: string
   onChange: (v: string) => void
   label: string
+  productHandle: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const { upload, uploading } = useR2Upload()
+  const productFolder = `3D/Textures/${capitalize(productHandle)}`
+  const [folder, setFolder] = useState(productFolder)
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const url = await upload(file)
+    const url = await upload(file, folder)
     if (url) onChange(url)
     if (inputRef.current) inputRef.current.value = ""
   }
@@ -178,6 +188,19 @@ function ImageField({
           placeholder="https://… ou /3d/…"
           className="flex-1 font-mono text-xs"
         />
+      </div>
+      <div className="mt-1 flex items-center gap-2">
+        <span className="shrink-0 text-[10px] uppercase text-ui-fg-muted">
+          Ranger dans
+        </span>
+        <select
+          value={folder}
+          onChange={(e) => setFolder(e.target.value)}
+          className="txt-compact-small flex-1 rounded-md border border-ui-border-base bg-ui-bg-field px-2 py-1"
+        >
+          <option value={productFolder}>{capitalize(productHandle)}</option>
+          <option value="3D/Textures/General">Général</option>
+        </select>
         <input
           ref={inputRef}
           type="file"
@@ -574,10 +597,12 @@ function AddOption({
 function ChoiceRow({
   option,
   choice,
+  productHandle,
   onChanged,
 }: {
   option: Option
   choice: Choice
+  productHandle: string
   onChanged: () => void
 }) {
   const isColor = option.type === "color"
@@ -677,6 +702,7 @@ function ChoiceRow({
           value={texture}
           onChange={setTexture}
           label={`Image ${option.type === "motif" ? "(motif)" : "(texture)"}`}
+          productHandle={productHandle}
         />
       )}
 
@@ -736,9 +762,11 @@ function ChoiceRow({
 // ─── Ajout d'un choix ─────────────────────────────────────────────────────────
 function AddChoice({
   option,
+  productHandle,
   onAdded,
 }: {
   option: Option
+  productHandle: string
   onAdded: () => void
 }) {
   const isColor = option.type === "color"
@@ -805,6 +833,7 @@ function AddChoice({
           value={texture}
           onChange={setTexture}
           label={`Image ${option.type === "motif" ? "(motif)" : "(texture)"}`}
+          productHandle={productHandle}
         />
       )}
       {isTexture && (
@@ -888,11 +917,16 @@ export function ProductConfigBlock({
                     key={choice.id}
                     option={option}
                     choice={choice}
+                    productHandle={product.handle}
                     onChanged={onChanged}
                   />
                 ))}
 
-                <AddChoice option={option} onAdded={onChanged} />
+                <AddChoice
+                  option={option}
+                  productHandle={product.handle}
+                  onAdded={onChanged}
+                />
               </>
             )}
           </div>
