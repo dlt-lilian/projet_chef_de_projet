@@ -11,7 +11,8 @@ export type GalleryImage = {
   id: string
   src: string
   alt: string
-  aspect: "portrait" | "square"
+  aspect: "portrait" | "square" | "landscape"
+  col_span: number
   rank: number
   active: boolean
 }
@@ -28,27 +29,38 @@ export async function fetchImages(): Promise<GalleryImage[]> {
   return images
 }
 
+const SELECT_CLASS =
+  "txt-compact-small w-full rounded-md border border-ui-border-base bg-ui-bg-field px-2 py-1.5"
+
 function AspectSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="txt-compact-small w-full rounded-md border border-ui-border-base bg-ui-bg-field px-2 py-1.5"
-    >
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={SELECT_CLASS}>
       <option value="portrait">Portrait (3/4)</option>
       <option value="square">Carré (1/1)</option>
+      <option value="landscape">Paysage (4/3)</option>
+    </select>
+  )
+}
+
+function ColSpanSelect({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <select value={value} onChange={(e) => onChange(Number(e.target.value))} className={SELECT_CLASS}>
+      <option value={1}>1 colonne</option>
+      <option value={2}>2 colonnes</option>
+      <option value={3}>3 colonnes</option>
     </select>
   )
 }
 
 // ─── Champs partagés (édition + ajout) ────────────────────────────────────────
 function ImageFields({
-  src, alt, aspect, setSrc, setAlt, setAspect,
+  src, alt, aspect, colSpan, setSrc, setAlt, setAspect, setColSpan,
 }: {
-  src: string; alt: string; aspect: string
+  src: string; alt: string; aspect: string; colSpan: number
   setSrc: (v: string) => void
   setAlt: (v: string) => void
   setAspect: (v: string) => void
+  setColSpan: (v: number) => void
 }) {
   return (
     <div className="flex flex-wrap items-start gap-4">
@@ -58,9 +70,15 @@ function ImageFields({
           <Label size="xsmall" className="text-ui-fg-muted">Texte alternatif</Label>
           <Input value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Description de l'image (accessibilité)" />
         </div>
-        <div>
-          <Label size="xsmall" className="text-ui-fg-muted">Format</Label>
-          <AspectSelect value={aspect} onChange={setAspect} />
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Label size="xsmall" className="text-ui-fg-muted">Format</Label>
+            <AspectSelect value={aspect} onChange={setAspect} />
+          </div>
+          <div className="flex-1">
+            <Label size="xsmall" className="text-ui-fg-muted">Colonnes</Label>
+            <ColSpanSelect value={colSpan} onChange={setColSpan} />
+          </div>
         </div>
       </div>
     </div>
@@ -80,6 +98,7 @@ function ImageRow({
   const [src, setSrc] = useState(image.src)
   const [alt, setAlt] = useState(image.alt)
   const [aspect, setAspect] = useState<string>(image.aspect)
+  const [colSpan, setColSpan] = useState<number>(image.col_span ?? 1)
   const [active, setActive] = useState(image.active)
   const [busy, setBusy] = useState(false)
 
@@ -90,7 +109,7 @@ function ImageRow({
         method: "PUT",
         credentials: "include",
         headers: JSON_HEADERS,
-        body: JSON.stringify({ src, alt, aspect, active }),
+        body: JSON.stringify({ src, alt, aspect, col_span: colSpan, active }),
       })
       if (!res.ok) throw new Error(await errorMessage(res, "Échec"))
       toast.success("Image enregistrée")
@@ -138,7 +157,7 @@ function ImageRow({
         </div>
       </div>
 
-      <ImageFields src={src} alt={alt} aspect={aspect} setSrc={setSrc} setAlt={setAlt} setAspect={setAspect} />
+      <ImageFields src={src} alt={alt} aspect={aspect} colSpan={colSpan} setSrc={setSrc} setAlt={setAlt} setAspect={setAspect} setColSpan={setColSpan} />
 
       <div className="mt-3 flex items-center gap-3">
         <div className="flex items-center gap-2">
@@ -158,6 +177,7 @@ function AddImage({ nextRank, onAdded }: { nextRank: number; onAdded: () => void
   const [src, setSrc] = useState("")
   const [alt, setAlt] = useState("")
   const [aspect, setAspect] = useState("portrait")
+  const [colSpan, setColSpan] = useState(1)
   const [busy, setBusy] = useState(false)
 
   const add = async () => {
@@ -171,11 +191,11 @@ function AddImage({ nextRank, onAdded }: { nextRank: number; onAdded: () => void
         method: "POST",
         credentials: "include",
         headers: JSON_HEADERS,
-        body: JSON.stringify({ src, alt, aspect, rank: nextRank, active: true }),
+        body: JSON.stringify({ src, alt, aspect, col_span: colSpan, rank: nextRank, active: true }),
       })
       if (!res.ok) throw new Error(await errorMessage(res, "Échec"))
       toast.success("Image ajoutée")
-      setSrc(""); setAlt(""); setAspect("portrait")
+      setSrc(""); setAlt(""); setAspect("portrait"); setColSpan(1)
       onAdded()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Échec de l'ajout")
@@ -187,7 +207,7 @@ function AddImage({ nextRank, onAdded }: { nextRank: number; onAdded: () => void
   return (
     <div className="rounded-lg border border-dashed border-ui-border-base p-4">
       <Heading level="h2" className="mb-3">Nouvelle image</Heading>
-      <ImageFields src={src} alt={alt} aspect={aspect} setSrc={setSrc} setAlt={setAlt} setAspect={setAspect} />
+      <ImageFields src={src} alt={alt} aspect={aspect} colSpan={colSpan} setSrc={setSrc} setAlt={setAlt} setAspect={setAspect} setColSpan={setColSpan} />
       <div className="mt-3 flex justify-end">
         <Button size="small" variant="secondary" onClick={add} isLoading={busy}>
           + Ajouter l'image

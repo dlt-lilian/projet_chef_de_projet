@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework/http"
 import { GALLERY_MODULE } from "../../../../modules/gallery"
 import type GalleryModuleService from "../../../../modules/gallery/service"
+import { sanitizeAspect, sanitizeColSpan } from "../route"
 
 /**
  * PUT /admin/gallery/:id
@@ -23,9 +24,11 @@ export const PUT = async (
   }
 
   const patch: Record<string, unknown> = { id }
-  for (const key of ["src", "alt", "aspect", "rank", "active"]) {
+  for (const key of ["src", "alt", "aspect", "col_span", "rank", "active"]) {
     if (key in body) patch[key] = body[key]
   }
+  if ("aspect" in patch) patch.aspect = sanitizeAspect(patch.aspect)
+  if ("col_span" in patch) patch.col_span = sanitizeColSpan(patch.col_span)
 
   const updated = await svc.updateGalleryImages(patch)
   res.json({ image: Array.isArray(updated) ? updated[0] : updated })

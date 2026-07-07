@@ -6,7 +6,7 @@ import type GalleryModuleService from "../../../modules/gallery/service"
  * GET /store/gallery
  *
  * Renvoie les images actives, triées par rank, dans la forme attendue par le
- * storefront (GalleryImage : { src, alt, aspect }).
+ * storefront (GalleryImage : { src, alt, aspect, colSpan }).
  */
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const svc: GalleryModuleService = req.scope.resolve(GALLERY_MODULE)
@@ -17,6 +17,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       src: i.src,
       alt: i.alt,
       aspect: i.aspect,
+      colSpan: i.col_span,
     })),
   })
 }
