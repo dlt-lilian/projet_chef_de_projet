@@ -13,17 +13,20 @@ import { CONFIGURATOR_MODULE } from "../modules/configurator"
 import type ConfiguratorModuleService from "../modules/configurator/service"
 import type { ExecArgs } from "@medusajs/framework/types"
 
-// ── Palettes partagées (copie de configurableProducts.ts) ────────────────────
+// ── Palettes partagées — MIROIR de configurableProducts.ts (storefront) ──────
+// Les assets 3D sont servis depuis Cloudflare R2 (plus de fichiers locaux dans
+// public/3d). Garder ce seed synchronisé avec configurableProducts.ts.
+const R2 = "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev"
+
 const COLOR_CHOICES = [
-  { id: "naturel", label: "Naturel", colorHex: "#C4A882" },
+  { id: "nacre", label: "Blanc Nacré", colorHex: "#F5F0E8" },
   { id: "noir", label: "Noir Laqué", colorHex: "#1A1A1A" },
   { id: "vermillon", label: "Vermillon", colorHex: "#C0392B" },
   { id: "or", label: "Or", colorHex: "#D4AF37" },
-  { id: "nacre", label: "Blanc Nacré", colorHex: "#F5F0E8" },
   { id: "indigo", label: "Bleu Indigo", colorHex: "#1B3A6B" },
 ]
 
-const WOOD_TEXTURE = "/3d/textures/bois_1.jpg"
+const WOOD_TEXTURE = `${R2}/3D/Textures/General/bois_1-01KWHATQ1K7HMRMRMMTFKQMDQM.jpg`
 const WOOD_CHOICES = [
   { id: "naturel", label: "Naturel", texturePath: WOOD_TEXTURE, darken: 0 },
   { id: "miel", label: "Miel", texturePath: WOOD_TEXTURE, darken: 0.18 },
@@ -57,7 +60,7 @@ type SeedProduct = {
 const PRODUCTS: SeedProduct[] = [
   {
     handle: "baguettes",
-    glbPath: "/3d/baguettes/baguettes.glb",
+    glbPath: `${R2}/3D/baguettes-01KWHATP1VTEQNVFJXFX0B1TGX.glb`,
     options: [
       { id: "color", label: "Couleur du bois", type: "color", targetMesh: "Material_0", choices: COLOR_CHOICES },
       { id: "wood", label: "Teinte du bois", type: "texture", targetMesh: "Material_0", choices: WOOD_CHOICES },
@@ -66,7 +69,7 @@ const PRODUCTS: SeedProduct[] = [
   },
   {
     handle: "eventail",
-    glbPath: "/3d/eventail/eventail.glb",
+    glbPath: `${R2}/3D/eventail-01KWHATQ9DDDK63QTNGXCJ666C.glb`,
     autoRotate: false,
     modelRotationDeg: [0, 90, 0],
     options: [
@@ -79,9 +82,9 @@ const PRODUCTS: SeedProduct[] = [
         targetMesh: "Papier",
         choices: [
           { id: "none", label: "Aucun" },
-          { id: "motif-1", label: "Motif 1", texturePath: "/3d/eventail/textures/motif_1.jpg" },
-          { id: "rose", label: "rose", texturePath: "/3d/eventail/textures/motif_rose.svg" },
-          { id: "wave", label: "Vague", texturePath: "/3d/eventail/textures/motif-wave.png" },
+          { id: "motif-1", label: "Motif 1", texturePath: `${R2}/3D/Textures/Eventail/motif_1-01KWHATQZWP3YWZCEVGWMD42Y0.jpg` },
+          { id: "rose", label: "rose", texturePath: `${R2}/3D/Textures/Eventail/motif_rose-01KWHATR6PXW5EAY4PDV7EDTV1.svg` },
+          { id: "wave", label: "Vague", texturePath: `${R2}/3D/Textures/Eventail/motif_vague.jpg` },
         ],
       },
       {
@@ -101,7 +104,7 @@ const PRODUCTS: SeedProduct[] = [
   },
   {
     handle: "parapluie",
-    glbPath: "/3d/parapluie/parapluie.glb",
+    glbPath: `${R2}/3D/parapluie-01KWHATRDETE4AB94S8X16PJ67.glb`,
     options: [
       { id: "color", label: "Couleur", type: "color", targetMesh: "Material_0", choices: COLOR_CHOICES },
       {
@@ -109,6 +112,8 @@ const PRODUCTS: SeedProduct[] = [
         label: "Toile",
         type: "texture",
         targetMesh: "Material_0",
+        // TODO assets : textures parapluie (indigo/kraft/black) jamais uploadées.
+        // À déposer sur R2 puis remplacer ces chemins (idem configurableProducts.ts).
         choices: [
           { id: "indigo", label: "Indigo", texturePath: "/3d/parapluie/textures/indigo.jpg" },
           { id: "kraft", label: "Kraft", texturePath: "/3d/parapluie/textures/kraft.jpg" },
