@@ -19,7 +19,8 @@ export const GET = async (
 }
 
 // Formats autorisés (aspect) et nombre de colonnes (col_span) partagés avec le PUT.
-export const GALLERY_ASPECTS = ["portrait", "square", "landscape"]
+// "fill" = pas de ratio fixe côté storefront (l'image s'étire pour remplir la ligne).
+export const GALLERY_ASPECTS = ["portrait", "square", "landscape", "fill"]
 export const sanitizeAspect = (v: unknown): string =>
   GALLERY_ASPECTS.includes(v as string) ? (v as string) : "portrait"
 export const sanitizeColSpan = (v: unknown): number =>

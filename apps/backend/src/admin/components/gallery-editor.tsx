@@ -11,7 +11,7 @@ export type GalleryImage = {
   id: string
   src: string
   alt: string
-  aspect: "portrait" | "square" | "landscape"
+  aspect: "portrait" | "square" | "landscape" | "fill"
   col_span: number
   rank: number
   active: boolean
@@ -38,6 +38,7 @@ function AspectSelect({ value, onChange }: { value: string; onChange: (v: string
       <option value="portrait">Portrait (3/4)</option>
       <option value="square">Carré (1/1)</option>
       <option value="landscape">Paysage (4/3)</option>
+      <option value="fill">Remplir la ligne</option>
     </select>
   )
 }
