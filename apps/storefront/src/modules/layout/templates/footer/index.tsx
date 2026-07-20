@@ -36,7 +36,7 @@ export default async function Footer() {
               href="/"
               className="font-semibold uppercase text-xl text-grey-90"
             >
-              KŌGEI 工芸
+              MAISON-KŌGEI 工芸
             </LocalizedClientLink>
             <p className="text-sm text-gray-600 mt-3 max-w-[260px] leading-relaxed">
               L'artisanat japonais à votre porte. Pièces uniques, façonnées à la
