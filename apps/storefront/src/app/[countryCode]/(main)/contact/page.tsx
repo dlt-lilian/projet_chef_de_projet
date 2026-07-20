@@ -3,7 +3,7 @@ import Link from "next/link"
 import ContactForm from "@modules/contact/components/ContactForm"
 
 export const metadata: Metadata = {
-  title: "Contact — Kōgei",
+  title: "Contact — MAISON-KŌGEI 工芸",
   description:
     "Une question ? Une demande de personnalisation ? Contactez l'équipe Kōgei.",
 }
