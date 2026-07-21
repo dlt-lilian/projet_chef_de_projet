@@ -12,7 +12,7 @@ import { listCollections } from "@lib/data/collections"
 import { getRegion } from "@lib/data/regions"
 
 export const metadata: Metadata = {
-  title: "Hinano — Artisanat japonais",
+  title: "Hinaso — Artisanat japonais",
   description:
     "Pièces d'artisanat japonais : baguettes, éventails, parapluies. Façonnés à la main.",
 }

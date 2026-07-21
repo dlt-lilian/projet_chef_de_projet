@@ -69,7 +69,7 @@ export const CONFIGURABLE_HANDLES: ConfigurableHandle[] = [
   "parapluie",
 ]
 
-/** Palette de couleurs unies Hinano (laque / bois teinté), partagée par les produits. */
+/** Palette de couleurs unies Hinaso (laque / bois teinté), partagée par les produits. */
 export const COLOR_CHOICES: ConfiguratorChoice[] = [
   { id: "nacre", label: "Blanc Nacré", colorHex: "#F5F0E8" },
   { id: "noir", label: "Noir Laqué", colorHex: "#1A1A1A" },

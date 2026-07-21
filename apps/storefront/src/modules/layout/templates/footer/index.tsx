@@ -36,7 +36,7 @@ export default async function Footer() {
               href="/"
               className="font-semibold uppercase text-xl text-grey-90"
             >
-              Hinano
+              Hinaso
             </LocalizedClientLink>
             <p className="text-sm text-gray-600 mt-3 max-w-[260px] leading-relaxed">
               L'artisanat japonais à votre porte. Pièces uniques, façonnées à la
@@ -113,7 +113,7 @@ export default async function Footer() {
 
         <div className="border-t border-grey-20 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <span>
-            © {new Date().getFullYear()} Hinano. Tous droits
+            © {new Date().getFullYear()} Hinaso. Tous droits
             réservés.
           </span>
         </div>

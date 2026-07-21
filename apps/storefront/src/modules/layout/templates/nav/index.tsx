@@ -8,6 +8,7 @@ import LocalizedClientLink from "@modules/common/components/localized-client-lin
 import CartButton from "@modules/layout/components/cart-button"
 import SideMenu from "@modules/layout/components/side-menu"
 import { Icon, Input } from "@modules/common/components/my_ui"
+import Image from "next/image"
 
 export default async function Nav() {
   const [regions, locales, currentLocale] = await Promise.all([
@@ -36,7 +37,14 @@ export default async function Nav() {
               className="font-semibold uppercase text-lg small:text-xl text-grey-90 hover:text-primary transition-colors"
               data-testid="nav-store-link"
             >
-              Hinano
+              <Image
+                src="/Hinano_logo.png"
+                alt="Hinano"
+                width={120}
+                height={32}
+                priority
+              />
+
             </LocalizedClientLink>
           </div>
 

@@ -3,7 +3,7 @@ import BlogList from "@modules/blog/components/BlogList"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Blog — Hinano",
+  title: "Blog — Hinaso",
   description: "Articles & récits sur l'artisanat japonais",
 }
 
