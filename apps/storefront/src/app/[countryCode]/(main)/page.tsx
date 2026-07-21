@@ -12,7 +12,7 @@ import { listCollections } from "@lib/data/collections"
 import { getRegion } from "@lib/data/regions"
 
 export const metadata: Metadata = {
-  title: "MAISON-KŌGEI 工芸 — Artisanat japonais",
+  title: "Hinano — Artisanat japonais",
   description:
     "Pièces d'artisanat japonais : baguettes, éventails, parapluies. Façonnés à la main.",
 }

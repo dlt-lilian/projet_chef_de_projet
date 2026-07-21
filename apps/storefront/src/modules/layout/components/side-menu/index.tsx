@@ -74,7 +74,7 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold uppercase text-lg text-grey-90">
-                        MAISON-KŌGEI 工芸
+                        Hinano
                       </span>
                       <button
                         data-testid="close-menu-button"
@@ -151,7 +151,7 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
                         />
                       </div>
                       <Text className="text-xs text-gray-500">
-                        © {new Date().getFullYear()} Kōgei.
+                        © {new Date().getFullYear()} Hinano.
                       </Text>
                     </div>
                   </div>

@@ -36,7 +36,7 @@ export default async function Nav() {
               className="font-semibold uppercase text-lg small:text-xl text-grey-90 hover:text-primary transition-colors"
               data-testid="nav-store-link"
             >
-              MAISON-KŌGEI 工芸
+              Hinano
             </LocalizedClientLink>
           </div>
 
