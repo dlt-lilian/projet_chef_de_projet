@@ -4,7 +4,7 @@
  * Usage depuis la racine du backend :
  *   npx medusa exec src/scripts/seed-blogs.ts
  *
- * Il lit tous les .json dans src/data/blogs/ et les insère dans kogei_db.
+ * Il lit tous les .json dans src/data/blogs/ et les insère dans hinano_db.
  * Les slugs existants sont ignorés (pas de doublon).
  */
 
@@ -32,7 +32,7 @@ export default async function seedBlogs({ container }: ExecArgs) {
     return
   }
 
-  console.log(`\n📚 Migration de ${files.length} article(s) vers kogei_db...\n`)
+  console.log(`\n📚 Migration de ${files.length} article(s) vers hinano_db...\n`)
 
   let created = 0
   let skipped = 0

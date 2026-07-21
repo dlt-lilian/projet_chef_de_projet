@@ -13,6 +13,8 @@ export type ConfiguratorChoice = {
    * semi-transparent par-dessus `bois_1.jpg`. Utilisé par les options « bois ».
    */
   darken?: number
+  /** Choix sélectionné par défaut à l'ouverture (défini côté admin). */
+  isDefault?: boolean
 }
 
 type BaseOption = {
@@ -67,18 +69,17 @@ export const CONFIGURABLE_HANDLES: ConfigurableHandle[] = [
   "parapluie",
 ]
 
-/** Palette de couleurs unies Kogei (laque / bois teinté), partagée par les produits. */
+/** Palette de couleurs unies Hinano (laque / bois teinté), partagée par les produits. */
 export const COLOR_CHOICES: ConfiguratorChoice[] = [
-  { id: "naturel", label: "Naturel", colorHex: "#C4A882" },
+  { id: "nacre", label: "Blanc Nacré", colorHex: "#F5F0E8" },
   { id: "noir", label: "Noir Laqué", colorHex: "#1A1A1A" },
   { id: "vermillon", label: "Vermillon", colorHex: "#C0392B" },
   { id: "or", label: "Or", colorHex: "#D4AF37" },
-  { id: "nacre", label: "Blanc Nacré", colorHex: "#F5F0E8" },
   { id: "indigo", label: "Bleu Indigo", colorHex: "#1B3A6B" },
 ]
 
 /** Texture bois unique, partagée par toutes les options « bois ». */
-export const WOOD_TEXTURE = "/3d/textures/bois_1.jpg"
+export const WOOD_TEXTURE = "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/Textures/General/bois_1-01KWHATQ1K7HMRMRMMTFKQMDQM.jpg"
 
 /**
  * Paliers d'assombrissement du bois : même texture `bois_1.jpg`, recouverte d'un
@@ -105,7 +106,7 @@ export function darkenToTint(darken = 0): string {
 
 export const PRODUCT_CONFIG: ProductConfigMap = {
   baguettes: {
-    glbPath: "/3d/baguettes/baguettes.glb",
+    glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/baguettes-01KWHATP1VTEQNVFJXFX0B1TGX.glb",
     options: [
       {
         id: "color",
@@ -131,7 +132,7 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
   eventail: {
     // GLB multi-mesh : nodes `Bois`, `Papier`, `vis_1`, `vis_2`.
     // Chaque option cible son node par son nom → modification indépendante.
-    glbPath: "/3d/eventail/eventail.glb",
+    glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/eventail-01KWHATQ9DDDK63QTNGXCJ666C.glb",
     // Éventail figé et redressé : la normale du modèle est sur X ; une rotation
     // de 90° autour de Y l'amène face caméra et debout (la rotation z=90° par
     // défaut la mettait vers le haut → éventail à plat). Auto-rotation coupée.
@@ -168,19 +169,19 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
           {
             id: "motif-1",
             label: "Motif 1",
-            texturePath: "/3d/eventail/textures/motif_1.jpg",
+            texturePath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/Textures/Eventail/motif_1-01KWHATQZWP3YWZCEVGWMD42Y0.jpg",
           },
           // TODO assets : déposer des PNG TRANSPARENTS dans
           // /3d/eventail/textures/ (sinon le motif couvre toute la base).
           {
             id: "rose",
             label: "rose",
-            texturePath: "/3d/eventail/textures/motif_rose.svg",
+            texturePath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/Textures/Eventail/motif_rose-01KWHATR6PXW5EAY4PDV7EDTV1.svg",
           },
           {
             id: "wave",
             label: "Vague",
-            texturePath: "/3d/eventail/textures/motif-wave.png",
+            texturePath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/Textures/Eventail/motif_vague.jpg",
           },
         ],
       },
@@ -205,7 +206,7 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
     ],
   },
   parapluie: {
-    glbPath: "/3d/parapluie/parapluie.glb",
+    glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/parapluie-01KWHATRDETE4AB94S8X16PJ67.glb",
     options: [
       {
         id: "color",

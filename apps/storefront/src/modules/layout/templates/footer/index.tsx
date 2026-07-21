@@ -36,7 +36,7 @@ export default async function Footer() {
               href="/"
               className="font-semibold uppercase text-xl text-grey-90"
             >
-              MAISON-KŌGEI 工芸
+              Hinano
             </LocalizedClientLink>
             <p className="text-sm text-gray-600 mt-3 max-w-[260px] leading-relaxed">
               L'artisanat japonais à votre porte. Pièces uniques, façonnées à la
@@ -77,7 +77,9 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-grey-90 mb-4">À propos</h4>
+            <h4 className="text-sm font-semibold text-grey-90 mb-4">
+              À propos
+            </h4>
             <ul className="flex flex-col gap-2 text-sm text-gray-600">
               {aboutLinks.map((l) => (
                 <li key={l.href}>
@@ -110,7 +112,10 @@ export default async function Footer() {
         </div>
 
         <div className="border-t border-grey-20 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-500">
-          <span>© {new Date().getFullYear()} Kōgei. Tous droits réservés.</span>
+          <span>
+            © {new Date().getFullYear()} Hinano. Tous droits
+            réservés.
+          </span>
         </div>
       </div>
     </footer>

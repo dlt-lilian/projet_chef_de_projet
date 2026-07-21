@@ -27,8 +27,10 @@ function buildInitialSelections(
   const initial: Record<string, string> = {}
   for (const option of config.options) {
     if (option.type === "engraving") continue
-    const first = option.choices[0]
-    if (first) initial[option.id] = first.id
+    // Honore le choix « par défaut » défini en admin, sinon le premier.
+    const preferred =
+      option.choices.find((c) => c.isDefault) ?? option.choices[0]
+    if (preferred) initial[option.id] = preferred.id
   }
   return initial
 }

@@ -28,7 +28,7 @@ const OLD_HANDLES = [
   "pack-kogei",
 ];
 
-const KOGEI_PRODUCTS = [
+const HINANO_PRODUCTS = [
   {
     handle: "baguettes",
     title: "Baguettes Japonaises",
@@ -112,7 +112,7 @@ export default async function seed_configurator_products({
     fields: ["handle"],
   });
   const existingHandles = new Set(existingProducts.map((p) => p.handle));
-  const toCreate = KOGEI_PRODUCTS.filter(
+  const toCreate = HINANO_PRODUCTS.filter(
     (p) => !existingHandles.has(p.handle)
   );
 

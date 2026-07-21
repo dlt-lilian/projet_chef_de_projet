@@ -8,6 +8,7 @@ import {
   getProductConfig,
   isConfigurableProduct,
 } from "@modules/configurator/config/configurableProducts"
+import { fetchProductConfig } from "@lib/configurator"
 import { HttpTypes } from "@medusajs/types"
 
 type Props = {
@@ -124,12 +125,12 @@ export default async function ProductPage(props: Props) {
   }
 
   if (isConfigurableProduct(pricedProduct.handle)) {
-    return (
-      <ConfiguratorLayout
-        product={pricedProduct}
-        config={getProductConfig(pricedProduct.handle)}
-      />
-    )
+    // Config éditable depuis l'admin (table configurator_*), avec repli sur la
+    // config statique si le backend ne répond pas.
+    const config =
+      (await fetchProductConfig(pricedProduct.handle)) ??
+      getProductConfig(pricedProduct.handle)
+    return <ConfiguratorLayout product={pricedProduct} config={config} />
   }
 
   const images = getImagesForVariant(pricedProduct, selectedVariantId)

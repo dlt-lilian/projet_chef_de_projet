@@ -3,9 +3,9 @@ import Link from "next/link"
 import ContactForm from "@modules/contact/components/ContactForm"
 
 export const metadata: Metadata = {
-  title: "Contact — Kōgei",
+  title: "Contact — Hinano",
   description:
-    "Une question ? Une demande de personnalisation ? Contactez l'équipe Kōgei.",
+    "Une question ? Une demande de personnalisation ? Contactez l'équipe Hinano.",
 }
 
 export default function ContactPage() {

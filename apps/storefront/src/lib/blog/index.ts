@@ -4,8 +4,10 @@ import type { BlogPost, BlogPostPreview } from "./types"
  * URL de base du backend Medusa.
  * En prod → variable d'env NEXT_PUBLIC_MEDUSA_BACKEND_URL
  */
-const BACKEND_URL =
+const BACKEND_URL = (
   process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000"
+).replace(/\/+$/, "") // retire le(s) slash(es) final(aux) : sinon `${BACKEND_URL}/store/blogs`
+                      // devient `…app//store/blogs` → 404 (le SDK produits, lui, normalise l'URL)
 
 const BASE = `${BACKEND_URL}/store/blogs`
 
