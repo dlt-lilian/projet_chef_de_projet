@@ -6,45 +6,49 @@ import { getAllArticles } from "@lib/blog"
 /**
  * sitemap.xml natif (Next Metadata route) → servi sur /sitemap.xml.
  *
- * Stratégie de cache = ISR (revalidation temporelle), le bon compromis :
- *  - `force-cache` gardait un catalogue figé (catégories seed supprimées mais
- *    toujours listées) tant qu'on ne redéployait pas → périmé.
- *  - `no-store` refaisait un appel live à CHAQUE requête, sans filet → sitemap
- *    VIDE en cas de blip backend (ex. boot lent juste après un deploy).
- *  - ISR : servi depuis le cache (jamais vide), régénéré au plus toutes les
- *    heures → reflète les changements admin sans redeploy, et absorbe les blips.
+ * Généré à la REQUÊTE (`force-dynamic`), jamais prérendu au build. Pourquoi :
+ * sur Railway, le conteneur de BUILD n'atteint pas de façon fiable le backend →
+ * un sitemap statique/ISR se figeait VIDE au build (et servait ce vide jusqu'à
+ * la revalidation). Au runtime, le backend est joignable → données correctes.
  *
- * On tape le backend en `fetch` NATIF (pas le SDK Medusa) : le SDK lit les
- * cookies (locale) → forcerait un rendu dynamique et empêcherait l'ISR.
+ * Anti-« vide » au cold-boot : le backend Railway boote lentement après un
+ * deploy (502 transitoires). `fetchStore` réessaie quelques fois avant
+ * d'abandonner, ce qui couvre cette fenêtre. Le crawl d'un sitemap est rare →
+ * l'appel direct à chaque requête est négligeable.
  *
- * Multi-pays : une entrée par (pays × URL indexable). Handles produits /
- * catégories / collections / slugs blog récupérés une fois, déclinés par pays.
- * Exclus : compte, panier, checkout, commandes (privés, noindex).
- * URLs pilotées par `NEXT_PUBLIC_BASE_URL` via absoluteUrl().
+ * Données FRAÎCHES (`no-store`, `fetch` NATIF — pas le SDK, qui lit les cookies) :
+ * reflète le catalogue réel, donc un item supprimé en admin (ex. catégorie seed
+ * `sweatshirts`) disparaît immédiatement, sans redeploy.
+ *
+ * Multi-pays : une entrée par (pays × URL indexable). Exclus : compte, panier,
+ * checkout, commandes (privés, noindex). URLs pilotées par NEXT_PUBLIC_BASE_URL.
  *
  * NB hreflang : pas d'alternates par pays ici (contenu uniforme FR pour l'instant).
  */
 
-// 1 h — ajustable (ex. 600 pour 10 min). Next impose un littéral pour ce champ
-// de config de route (pas de référence à une const).
-export const revalidate = 3600
+export const dynamic = "force-dynamic"
 
 const BACKEND_URL = (
   process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000"
 ).replace(/\/+$/, "")
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
 
-async function fetchStore<T>(path: string): Promise<T | null> {
-  try {
-    const res = await fetch(`${BACKEND_URL}${path}`, {
-      headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
-      next: { revalidate },
-    })
-    if (!res.ok) return null
-    return (await res.json()) as T
-  } catch {
-    return null
+async function fetchStore<T>(path: string, attempts = 3): Promise<T | null> {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const res = await fetch(`${BACKEND_URL}${path}`, {
+        headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
+        cache: "no-store",
+      })
+      if (res.ok) return (await res.json()) as T
+    } catch {
+      // réseau / backend en cold-boot → on réessaie
+    }
+    if (attempt < attempts) {
+      await new Promise((r) => setTimeout(r, 600 * attempt))
+    }
   }
+  return null
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
