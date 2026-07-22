@@ -1,14 +1,11 @@
 import { MetadataRoute } from "next"
 import { absoluteUrl } from "@lib/util/seo"
-import { listRegions } from "@lib/data/regions"
-import { listCategories } from "@lib/data/categories"
-import { listCollections } from "@lib/data/collections"
-import { listProducts } from "@lib/data/products"
+import { sdk } from "@lib/config"
 import { getAllArticles } from "@lib/blog"
+import { HttpTypes } from "@medusajs/types"
 
 // Les couches data lisent les cookies (tags de cache Medusa) → route dynamique,
-// calculée à la requête mais adossée au cache `fetch` (force-cache + tags).
-// Évite tout conflit "static generation + cookies" au build.
+// calculée à la requête. Évite tout conflit "static generation + cookies" au build.
 export const dynamic = "force-dynamic"
 
 /**
@@ -18,45 +15,92 @@ export const dynamic = "force-dynamic"
  * catégories / collections / slugs blog sont indépendants du pays → on ne les
  * récupère qu'UNE fois, puis on décline par `countryCode`.
  *
+ * ⚠️ Données FRAÎCHES (`cache: "no-store"`) : on n'utilise PAS les helpers
+ * `listCategories`/`listProducts`/… du site, qui sont en `force-cache` et
+ * garderaient des entrées supprimées côté admin (ex. les catégories seed
+ * `sweatshirts`…). Un sitemap doit refléter le catalogue réel, sinon Google
+ * crawle des URLs 404. Le crawl du sitemap est rare → l'appel direct au backend
+ * est négligeable.
+ *
  * Exclus : compte, panier, checkout, commandes (privés/transactionnels, noindex).
  * Tout est piloté par `NEXT_PUBLIC_BASE_URL` via absoluteUrl().
- *
- * Résilience : chaque fetch est protégé — si le backend est injoignable, on
- * renvoie au pire les pages statiques par pays plutôt que de casser la route.
  *
  * NB hreflang : pas d'alternates par pays ici (contenu actuellement uniforme en
  * français). À ajouter avec la matrice pays→langue lors du chantier i18n.
  */
 
-async function getCountryCodes(): Promise<string[]> {
+const FRESH = { method: "GET" as const, cache: "no-store" as const }
+
+async function fetchRegions(): Promise<HttpTypes.StoreRegion[]> {
   try {
-    const regions = await listRegions()
-    const codes = (regions ?? [])
-      .flatMap((r) => r.countries?.map((c) => c.iso_2?.toLowerCase()) ?? [])
-      .filter((c): c is string => Boolean(c))
-    return Array.from(new Set(codes))
+    const { regions } = await sdk.client.fetch<{
+      regions: HttpTypes.StoreRegion[]
+    }>("/store/regions", FRESH)
+    return regions ?? []
+  } catch {
+    return []
+  }
+}
+
+async function fetchProducts(
+  regionId?: string
+): Promise<HttpTypes.StoreProduct[]> {
+  try {
+    const { products } = await sdk.client.fetch<{
+      products: HttpTypes.StoreProduct[]
+    }>("/store/products", {
+      ...FRESH,
+      query: { fields: "handle,updated_at", limit: 1000, region_id: regionId },
+    })
+    return products ?? []
+  } catch {
+    return []
+  }
+}
+
+async function fetchCategories(): Promise<HttpTypes.StoreProductCategory[]> {
+  try {
+    const { product_categories } = await sdk.client.fetch<{
+      product_categories: HttpTypes.StoreProductCategory[]
+    }>("/store/product-categories", {
+      ...FRESH,
+      query: { fields: "handle,updated_at", limit: 1000 },
+    })
+    return product_categories ?? []
+  } catch {
+    return []
+  }
+}
+
+async function fetchCollections(): Promise<HttpTypes.StoreCollection[]> {
+  try {
+    const { collections } = await sdk.client.fetch<{
+      collections: HttpTypes.StoreCollection[]
+    }>("/store/collections", {
+      ...FRESH,
+      query: { fields: "handle,updated_at", limit: 1000 },
+    })
+    return collections ?? []
   } catch {
     return []
   }
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const countries = await getCountryCodes()
+  const regions = await fetchRegions()
+  const countries = Array.from(
+    new Set(
+      regions
+        .flatMap((r) => r.countries?.map((c) => c.iso_2?.toLowerCase()) ?? [])
+        .filter((c): c is string => Boolean(c))
+    )
+  )
   if (countries.length === 0) return []
 
   const [products, categories, collections, articles] = await Promise.all([
-    listProducts({
-      countryCode: countries[0],
-      queryParams: { limit: 1000, fields: "handle,updated_at" },
-    })
-      .then((r) => r.response.products)
-      .catch(() => []),
-    listCategories()
-      .then((c) => c ?? [])
-      .catch(() => []),
-    listCollections({ fields: "handle,updated_at", limit: "1000" })
-      .then((r) => r.collections)
-      .catch(() => []),
+    fetchProducts(regions[0]?.id),
+    fetchCategories(),
+    fetchCollections(),
     getAllArticles().catch(() => []),
   ])
 
