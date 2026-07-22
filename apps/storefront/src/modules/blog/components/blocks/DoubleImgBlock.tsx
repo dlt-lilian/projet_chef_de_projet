@@ -15,6 +15,7 @@ export default function DoubleImgBlock({ images }: TDoubleImgBlock) {
               alt={img.alt}
               width={800}
               height={600}
+              unoptimized
               sizes="(max-width: 768px) 100vw, 50vw"
               className="w-full aspect-[4/3] object-cover transition-transform duration-700 rounded-lg"
             />

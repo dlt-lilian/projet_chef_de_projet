@@ -25,11 +25,21 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    // Optimisation activée (AVIF/WebP + redimensionnement responsive). Les images
+    // produit sont servies depuis R2 (public) → optimisées côté serveur Railway.
+    // NB : les images de BLOG (contenu éditorial, hôtes potentiellement arbitraires)
+    // portent la prop `unoptimized` sur leur <Image> — sinon un hôte non listé ici
+    // ferait *planter* la page (next/image lève une erreur, pas juste une image cassée).
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
         protocol: "http",
         hostname: "localhost",
+      },
+      {
+        // Cloudflare R2 public (pub-<hash>.r2.dev) — images produit & assets.
+        protocol: "https",
+        hostname: "**.r2.dev",
       },
       {
         protocol: "https",

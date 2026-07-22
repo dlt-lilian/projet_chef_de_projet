@@ -10,6 +10,7 @@ export default function BannerBlock({ img, alt, title, subtitle }: TBannerBlock)
           alt={alt || ""}
           fill
           priority
+          unoptimized
           sizes="100vw"
           className="object-cover"
         />

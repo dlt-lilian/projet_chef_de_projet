@@ -27,6 +27,7 @@ export default function BlogCard({
               alt={title}
               fill
               priority
+              unoptimized
               sizes="(max-width: 1024px) 100vw, 66vw"
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
@@ -67,6 +68,7 @@ export default function BlogCard({
               src={cover}
               alt={title}
               fill
+              unoptimized
               sizes="96px"
               className="object-cover transition-transform duration-500 group-hover:scale-110"
             />
@@ -97,6 +99,7 @@ export default function BlogCard({
             src={cover}
             alt={title}
             fill
+            unoptimized
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-700 group-hover:scale-105"
           />
