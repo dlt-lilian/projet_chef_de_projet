@@ -1,6 +1,12 @@
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import ChevronDown from "@modules/common/icons/chevron-down"
 import MedusaCTA from "@modules/layout/components/medusa-cta"
+import { Metadata } from "next"
+
+// Tunnel de commande : pages transactionnelles → hors index Google.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default function CheckoutLayout({
   children,
@@ -18,10 +24,10 @@ export default function CheckoutLayout({
           >
             <ChevronDown className="rotate-90" size={16} />
             <span className="mt-px hidden small:block txt-compact-plus text-ui-fg-subtle hover:text-ui-fg-base ">
-              Back to shopping cart
+              Retour au panier
             </span>
             <span className="mt-px block small:hidden txt-compact-plus text-ui-fg-subtle hover:text-ui-fg-base">
-              Back
+              Retour
             </span>
           </LocalizedClientLink>
           <LocalizedClientLink
@@ -29,7 +35,7 @@ export default function CheckoutLayout({
             className="txt-compact-xlarge-plus text-ui-fg-subtle hover:text-ui-fg-base uppercase"
             data-testid="store-link"
           >
-            Medusa Store
+            Hinaso
           </LocalizedClientLink>
           <div className="flex-1 basis-0" />
         </nav>

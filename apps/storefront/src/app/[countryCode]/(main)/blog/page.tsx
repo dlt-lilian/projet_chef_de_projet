@@ -1,10 +1,22 @@
 import { getAllArticles, getAllCategories } from "@lib/blog"
 import BlogList from "@modules/blog/components/BlogList"
 import type { Metadata } from "next"
+import { canonicalPath } from "@lib/util/seo"
 
-export const metadata: Metadata = {
-  title: "Blog — Hinaso",
-  description: "Articles & récits sur l'artisanat japonais",
+export async function generateMetadata(props: {
+  params: Promise<{ countryCode: string }>
+}): Promise<Metadata> {
+  const { countryCode } = await props.params
+  const canonical = canonicalPath(countryCode, "/blog")
+  const description =
+    "Articles & récits sur l'artisanat japonais : savoir-faire, matières et coulisses de l'atelier Hinaso."
+
+  return {
+    title: "Blog",
+    description,
+    alternates: { canonical },
+    openGraph: { title: "Blog | Hinaso", description, url: canonical },
+  }
 }
 
 export const revalidate = 60

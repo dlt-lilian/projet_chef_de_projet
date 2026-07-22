@@ -38,8 +38,8 @@ export default async function Nav() {
               data-testid="nav-store-link"
             >
               <Image
-                src="/Hinano.svg"
-                alt="Hinano"
+                src="/Hinaso.svg"
+                alt="Hinaso"
                 width={120}
                 height={32}
                 priority

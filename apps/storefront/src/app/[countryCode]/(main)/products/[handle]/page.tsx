@@ -10,6 +10,9 @@ import {
 } from "@modules/configurator/config/configurableProducts"
 import { fetchProductConfig } from "@lib/configurator"
 import { HttpTypes } from "@medusajs/types"
+import JsonLd from "@modules/common/components/json-ld"
+import { getProductPrice } from "@lib/util/get-product-price"
+import { breadcrumbJsonLd, canonicalPath, productJsonLd } from "@lib/util/seo"
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
@@ -93,13 +96,31 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     notFound()
   }
 
+  const canonical = canonicalPath(params.countryCode, `/products/${handle}`)
+  const description = (
+    product.description ||
+    product.subtitle ||
+    `${product.title} — pièce d'artisanat japonais faite main par Hinaso.`
+  ).slice(0, 160)
+  const images = product.thumbnail ? [product.thumbnail] : []
+  const ogTitle = `${product.title} | Hinaso`
+
   return {
-    title: `${product.title} | Medusa Store`,
-    description: `${product.title}`,
+    // Le gabarit du layout racine ajoute « | Hinaso » au titre.
+    title: product.title,
+    description,
+    alternates: { canonical },
     openGraph: {
-      title: `${product.title} | Medusa Store`,
-      description: `${product.title}`,
-      images: product.thumbnail ? [product.thumbnail] : [],
+      title: ogTitle,
+      description,
+      url: canonical,
+      images,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description,
+      images,
     },
   }
 }
@@ -124,23 +145,67 @@ export default async function ProductPage(props: Props) {
     notFound()
   }
 
+  // Données structurées (Product + Offer + fil d'Ariane), rendues pour TOUS les
+  // produits — y compris les configurables, dont la page 3D contient très peu de
+  // texte indexable : c'est ici que Google récupère nom, prix, dispo et image.
+  const { cheapestPrice } = getProductPrice({ product: pricedProduct })
+  const inStock =
+    pricedProduct.variants?.some(
+      (v) =>
+        v.manage_inventory === false ||
+        v.allow_backorder === true ||
+        (v.inventory_quantity ?? 0) > 0
+    ) ?? false
+  const productPath = canonicalPath(
+    params.countryCode,
+    `/products/${pricedProduct.handle}`
+  )
+  const jsonLd = [
+    productJsonLd({
+      name: pricedProduct.title,
+      description: pricedProduct.description,
+      images: [
+        pricedProduct.thumbnail,
+        ...(pricedProduct.images?.map((i) => i.url) ?? []),
+      ],
+      sku: pricedProduct.variants?.[0]?.sku ?? pricedProduct.id,
+      path: productPath,
+      price: cheapestPrice?.calculated_price_number ?? null,
+      currency: cheapestPrice?.currency_code ?? region.currency_code,
+      availability: inStock ? "InStock" : "OutOfStock",
+    }),
+    breadcrumbJsonLd([
+      { name: "Accueil", path: canonicalPath(params.countryCode) },
+      { name: "Boutique", path: canonicalPath(params.countryCode, "/store") },
+      { name: pricedProduct.title, path: productPath },
+    ]),
+  ]
+
   if (isConfigurableProduct(pricedProduct.handle)) {
     // Config éditable depuis l'admin (table configurator_*), avec repli sur la
     // config statique si le backend ne répond pas.
     const config =
       (await fetchProductConfig(pricedProduct.handle)) ??
       getProductConfig(pricedProduct.handle)
-    return <ConfiguratorLayout product={pricedProduct} config={config} />
+    return (
+      <>
+        <JsonLd data={jsonLd} />
+        <ConfiguratorLayout product={pricedProduct} config={config} />
+      </>
+    )
   }
 
   const images = getImagesForVariant(pricedProduct, selectedVariantId)
 
   return (
-    <ProductTemplate
-      product={pricedProduct}
-      region={region}
-      countryCode={params.countryCode}
-      images={images ?? []}
-    />
+    <>
+      <JsonLd data={jsonLd} />
+      <ProductTemplate
+        product={pricedProduct}
+        region={region}
+        countryCode={params.countryCode}
+        images={images ?? []}
+      />
+    </>
   )
 }

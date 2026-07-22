@@ -28,6 +28,7 @@ export default async function ProductPreview({
           images={product.images}
           size="full"
           isFeatured={isFeatured}
+          alt={product.title}
           className="w-full aspect-square object-cover rounded-xl"
         />
 
