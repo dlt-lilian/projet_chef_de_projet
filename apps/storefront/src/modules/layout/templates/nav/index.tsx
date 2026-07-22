@@ -38,7 +38,7 @@ export default async function Nav() {
               data-testid="nav-store-link"
             >
               <Image
-                src="/Hinano_logo.png"
+                src="/Hinano.svg"
                 alt="Hinano"
                 width={120}
                 height={32}
