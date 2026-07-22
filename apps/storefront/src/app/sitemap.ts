@@ -1,93 +1,57 @@
 import { MetadataRoute } from "next"
-import { absoluteUrl } from "@lib/util/seo"
-import { sdk } from "@lib/config"
-import { getAllArticles } from "@lib/blog"
 import { HttpTypes } from "@medusajs/types"
-
-// Les couches data lisent les cookies (tags de cache Medusa) → route dynamique,
-// calculée à la requête. Évite tout conflit "static generation + cookies" au build.
-export const dynamic = "force-dynamic"
+import { absoluteUrl } from "@lib/util/seo"
+import { getAllArticles } from "@lib/blog"
 
 /**
  * sitemap.xml natif (Next Metadata route) → servi sur /sitemap.xml.
  *
- * Multi-pays : une entrée par (pays × URL indexable). Les handles produits /
- * catégories / collections / slugs blog sont indépendants du pays → on ne les
- * récupère qu'UNE fois, puis on décline par `countryCode`.
+ * Stratégie de cache = ISR (revalidation temporelle), le bon compromis :
+ *  - `force-cache` gardait un catalogue figé (catégories seed supprimées mais
+ *    toujours listées) tant qu'on ne redéployait pas → périmé.
+ *  - `no-store` refaisait un appel live à CHAQUE requête, sans filet → sitemap
+ *    VIDE en cas de blip backend (ex. boot lent juste après un deploy).
+ *  - ISR : servi depuis le cache (jamais vide), régénéré au plus toutes les
+ *    heures → reflète les changements admin sans redeploy, et absorbe les blips.
  *
- * ⚠️ Données FRAÎCHES (`cache: "no-store"`) : on n'utilise PAS les helpers
- * `listCategories`/`listProducts`/… du site, qui sont en `force-cache` et
- * garderaient des entrées supprimées côté admin (ex. les catégories seed
- * `sweatshirts`…). Un sitemap doit refléter le catalogue réel, sinon Google
- * crawle des URLs 404. Le crawl du sitemap est rare → l'appel direct au backend
- * est négligeable.
+ * On tape le backend en `fetch` NATIF (pas le SDK Medusa) : le SDK lit les
+ * cookies (locale) → forcerait un rendu dynamique et empêcherait l'ISR.
  *
- * Exclus : compte, panier, checkout, commandes (privés/transactionnels, noindex).
- * Tout est piloté par `NEXT_PUBLIC_BASE_URL` via absoluteUrl().
+ * Multi-pays : une entrée par (pays × URL indexable). Handles produits /
+ * catégories / collections / slugs blog récupérés une fois, déclinés par pays.
+ * Exclus : compte, panier, checkout, commandes (privés, noindex).
+ * URLs pilotées par `NEXT_PUBLIC_BASE_URL` via absoluteUrl().
  *
- * NB hreflang : pas d'alternates par pays ici (contenu actuellement uniforme en
- * français). À ajouter avec la matrice pays→langue lors du chantier i18n.
+ * NB hreflang : pas d'alternates par pays ici (contenu uniforme FR pour l'instant).
  */
 
-const FRESH = { method: "GET" as const, cache: "no-store" as const }
+// 1 h — ajustable (ex. 600 pour 10 min). Next impose un littéral pour ce champ
+// de config de route (pas de référence à une const).
+export const revalidate = 3600
 
-async function fetchRegions(): Promise<HttpTypes.StoreRegion[]> {
-  try {
-    const { regions } = await sdk.client.fetch<{
-      regions: HttpTypes.StoreRegion[]
-    }>("/store/regions", FRESH)
-    return regions ?? []
-  } catch {
-    return []
-  }
-}
+const BACKEND_URL = (
+  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000"
+).replace(/\/+$/, "")
+const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
 
-async function fetchProducts(
-  regionId?: string
-): Promise<HttpTypes.StoreProduct[]> {
+async function fetchStore<T>(path: string): Promise<T | null> {
   try {
-    const { products } = await sdk.client.fetch<{
-      products: HttpTypes.StoreProduct[]
-    }>("/store/products", {
-      ...FRESH,
-      query: { fields: "handle,updated_at", limit: 1000, region_id: regionId },
+    const res = await fetch(`${BACKEND_URL}${path}`, {
+      headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
+      next: { revalidate },
     })
-    return products ?? []
+    if (!res.ok) return null
+    return (await res.json()) as T
   } catch {
-    return []
-  }
-}
-
-async function fetchCategories(): Promise<HttpTypes.StoreProductCategory[]> {
-  try {
-    const { product_categories } = await sdk.client.fetch<{
-      product_categories: HttpTypes.StoreProductCategory[]
-    }>("/store/product-categories", {
-      ...FRESH,
-      query: { fields: "handle,updated_at", limit: 1000 },
-    })
-    return product_categories ?? []
-  } catch {
-    return []
-  }
-}
-
-async function fetchCollections(): Promise<HttpTypes.StoreCollection[]> {
-  try {
-    const { collections } = await sdk.client.fetch<{
-      collections: HttpTypes.StoreCollection[]
-    }>("/store/collections", {
-      ...FRESH,
-      query: { fields: "handle,updated_at", limit: 1000 },
-    })
-    return collections ?? []
-  } catch {
-    return []
+    return null
   }
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const regions = await fetchRegions()
+  const regionsData = await fetchStore<{ regions: HttpTypes.StoreRegion[] }>(
+    "/store/regions"
+  )
+  const regions = regionsData?.regions ?? []
   const countries = Array.from(
     new Set(
       regions
@@ -97,12 +61,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   )
   if (countries.length === 0) return []
 
-  const [products, categories, collections, articles] = await Promise.all([
-    fetchProducts(regions[0]?.id),
-    fetchCategories(),
-    fetchCollections(),
-    getAllArticles().catch(() => []),
-  ])
+  const regionId = regions[0]?.id
+
+  const [productsData, categoriesData, collectionsData, articles] =
+    await Promise.all([
+      fetchStore<{ products: HttpTypes.StoreProduct[] }>(
+        `/store/products?fields=handle,updated_at&limit=1000&region_id=${regionId}`
+      ),
+      fetchStore<{ product_categories: HttpTypes.StoreProductCategory[] }>(
+        `/store/product-categories?fields=handle,updated_at&limit=1000`
+      ),
+      fetchStore<{ collections: HttpTypes.StoreCollection[] }>(
+        `/store/collections?fields=handle,updated_at&limit=1000`
+      ),
+      getAllArticles().catch(() => []),
+    ])
+
+  const products = productsData?.products ?? []
+  const categories = categoriesData?.product_categories ?? []
+  const collections = collectionsData?.collections ?? []
 
   const now = new Date()
   const toDate = (v?: string | null) => (v ? new Date(v) : now)
