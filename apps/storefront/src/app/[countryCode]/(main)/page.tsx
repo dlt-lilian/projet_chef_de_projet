@@ -14,6 +14,7 @@ import {
   SITE_DEFAULT_DESCRIPTION,
   SITE_DEFAULT_TITLE,
   canonicalPath,
+  hreflangAlternates,
 } from "@lib/util/seo"
 
 export async function generateMetadata(props: {
@@ -26,7 +27,7 @@ export async function generateMetadata(props: {
     // `absolute` : l'accueil porte déjà la marque → on n'ajoute pas « | Hinaso ».
     title: { absolute: SITE_DEFAULT_TITLE },
     description: SITE_DEFAULT_DESCRIPTION,
-    alternates: { canonical },
+    alternates: { canonical, languages: hreflangAlternates() },
     openGraph: {
       title: SITE_DEFAULT_TITLE,
       description: SITE_DEFAULT_DESCRIPTION,

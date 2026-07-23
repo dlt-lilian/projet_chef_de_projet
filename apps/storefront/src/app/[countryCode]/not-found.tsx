@@ -3,6 +3,14 @@ import { Text } from "@modules/common/components/ui"
 import { Metadata } from "next"
 import Link from "next/link"
 
+/**
+ * 404 d'un pays (mauvais handle produit, région inconnue, URL /xx/… inexistante).
+ *
+ * Placé sous [countryCode] : il rend À L'INTÉRIEUR de app/[countryCode]/layout.tsx,
+ * qui fournit <html>/<body> et le bon <html lang> du pays. Ce fichier ne porte
+ * donc PAS de <html>/<body>. Les URL sans pays valide (rares : le middleware
+ * préfixe tout) tombent sur le not-found interne par défaut de Next.
+ */
 export const metadata: Metadata = {
   title: "Page introuvable",
   description: "La page que vous cherchez n'existe pas ou a été déplacée.",

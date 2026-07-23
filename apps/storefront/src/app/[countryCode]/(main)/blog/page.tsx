@@ -1,7 +1,7 @@
 import { getAllArticles, getAllCategories } from "@lib/blog"
 import BlogList from "@modules/blog/components/BlogList"
 import type { Metadata } from "next"
-import { canonicalPath } from "@lib/util/seo"
+import { canonicalPath, hreflangAlternates } from "@lib/util/seo"
 
 export async function generateMetadata(props: {
   params: Promise<{ countryCode: string }>
@@ -14,7 +14,7 @@ export async function generateMetadata(props: {
   return {
     title: "Blog",
     description,
-    alternates: { canonical },
+    alternates: { canonical, languages: hreflangAlternates("/blog") },
     openGraph: { title: "Blog | Hinaso", description, url: canonical },
   }
 }

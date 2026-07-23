@@ -3,7 +3,7 @@ import { Metadata } from "next"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 import StoreTemplate from "@modules/store/templates"
 import JsonLd from "@modules/common/components/json-ld"
-import { breadcrumbJsonLd, canonicalPath } from "@lib/util/seo"
+import { breadcrumbJsonLd, canonicalPath, hreflangAlternates } from "@lib/util/seo"
 
 type Params = {
   searchParams: Promise<{
@@ -26,7 +26,7 @@ export async function generateMetadata(props: {
   return {
     title: "Toute la boutique",
     description,
-    alternates: { canonical },
+    alternates: { canonical, languages: hreflangAlternates("/store") },
     openGraph: {
       title: "Toute la boutique | Hinaso",
       description,

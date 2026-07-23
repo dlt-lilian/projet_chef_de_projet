@@ -7,7 +7,12 @@ import { HttpTypes, StoreRegion } from "@medusajs/types"
 import CategoryTemplate from "@modules/categories/templates"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 import JsonLd from "@modules/common/components/json-ld"
-import { breadcrumbJsonLd, canonicalPath, itemListJsonLd } from "@lib/util/seo"
+import {
+  breadcrumbJsonLd,
+  canonicalPath,
+  hreflangAlternates,
+  itemListJsonLd,
+} from "@lib/util/seo"
 
 type Props = {
   params: Promise<{ category: string[]; countryCode: string }>
@@ -61,10 +66,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   try {
     const productCategory = await getCategoryByHandle(params.category)
 
-    const canonical = canonicalPath(
-      params.countryCode,
-      `/categories/${params.category.join("/")}`
-    )
+    const subPath = `/categories/${params.category.join("/")}`
+    const canonical = canonicalPath(params.countryCode, subPath)
     const description = (
       productCategory.description ||
       `Découvrez notre sélection ${productCategory.name} — artisanat japonais fait main par Hinaso.`
@@ -74,7 +77,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       // Le gabarit du layout racine ajoute « | Hinaso » (plus de double suffixe).
       title: productCategory.name,
       description,
-      alternates: { canonical },
+      alternates: { canonical, languages: hreflangAlternates(subPath) },
       openGraph: {
         title: `${productCategory.name} | Hinaso`,
         description,

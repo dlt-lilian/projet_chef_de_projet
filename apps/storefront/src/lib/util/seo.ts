@@ -50,6 +50,74 @@ export function canonicalPath(countryCode: string, subPath = ""): string {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  hreflang — géo-ciblage multi-pays (une seule langue : le français)        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Pays actifs (région Medusa « Europe »), routés via [countryCode] : c'est la
+ * liste qui compose le cluster hreflang.
+ * ⚠️ À garder synchro avec les pays configurés dans l'admin Medusa. Le sitemap,
+ * lui, dérive les pays du backend au runtime — les deux doivent coïncider
+ * (7 pays aujourd'hui).
+ */
+export const HREFLANG_COUNTRIES = [
+  "fr",
+  "de",
+  "es",
+  "it",
+  "gb",
+  "dk",
+  "se",
+] as const
+
+/**
+ * Pays → étiquette locale BCP 47, source unique pour hreflang ET <html lang>.
+ *
+ * Contenu UNIFORME EN FRANÇAIS aujourd'hui → géo-ciblage : même langue `fr`,
+ * une région par pays (`fr-DE` = « français, ciblé Allemagne »). Ce n'est PAS
+ * un faux multilingue : on ne prétend jamais que /de est rédigé en allemand.
+ *
+ * Roadmap traduction (fr, de, en) : quand le contenu traduit d'un pays sera en
+ * ligne, basculer SA ligne ici — ex. `de: "de-DE"`, `gb: "en-GB"` — et hreflang
+ * comme <html lang> suivront automatiquement. Une ligne à changer par pays.
+ */
+const COUNTRY_LOCALE: Record<string, string> = {
+  fr: "fr-FR",
+  de: "fr-DE",
+  es: "fr-ES",
+  it: "fr-IT",
+  gb: "fr-GB",
+  dk: "fr-DK",
+  se: "fr-SE",
+}
+
+/** Étiquette locale BCP 47 d'un pays (hreflang, <html lang>). Repli : marché prioritaire. */
+export function localeForCountry(countryCode?: string): string {
+  return (
+    COUNTRY_LOCALE[(countryCode || "").toLowerCase()] ??
+    COUNTRY_LOCALE[PRIMARY_COUNTRY]
+  )
+}
+
+/**
+ * Map `alternates.languages` (Next Metadata) = cluster hreflang géo-ciblage.
+ *
+ * Une entrée par pays actif (`fr-FR`, `fr-DE`, …) + un `x-default` pointant sur
+ * le marché prioritaire (France). Chemins RELATIFS, résolus par Next contre
+ * `metadataBase` — domaine 100 % piloté par l'environnement, comme le canonical.
+ *
+ * @param subPath sous-chemin après le pays (« /products/x », « /store », « »).
+ */
+export function hreflangAlternates(subPath = ""): Record<string, string> {
+  const languages: Record<string, string> = {}
+  for (const cc of HREFLANG_COUNTRIES) {
+    languages[localeForCountry(cc)] = canonicalPath(cc, subPath)
+  }
+  languages["x-default"] = canonicalPath(PRIMARY_COUNTRY, subPath)
+  return languages
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Données structurées (JSON-LD Schema.org)                                  */
 /* -------------------------------------------------------------------------- */
 

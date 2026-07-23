@@ -5,7 +5,7 @@ import { listRegions } from "@lib/data/regions"
 import BlockRenderer from "@modules/blog/components/blocks/BlockRenderer"
 import type { Metadata } from "next"
 import JsonLd from "@modules/common/components/json-ld"
-import { blogPostingJsonLd, canonicalPath } from "@lib/util/seo"
+import { blogPostingJsonLd, canonicalPath, hreflangAlternates } from "@lib/util/seo"
 
 // Next.js 15 : params est une Promise
 type Props = { params: Promise<{ slug: string; countryCode: string }> }
@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: post.title,
     description: post.excerpt,
-    alternates: { canonical },
+    alternates: { canonical, languages: hreflangAlternates(`/blog/${slug}`) },
     openGraph: {
       title: ogTitle,
       description: post.excerpt,

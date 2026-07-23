@@ -7,6 +7,7 @@ import {
   OG_LOCALE,
   organizationJsonLd,
   websiteJsonLd,
+  localeForCountry,
 } from "@lib/util/seo"
 import { Metadata } from "next"
 import "styles/globals.css"
@@ -14,11 +15,26 @@ import "styles/globals.css"
 import localFont from "next/font/local"
 import JsonLd from "@modules/common/components/json-ld"
 
+/**
+ * Layout racine (porte <html>/<body>).
+ *
+ * Il vit au niveau [countryCode] — et NON à app/layout.tsx — volontairement :
+ * l'attribut <html lang> doit varier par pays (fr-FR, fr-DE… en miroir du
+ * hreflang géo-ciblé). Le pays vient du PARAM de route (statique, connu au build
+ * via generateStaticParams), pas de headers() : le pré-rendu SSG des pages
+ * produit/catégorie/collection/article est donc préservé (headers() les aurait
+ * toutes forcées en dynamique).
+ *
+ * Roadmap traduction : `localeForCountry` centralise le mapping pays → locale ;
+ * le jour où /de sera en allemand, sa ligne dans seo.ts bascule en `de-DE` et le
+ * <html lang> suit automatiquement.
+ */
+
 const satoshi = localFont({
   src: [
-    { path: "../../public/fonts/satoshi/Satoshi-Regular.woff2", weight: "400" },
-    { path: "../../public/fonts/satoshi/Satoshi-Medium.woff2", weight: "500" },
-    { path: "../../public/fonts/satoshi/Satoshi-Bold.woff2", weight: "700" },
+    { path: "../../../public/fonts/satoshi/Satoshi-Regular.woff2", weight: "400" },
+    { path: "../../../public/fonts/satoshi/Satoshi-Medium.woff2", weight: "500" },
+    { path: "../../../public/fonts/satoshi/Satoshi-Bold.woff2", weight: "700" },
   ],
   variable: "--font-satoshi",
 })
@@ -56,9 +72,18 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout(props: { children: React.ReactNode }) {
+export default async function CountryLayout(props: {
+  children: React.ReactNode
+  params: Promise<{ countryCode: string }>
+}) {
+  const { countryCode } = await props.params
+
   return (
-    <html lang="fr" data-mode="light" className={satoshi.variable}>
+    <html
+      lang={localeForCountry(countryCode)}
+      data-mode="light"
+      className={satoshi.variable}
+    >
     <body>
     <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
     <main className="relative">{props.children}</main>

@@ -7,7 +7,12 @@ import { StoreCollection, StoreRegion } from "@medusajs/types"
 import CollectionTemplate from "@modules/collections/templates"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 import JsonLd from "@modules/common/components/json-ld"
-import { breadcrumbJsonLd, canonicalPath, itemListJsonLd } from "@lib/util/seo"
+import {
+  breadcrumbJsonLd,
+  canonicalPath,
+  hreflangAlternates,
+  itemListJsonLd,
+} from "@lib/util/seo"
 
 type Props = {
   params: Promise<{ handle: string; countryCode: string }>
@@ -72,17 +77,15 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     notFound()
   }
 
-  const canonical = canonicalPath(
-    params.countryCode,
-    `/collections/${params.handle}`
-  )
+  const subPath = `/collections/${params.handle}`
+  const canonical = canonicalPath(params.countryCode, subPath)
   const description = `Collection ${collection.title} — pièces d'artisanat japonais faites main par Hinaso.`
 
   return {
     // Le gabarit du layout racine ajoute « | Hinaso ».
     title: collection.title,
     description,
-    alternates: { canonical },
+    alternates: { canonical, languages: hreflangAlternates(subPath) },
     openGraph: {
       title: `${collection.title} | Hinaso`,
       description,

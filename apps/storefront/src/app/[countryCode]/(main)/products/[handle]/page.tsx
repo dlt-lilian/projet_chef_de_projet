@@ -12,7 +12,12 @@ import { fetchProductConfig } from "@lib/configurator"
 import { HttpTypes } from "@medusajs/types"
 import JsonLd from "@modules/common/components/json-ld"
 import { getProductPrice } from "@lib/util/get-product-price"
-import { breadcrumbJsonLd, canonicalPath, productJsonLd } from "@lib/util/seo"
+import {
+  breadcrumbJsonLd,
+  canonicalPath,
+  hreflangAlternates,
+  productJsonLd,
+} from "@lib/util/seo"
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
@@ -109,7 +114,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     // Le gabarit du layout racine ajoute « | Hinaso » au titre.
     title: product.title,
     description,
-    alternates: { canonical },
+    alternates: { canonical, languages: hreflangAlternates(`/products/${handle}`) },
     openGraph: {
       title: ogTitle,
       description,
