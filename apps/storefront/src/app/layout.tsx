@@ -14,13 +14,13 @@ import "styles/globals.css"
 import localFont from "next/font/local"
 import JsonLd from "@modules/common/components/json-ld"
 
-const supreme = localFont({
+const satoshi = localFont({
   src: [
-    { path: "../../public/fonts/Supreme-Regular.woff2", weight: "400" },
-    { path: "../../public/fonts/Supreme-Medium.woff2",  weight: "500" },
-    { path: "../../public/fonts/Supreme-Bold.woff2",    weight: "700" },
+    { path: "../../public/fonts/Satoshi-Regular.woff2", weight: "400" },
+    { path: "../../public/fonts/Satoshi-Medium.woff2", weight: "500" },
+    { path: "../../public/fonts/Satoshi-Bold.woff2", weight: "700" },
   ],
-  variable: "--font-supreme",
+  variable: "--font-satoshi",
 })
 
 export const metadata: Metadata = {
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout(props: { children: React.ReactNode }) {
   return (
-    <html lang="fr" data-mode="light" className={supreme.variable}>
+    <html lang="fr" data-mode="light" className={satoshi.variable}>
     <body>
     <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
     <main className="relative">{props.children}</main>
