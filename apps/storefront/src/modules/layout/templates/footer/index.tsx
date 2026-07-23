@@ -2,9 +2,9 @@ import LocalizedClientLink from "@modules/common/components/localized-client-lin
 import { Icon } from "@modules/common/components/my_ui"
 
 const shopLinks = [
-  { label: "Baguettes", href: "/baguettes" },
-  { label: "Éventail", href: "/eventail" },
-  { label: "Parapluie", href: "/parapluie" },
+  { label: "Baguettes", href: "/products/baguettes" },
+  { label: "Éventail", href: "/products/eventail" },
+  { label: "Parapluie", href: "/products/parapluie" },
   { label: "Toute la boutique", href: "/store" },
 ]
 
@@ -15,7 +15,7 @@ const aboutLinks = [
 ]
 
 const helpLinks = [
-  { label: "Livraison & retours", href: "/blog" },
+  { label: "Livraison & retours", href: "/livraison-retours" },
   { label: "Mentions légales", href: "/legal" },
   { label: "CGV", href: "/cgv" },
 ]
