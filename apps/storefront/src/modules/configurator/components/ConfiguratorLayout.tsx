@@ -1,7 +1,7 @@
 "use client"
 
 import { HttpTypes } from "@medusajs/types"
-import { useCallback, useRef } from "react"
+import { lazy, Suspense, useCallback, useRef } from "react"
 import {
   ConfiguratorOption,
   ConfiguratorProductConfig,
@@ -9,9 +9,15 @@ import {
 } from "../config/configurableProducts"
 import { useProductConfigurator } from "../hooks/useProductConfigurator"
 import ConfiguratorSidebar from "./ConfiguratorSidebar"
-import ConfiguratorViewer, {
-  ConfiguratorViewerHandle,
-} from "./ConfiguratorViewer"
+import type { ConfiguratorViewerHandle } from "./ConfiguratorViewer"
+
+// three.js (~1 Mo) est isolé dans un chunk chargé à la demande : absent du bundle
+// des fiches produit standard, et différé (avec un squelette) sur les fiches
+// configurables. `React.lazy` transmet le `ref` aux composants `forwardRef` (ce
+// qu'est ConfiguratorViewer) → le pilotage impératif du modèle reste intact.
+// `import type` ci-dessus : le type est effacé au build, il ne réintègre donc
+// PAS le viewer dans le bundle statique.
+const ConfiguratorViewer = lazy(() => import("./ConfiguratorViewer"))
 
 type ConfiguratorLayoutProps = {
   product: HttpTypes.StoreProduct
@@ -92,13 +98,23 @@ export default function ConfiguratorLayout({
       data-testid="configurator-layout"
     >
       <div className="flex-1 min-h-0 w-full md:w-[60%] bg-stone-50">
-        <ConfiguratorViewer
-          ref={viewerRef}
-          glbPath={config.glbPath}
-          rotationSpeed={config.autoRotate === false ? 0 : 1}
-          modelRotationDeg={config.modelRotationDeg}
-          onModelReady={handleModelReady}
-        />
+        <Suspense
+          fallback={
+            <div className="w-full h-full min-h-[240px] md:min-h-[480px] bg-stone-100 flex items-center justify-center">
+              <div className="px-3 py-1.5 rounded-full bg-white/80 text-sm text-stone-700 shadow-sm">
+                Chargement du configurateur…
+              </div>
+            </div>
+          }
+        >
+          <ConfiguratorViewer
+            ref={viewerRef}
+            glbPath={config.glbPath}
+            rotationSpeed={config.autoRotate === false ? 0 : 1}
+            modelRotationDeg={config.modelRotationDeg}
+            onModelReady={handleModelReady}
+          />
+        </Suspense>
       </div>
       <ConfiguratorSidebar
         product={product}
