@@ -4,6 +4,7 @@ import useEmblaCarousel from "embla-carousel-react"
 import { useCallback, useEffect, useState } from "react"
 import clsx from "clsx"
 import Link from "next/link"
+import Image from "next/image"
 import { Icon } from "@modules/common/components/my_ui"
 
 export type SlideData = {
@@ -21,12 +22,46 @@ type SliderProps = {
   showArrows?: boolean
 }
 
-function SlideItem({ slide }: { slide: SlideData }) {
+// next/image lève une erreur (page cassée) si le host de `src` n'est pas dans
+// remotePatterns. Les images de slider viennent du back (hosts imprévisibles :
+// R2 en prod, mais parfois placeholders externes) → on optimise les hosts sûrs
+// (R2 / local) et on sert les autres tels quels (`unoptimized`) pour ne jamais
+// casser la page. Dans les deux cas, `priority` sur le 1er slide précharge
+// l'image (gain LCP), qu'elle soit optimisée ou non.
+function isOptimizable(src: string): boolean {
+  if (!src) return false
+  if (src.startsWith("/") || src.startsWith("data:")) return true
+  try {
+    return new URL(src).hostname.endsWith(".r2.dev")
+  } catch {
+    return true
+  }
+}
+
+function SlideItem({
+  slide,
+  priority,
+}: {
+  slide: SlideData
+  priority?: boolean
+}) {
   return (
-    <div
-      className="relative flex-[0_0_100%] bg-cover bg-center min-h-[420px] h-[70vh] max-h-[560px] sm:h-auto sm:max-h-none sm:aspect-[16/9] lg:aspect-[21/9]"
-      style={{ backgroundImage: `url(${slide.img})` }}
-    >
+    <div className="relative flex-[0_0_100%] min-h-[420px] h-[70vh] max-h-[560px] sm:h-auto sm:max-h-none sm:aspect-[16/9] lg:aspect-[21/9]">
+      {/* Image de fond = élément LCP. `priority` sur le 1er slide → <link preload>
+          + fetchpriority=high (le navigateur la découvre tôt, contrairement à un
+          background-image CSS qui n'est trouvé qu'après le parse du CSS). */}
+      {slide.img && (
+        <Image
+          src={slide.img}
+          alt={slide.title || ""}
+          fill
+          priority={priority}
+          sizes="100vw"
+          unoptimized={!isOptimizable(slide.img)}
+          className="object-cover object-center"
+        />
+      )}
+
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/40" />
 
@@ -78,7 +113,7 @@ export function Slider({
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
           {slides.map((slide, i) => (
-            <SlideItem key={i} slide={slide} />
+            <SlideItem key={i} slide={slide} priority={i === 0} />
           ))}
         </div>
       </div>
