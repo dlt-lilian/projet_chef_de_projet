@@ -1,19 +1,23 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   ConfiguratorColorOption,
   ConfiguratorProductConfig,
   ConfiguratorTextureOption,
 } from "../config/configurableProducts"
+import {
+  ConfiguratorState,
+  loadConfiguratorState,
+  saveConfiguratorState,
+} from "../lib/persistence"
 
-export type ConfiguratorState = {
-  selections: Record<string, string>
-  engraving: string
-}
+export type { ConfiguratorState }
 
 export type UseProductConfiguratorReturn = {
   state: ConfiguratorState
+  /** `true` une fois la restauration localStorage tentée (défauts sinon). */
+  hydrated: boolean
   setSelection: (optionId: string, choiceId: string) => void
   setEngraving: (text: string) => void
   getSelectedTexturePath: (optionId: string) => string | undefined
@@ -36,12 +40,39 @@ function buildInitialSelections(
 }
 
 export function useProductConfigurator(
-  config: ConfiguratorProductConfig
+  config: ConfiguratorProductConfig,
+  /** Handle produit → clé de persistance localStorage. Optionnel (non persisté). */
+  handle?: string
 ): UseProductConfiguratorReturn {
   const [state, setState] = useState<ConfiguratorState>(() => ({
     selections: buildInitialSelections(config),
     engraving: "",
   }))
+  const [hydrated, setHydrated] = useState(false)
+
+  // Restauration : au montage (client uniquement), fusionne les choix sauvegardés
+  // par-dessus les défauts. Fait en effet — et non à l'init de `useState` — pour
+  // éviter un mismatch d'hydratation SSR : serveur et premier rendu client
+  // partent des défauts, puis on applique la version restaurée.
+  // `handle` ne change pas sans remontage (chaque fiche produit = nouvelle route
+  // → nouveau composant), donc cet effet s'exécute une fois par produit.
+  useEffect(() => {
+    const saved = handle ? loadConfiguratorState(handle, config) : null
+    if (saved) {
+      setState((prev) => ({
+        selections: { ...prev.selections, ...saved.selections },
+        engraving: saved.engraving ?? prev.engraving,
+      }))
+    }
+    setHydrated(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handle])
+
+  // Sauvegarde à chaque changement, une fois l'hydratation faite (on n'écrase pas
+  // le storage avec les défauts avant d'avoir tenté la restauration).
+  useEffect(() => {
+    if (hydrated && handle) saveConfiguratorState(handle, state)
+  }, [hydrated, handle, state])
 
   const optionsById = useMemo(() => {
     const map = new Map<string, ConfiguratorTextureOption | ConfiguratorColorOption>()
@@ -87,6 +118,7 @@ export function useProductConfigurator(
 
   return {
     state,
+    hydrated,
     setSelection,
     setEngraving,
     getSelectedTexturePath,

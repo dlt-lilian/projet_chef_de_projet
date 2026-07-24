@@ -13,6 +13,7 @@ import {
   ConfiguratorProductConfig,
 } from "../config/configurableProducts"
 import { UseProductConfiguratorReturn } from "../hooks/useProductConfigurator"
+import { buildConfiguratorMetadata } from "../lib/persistence"
 
 type ProductVariant = NonNullable<HttpTypes.StoreProduct["variants"]>[number]
 
@@ -71,7 +72,19 @@ export default function ConfiguratorSidebar({
     if (!variant?.id) return
     setIsAdding(true)
     try {
-      await addToCart({ variantId: variant.id, quantity: 1, countryCode })
+      // Sérialise les choix (bois, couleur, motif, gravure) dans le metadata de
+      // la ligne : ils sont ainsi conservés dans le panier puis la commande.
+      const metadata = buildConfiguratorMetadata(
+        config,
+        controller.state,
+        product.handle
+      )
+      await addToCart({
+        variantId: variant.id,
+        quantity: 1,
+        countryCode,
+        metadata,
+      })
     } finally {
       setIsAdding(false)
     }
