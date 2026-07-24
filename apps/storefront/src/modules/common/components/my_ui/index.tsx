@@ -64,7 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {!isLoading && iconLeft && (
           <Iconify icon={`lucide:${iconLeft}`} width={iconSize} height={iconSize} />
         )}
-        {isLoading ? "Loading..." : children}
+        {isLoading ? "Chargement..." : children}
         {!isLoading && iconRight && (
           <Iconify icon={`lucide:${iconRight}`} width={iconSize} height={iconSize} />
         )}

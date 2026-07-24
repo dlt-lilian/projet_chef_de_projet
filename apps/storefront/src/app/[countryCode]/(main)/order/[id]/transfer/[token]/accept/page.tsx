@@ -18,20 +18,20 @@ export default async function TransferPage({
         {success && (
           <>
             <Heading level="h1" className="text-xl text-zinc-900">
-              Order transfered!
+              Commande transférée !
             </Heading>
             <Text className="text-zinc-600">
-              Order {id} has been successfully transfered to the new owner.
+              La commande {id} a bien été transférée au nouveau propriétaire.
             </Text>
           </>
         )}
         {!success && (
           <>
             <Text className="text-zinc-600">
-              There was an error accepting the transfer. Please try again.
+              Une erreur est survenue lors de l&apos;acceptation du transfert. Veuillez réessayer.
             </Text>
             {error && (
-              <Text className="text-red-500">Error message: {error}</Text>
+              <Text className="text-red-500">Message d&apos;erreur : {error}</Text>
             )}
           </>
         )}

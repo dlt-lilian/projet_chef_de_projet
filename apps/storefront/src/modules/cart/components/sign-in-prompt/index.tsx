@@ -9,7 +9,7 @@ const SignInPrompt = () => {
           Vous avez déjà un compte ?
         </Heading>
         <Text className="txt-medium text-ui-fg-subtle mt-2">
-          Connectez vous pour une meilleur experience
+          Connectez-vous pour une meilleure expérience
         </Text>
       </div>
       <div>

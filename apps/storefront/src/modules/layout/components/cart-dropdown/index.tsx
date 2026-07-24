@@ -178,7 +178,7 @@ const CartDropdown = ({
                   <div className="flex items-center justify-between">
                     <span className="text-ui-fg-base font-semibold">
                       Total{" "}
-                      <span className="font-normal">(excl. taxes)</span>
+                      <span className="font-normal">(hors taxes)</span>
                     </span>
                     <span
                       className="text-large-semi"
