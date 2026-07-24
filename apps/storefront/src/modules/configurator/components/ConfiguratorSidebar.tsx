@@ -6,7 +6,7 @@ import { Button, clx, Input, Label } from "@modules/common/components/ui"
 import { Icon } from "@modules/common/components/my_ui"
 import ProductPrice from "@modules/products/components/product-price"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
-import { useParams } from "next/navigation"
+import { useParams, usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
 import {
   ConfiguratorOption,
@@ -64,6 +64,8 @@ export default function ConfiguratorSidebar({
   onActiveOptionChange,
 }: ConfiguratorSidebarProps) {
   const countryCode = useParams().countryCode as string
+  const router = useRouter()
+  const pathname = usePathname()
   const [isAdding, setIsAdding] = useState(false)
 
   const variant = product.variants?.[0]
@@ -79,12 +81,18 @@ export default function ConfiguratorSidebar({
         controller.state,
         product.handle
       )
-      await addToCart({
+      const lineId = await addToCart({
         variantId: variant.id,
         quantity: 1,
         countryCode,
         metadata,
       })
+      // Épingle la fiche sur la ligne qu'on vient d'ajouter : la configuration
+      // reste affichée (plus de retour au générique) et survit à un rechargement
+      // ou à un re-render déclenché par la revalidation du panier.
+      if (lineId) {
+        router.replace(`${pathname}?line=${lineId}`, { scroll: false })
+      }
     } finally {
       setIsAdding(false)
     }

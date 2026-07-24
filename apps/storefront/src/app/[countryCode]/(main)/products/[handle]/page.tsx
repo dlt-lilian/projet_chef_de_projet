@@ -2,12 +2,17 @@ import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { listProducts } from "@lib/data/products"
 import { getRegion, listRegions } from "@lib/data/regions"
+import { retrieveCart } from "@lib/data/cart"
 import ProductTemplate from "@modules/products/templates"
 import ConfiguratorLayout from "@modules/configurator/components/ConfiguratorLayout"
 import {
   getProductConfig,
   isConfigurableProduct,
 } from "@modules/configurator/config/configurableProducts"
+import {
+  InitialConfiguration,
+  readConfiguratorSelections,
+} from "@modules/configurator/lib/persistence"
 import { fetchProductConfig } from "@lib/configurator"
 import { HttpTypes } from "@medusajs/types"
 import JsonLd from "@modules/common/components/json-ld"
@@ -21,7 +26,7 @@ import {
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
-  searchParams: Promise<{ v_id?: string }>
+  searchParams: Promise<{ v_id?: string; line?: string }>
 }
 
 export async function generateStaticParams() {
@@ -192,10 +197,27 @@ export default async function ProductPage(props: Props) {
     const config =
       (await fetchProductConfig(pricedProduct.handle)) ??
       getProductConfig(pricedProduct.handle)
+
+    // Rouverture d'un article du panier (`?line=<id>`) : on relit sa config
+    // depuis le metadata de la ligne pour rouvrir exactement cette version.
+    // Fetch du panier UNIQUEMENT si `?line` est présent → pas d'impact sur les
+    // vues normales (SEO / visiteurs sans panier).
+    let initialConfiguration: InitialConfiguration | undefined
+    if (searchParams.line) {
+      const cart = await retrieveCart()
+      const line = cart?.items?.find((item) => item.id === searchParams.line)
+      initialConfiguration =
+        readConfiguratorSelections(line?.metadata) ?? undefined
+    }
+
     return (
       <>
         <JsonLd data={jsonLd} />
-        <ConfiguratorLayout product={pricedProduct} config={config} />
+        <ConfiguratorLayout
+          product={pricedProduct}
+          config={config}
+          initialConfiguration={initialConfiguration}
+        />
       </>
     )
   }

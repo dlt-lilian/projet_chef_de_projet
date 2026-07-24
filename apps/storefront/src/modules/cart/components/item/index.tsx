@@ -12,6 +12,7 @@ import LineItemUnitPrice from "@modules/common/components/line-item-unit-price"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Spinner from "@modules/common/icons/spinner"
 import Thumbnail from "@modules/products/components/thumbnail"
+import { readConfiguratorLineOptions } from "@modules/configurator/lib/persistence"
 import { useState } from "react"
 
 type ItemProps = {
@@ -44,11 +45,17 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
   const maxQtyFromInventory = 10
   const maxQuantity = item.variant?.manage_inventory ? 10 : maxQtyFromInventory
 
+  // Article configuré (3D) → le lien rouvre la fiche AVEC sa configuration.
+  const isConfigured = !!readConfiguratorLineOptions(item.metadata)
+  const productHref = isConfigured
+    ? `/products/${item.product_handle}?line=${item.id}`
+    : `/products/${item.product_handle}`
+
   return (
     <Table.Row className="w-full" data-testid="product-row">
       <Table.Cell className="!pl-0 p-4 w-24">
         <LocalizedClientLink
-          href={`/products/${item.product_handle}`}
+          href={productHref}
           className={clx("flex", {
             "w-16": type === "preview",
             "small:w-24 w-12": type === "full",

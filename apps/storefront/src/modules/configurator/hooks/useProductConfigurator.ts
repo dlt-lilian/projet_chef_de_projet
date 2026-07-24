@@ -1,23 +1,17 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import {
   ConfiguratorColorOption,
   ConfiguratorProductConfig,
   ConfiguratorTextureOption,
 } from "../config/configurableProducts"
-import {
-  ConfiguratorState,
-  loadConfiguratorState,
-  saveConfiguratorState,
-} from "../lib/persistence"
+import { ConfiguratorState, InitialConfiguration } from "../lib/persistence"
 
 export type { ConfiguratorState }
 
 export type UseProductConfiguratorReturn = {
   state: ConfiguratorState
-  /** `true` une fois la restauration localStorage tentée (défauts sinon). */
-  hydrated: boolean
   setSelection: (optionId: string, choiceId: string) => void
   setEngraving: (text: string) => void
   getSelectedTexturePath: (optionId: string) => string | undefined
@@ -25,54 +19,40 @@ export type UseProductConfiguratorReturn = {
   getTargetMesh: (optionId: string) => string | string[] | undefined
 }
 
-function buildInitialSelections(
-  config: ConfiguratorProductConfig
-): Record<string, string> {
-  const initial: Record<string, string> = {}
+/**
+ * Choix par défaut : le choix « par défaut » défini en admin, sinon le premier,
+ * puis on surcharge avec la config initiale (rouverture d'un article du panier),
+ * en ne gardant que les choix encore valides pour la config courante.
+ */
+function buildInitialState(
+  config: ConfiguratorProductConfig,
+  initial?: InitialConfiguration
+): ConfiguratorState {
+  const selections: Record<string, string> = {}
   for (const option of config.options) {
     if (option.type === "engraving") continue
-    // Honore le choix « par défaut » défini en admin, sinon le premier.
     const preferred =
       option.choices.find((c) => c.isDefault) ?? option.choices[0]
-    if (preferred) initial[option.id] = preferred.id
+    if (preferred) selections[option.id] = preferred.id
+    // Surcharge par la config restaurée, si le choix existe toujours.
+    const restored = initial?.selections?.[option.id]
+    if (restored && option.choices.some((c) => c.id === restored)) {
+      selections[option.id] = restored
+    }
   }
-  return initial
+  return { selections, engraving: initial?.engraving ?? "" }
 }
 
 export function useProductConfigurator(
   config: ConfiguratorProductConfig,
-  /** Handle produit → clé de persistance localStorage. Optionnel (non persisté). */
-  handle?: string
+  /** Config restaurée (ex. rouverture d'une ligne de panier via `?line=`). */
+  initialConfiguration?: InitialConfiguration
 ): UseProductConfiguratorReturn {
-  const [state, setState] = useState<ConfiguratorState>(() => ({
-    selections: buildInitialSelections(config),
-    engraving: "",
-  }))
-  const [hydrated, setHydrated] = useState(false)
-
-  // Restauration : au montage (client uniquement), fusionne les choix sauvegardés
-  // par-dessus les défauts. Fait en effet — et non à l'init de `useState` — pour
-  // éviter un mismatch d'hydratation SSR : serveur et premier rendu client
-  // partent des défauts, puis on applique la version restaurée.
-  // `handle` ne change pas sans remontage (chaque fiche produit = nouvelle route
-  // → nouveau composant), donc cet effet s'exécute une fois par produit.
-  useEffect(() => {
-    const saved = handle ? loadConfiguratorState(handle, config) : null
-    if (saved) {
-      setState((prev) => ({
-        selections: { ...prev.selections, ...saved.selections },
-        engraving: saved.engraving ?? prev.engraving,
-      }))
-    }
-    setHydrated(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handle])
-
-  // Sauvegarde à chaque changement, une fois l'hydratation faite (on n'écrase pas
-  // le storage avec les défauts avant d'avoir tenté la restauration).
-  useEffect(() => {
-    if (hydrated && handle) saveConfiguratorState(handle, state)
-  }, [hydrated, handle, state])
+  // Fournie par le serveur (déterministe) → identique en SSR et au 1er rendu
+  // client, donc pas de mismatch d'hydratation.
+  const [state, setState] = useState<ConfiguratorState>(() =>
+    buildInitialState(config, initialConfiguration)
+  )
 
   const optionsById = useMemo(() => {
     const map = new Map<string, ConfiguratorTextureOption | ConfiguratorColorOption>()
@@ -118,7 +98,6 @@ export function useProductConfigurator(
 
   return {
     state,
-    hydrated,
     setSelection,
     setEngraving,
     getSelectedTexturePath,

@@ -1,13 +1,14 @@
 "use client"
 
 import { HttpTypes } from "@medusajs/types"
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useMemo, useRef } from "react"
 import {
   ConfiguratorOption,
   ConfiguratorProductConfig,
   darkenToTint,
 } from "../config/configurableProducts"
 import { useProductConfigurator } from "../hooks/useProductConfigurator"
+import type { InitialConfiguration } from "../lib/persistence"
 import ConfiguratorSidebar from "./ConfiguratorSidebar"
 import type { ConfiguratorViewerHandle } from "./ConfiguratorViewer"
 
@@ -22,15 +23,17 @@ const ConfiguratorViewer = lazy(() => import("./ConfiguratorViewer"))
 type ConfiguratorLayoutProps = {
   product: HttpTypes.StoreProduct
   config: ConfiguratorProductConfig
+  /** Config à restaurer (rouverture d'un article du panier via `?line=`). */
+  initialConfiguration?: InitialConfiguration
 }
 
 export default function ConfiguratorLayout({
   product,
   config,
+  initialConfiguration,
 }: ConfiguratorLayoutProps) {
   const viewerRef = useRef<ConfiguratorViewerHandle>(null)
-  const controller = useProductConfigurator(config, product.handle)
-  const [modelReady, setModelReady] = useState(false)
+  const controller = useProductConfigurator(config, initialConfiguration)
 
   // Applique une sélection : couleur unie → applyColor, texture/motif → swapTexture.
   const applyOption = useCallback(
@@ -63,11 +66,13 @@ export default function ConfiguratorLayout({
     []
   )
 
-  // Applique toutes les sélections courantes au modèle (état par défaut OU
-  // restauré). Textures/motifs d'abord, puis couleurs : sur un mesh partagé la
-  // couleur unie l'emporte par défaut (cohérent avec l'ancien système où
-  // "uni" = couleur).
-  const applyAllOptions = useCallback(() => {
+  // Applique toutes les sélections courantes au modèle. Appelé À CHAQUE fois que
+  // le GLB est prêt — y compris après un rechargement du modèle — pour que le
+  // rendu 3D reflète toujours l'état (défaut OU config restaurée depuis une
+  // ligne de panier), sans jamais retomber au générique.
+  // Textures/motifs d'abord, puis couleurs : sur un mesh partagé la couleur unie
+  // l'emporte par défaut (cohérent avec l'ancien système où "uni" = couleur).
+  const handleModelReady = useCallback(() => {
     const apply = (option: ConfiguratorOption) => {
       const choiceId = controller.getSelectedChoiceId(option.id)
       if (choiceId) applyOption(option, choiceId)
@@ -76,22 +81,18 @@ export default function ConfiguratorLayout({
     config.options.filter((o) => o.type === "color").forEach(apply)
   }, [config, controller, applyOption])
 
-  // `controller` (donc `applyAllOptions`) change d'identité à chaque rendu : on
-  // garde la dernière version dans un ref pour que l'effet ci-dessous ne se
-  // redéclenche QUE sur (modelReady, hydrated) tout en lisant l'état à jour.
-  const applyAllRef = useRef(applyAllOptions)
-  applyAllRef.current = applyAllOptions
-
-  const handleModelReady = useCallback(() => setModelReady(true), [])
-
-  // Applique les choix au modèle une fois qu'il est chargé ET la restauration
-  // localStorage effectuée, quel que soit l'ordre des deux. En pratique le GLB
-  // distant met plusieurs secondes à charger : la restauration (synchrone au
-  // montage) est déjà faite quand le modèle arrive ; cet effet couvre la course
-  // rare inverse, où le modèle serait prêt avant la restauration.
-  useEffect(() => {
-    if (modelReady && controller.hydrated) applyAllRef.current()
-  }, [modelReady, controller.hydrated])
+  // `config` est un nouvel objet à chaque rendu serveur (fetch admin / repli) :
+  // on fige la rotation par ses VALEURS pour éviter que le viewer ne recharge le
+  // GLB à chaque re-render (ex. après `revalidateTag` d'un ajout au panier).
+  const modelRotationDeg = useMemo(
+    () => config.modelRotationDeg,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      config.modelRotationDeg?.[0],
+      config.modelRotationDeg?.[1],
+      config.modelRotationDeg?.[2],
+    ]
+  )
 
   // Zoom contextuel : à l'ouverture d'un menu d'option, cadre la caméra sur le
   // mesh ciblé (Bois, Vis, Papier…) ; à la fermeture (ou option sans mesh, ex.
@@ -129,7 +130,7 @@ export default function ConfiguratorLayout({
             ref={viewerRef}
             glbPath={config.glbPath}
             rotationSpeed={config.autoRotate === false ? 0 : 1}
-            modelRotationDeg={config.modelRotationDeg}
+            modelRotationDeg={modelRotationDeg}
             onModelReady={handleModelReady}
           />
         </Suspense>
