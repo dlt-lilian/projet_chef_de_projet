@@ -4,14 +4,13 @@ import { forwardRef } from "react"
 import clsx from "clsx"
 import { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes } from "react"
 import { Icon as Iconify, addCollection } from "@iconify/react"
-import lucideIcons from "@iconify-json/lucide/icons.json"
-import hugeIcons from "@iconify-json/hugeicons/icons.json"
-import lucideLabIcons from "@iconify-json/lucide-lab/icons.json"
+import { iconCollections } from "./icons.data"
 
-addCollection(hugeIcons)
-addCollection(lucideLabIcons)
-
-addCollection(lucideIcons)
+// N'enregistre QUE le sous-ensemble d'icônes réellement utilisées (généré par
+// `scripts/generate-icons.mjs`) au lieu des jeux @iconify-json complets (~800 kB
+// embarqués inutilement). Une icône non listée reste affichable via le fallback
+// API d'iconify. Pour en ajouter une : compléter USED dans le script + relancer.
+iconCollections.forEach((collection) => addCollection(collection))
 
 // Button Component
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -65,7 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {!isLoading && iconLeft && (
           <Iconify icon={`lucide:${iconLeft}`} width={iconSize} height={iconSize} />
         )}
-        {isLoading ? "Loading..." : children}
+        {isLoading ? "Chargement..." : children}
         {!isLoading && iconRight && (
           <Iconify icon={`lucide:${iconRight}`} width={iconSize} height={iconSize} />
         )}

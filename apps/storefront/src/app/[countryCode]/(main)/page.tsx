@@ -10,11 +10,30 @@ import { getSlides } from "@lib/slider"
 import { getGalleryImages } from "@lib/gallery"
 import { listCollections } from "@lib/data/collections"
 import { getRegion } from "@lib/data/regions"
+import {
+  SITE_DEFAULT_DESCRIPTION,
+  SITE_DEFAULT_TITLE,
+  canonicalPath,
+  hreflangAlternates,
+} from "@lib/util/seo"
 
-export const metadata: Metadata = {
-  title: "Hinaso — Artisanat japonais",
-  description:
-    "Pièces d'artisanat japonais : baguettes, éventails, parapluies. Façonnés à la main.",
+export async function generateMetadata(props: {
+  params: Promise<{ countryCode: string }>
+}): Promise<Metadata> {
+  const { countryCode } = await props.params
+  const canonical = canonicalPath(countryCode)
+
+  return {
+    // `absolute` : l'accueil porte déjà la marque → on n'ajoute pas « | Hinaso ».
+    title: { absolute: SITE_DEFAULT_TITLE },
+    description: SITE_DEFAULT_DESCRIPTION,
+    alternates: { canonical, languages: hreflangAlternates() },
+    openGraph: {
+      title: SITE_DEFAULT_TITLE,
+      description: SITE_DEFAULT_DESCRIPTION,
+      url: canonical,
+    },
+  }
 }
 
 export default async function Home(props: {
@@ -35,6 +54,13 @@ export default async function Home(props: {
 
   return (
     <>
+      {/* H1 unique de l'accueil : le hero est un carrousel (plusieurs <h2>),
+          on fournit donc un H1 sémantique accessible sans perturber le visuel. */}
+      <h1 className="sr-only">
+        Hinaso — Artisanat japonais authentique : baguettes, éventails et
+        parapluies faits main
+      </h1>
+
       <Slider slides={slides} />
 
       <div className="content-container my-12 md:my-16">

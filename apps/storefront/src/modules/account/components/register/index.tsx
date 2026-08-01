@@ -40,7 +40,7 @@ const Register = ({ setCurrentView }: Props) => {
             data-testid="last-name-input"
           />
           <Input
-            label="Email"
+            label="E-mail"
             name="email"
             required
             type="email"

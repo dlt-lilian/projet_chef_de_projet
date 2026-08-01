@@ -4,6 +4,8 @@ import { getAllSlugs, getArticleBySlug } from "@lib/blog"
 import { listRegions } from "@lib/data/regions"
 import BlockRenderer from "@modules/blog/components/blocks/BlockRenderer"
 import type { Metadata } from "next"
+import JsonLd from "@modules/common/components/json-ld"
+import { blogPostingJsonLd, canonicalPath, hreflangAlternates } from "@lib/util/seo"
 
 // Next.js 15 : params est une Promise
 type Props = { params: Promise<{ slug: string; countryCode: string }> }
@@ -39,22 +41,34 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params
+  const { slug, countryCode } = await params
   const post = await getArticleBySlug(slug)
   if (!post) return {}
+  const canonical = canonicalPath(countryCode, `/blog/${slug}`)
+  const ogTitle = `${post.title} | Hinaso`
   return {
     title: post.title,
     description: post.excerpt,
+    alternates: { canonical, languages: hreflangAlternates(`/blog/${slug}`) },
     openGraph: {
-      title: post.title,
+      title: ogTitle,
       description: post.excerpt,
+      url: canonical,
+      type: "article",
+      publishedTime: post.date_iso,
       images: post.cover ? [{ url: post.cover }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description: post.excerpt,
+      images: post.cover ? [post.cover] : [],
     },
   }
 }
 
 export default async function BlogArticlePage({ params }: Props) {
-  const { slug } = await params
+  const { slug, countryCode } = await params
   const post = await getArticleBySlug(slug)
   if (!post) notFound()
 
@@ -64,6 +78,16 @@ export default async function BlogArticlePage({ params }: Props) {
 
   return (
     <div className="bg-ui-bg-base min-h-screen">
+      <JsonLd
+        data={blogPostingJsonLd({
+          title: post.title,
+          description: post.excerpt,
+          image: post.cover,
+          path: canonicalPath(countryCode, `/blog/${slug}`),
+          author: post.author,
+          datePublished: post.date_iso,
+        })}
+      />
 
       {/* ── Breadcrumb / retour ───────────────────────────────────────── */}
       {/* Non sticky : la navbar globale est déjà `sticky top-0 z-50`. Deux

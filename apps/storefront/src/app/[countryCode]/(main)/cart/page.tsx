@@ -5,8 +5,10 @@ import { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 export const metadata: Metadata = {
-  title: "Cart",
-  description: "View your cart",
+  title: "Panier",
+  description: "Votre panier Hinaso.",
+  // Page transactionnelle et personnalisée → hors index Google.
+  robots: { index: false, follow: false },
 }
 
 export default async function Cart() {

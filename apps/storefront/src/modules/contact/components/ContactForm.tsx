@@ -63,7 +63,7 @@ export default function ContactForm() {
           <input
             id="firstName"
             type="text"
-            placeholder="John"
+            placeholder="Jean"
             required
             value={form.firstName}
             onChange={(e) => update("firstName", e.target.value)}
@@ -77,7 +77,7 @@ export default function ContactForm() {
           <input
             id="lastName"
             type="text"
-            placeholder="Doe"
+            placeholder="Dupont"
             required
             value={form.lastName}
             onChange={(e) => update("lastName", e.target.value)}
@@ -88,12 +88,12 @@ export default function ContactForm() {
 
       <div>
         <label className={labelClass} htmlFor="email">
-          Email
+          E-mail
         </label>
         <input
           id="email"
           type="email"
-          placeholder="john.doe@mail.fr"
+          placeholder="jean.dupont@mail.fr"
           required
           value={form.email}
           onChange={(e) => update("email", e.target.value)}

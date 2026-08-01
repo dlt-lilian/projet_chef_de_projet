@@ -65,7 +65,7 @@ module.exports = {
         "3xl": "2rem",
       },
       fontFamily: {
-        sans: ["var(--font-supreme)", "sans-serif"],
+        sans: ["var(--font-satoshi)", "sans-serif"],
       },
       keyframes: {
         ring: {

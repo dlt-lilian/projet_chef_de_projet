@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Calque_2" data-name="Calque 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 359.75 180.81">
+  <defs>
+    <style>
+      /* Thème clair (défaut) : logo bleu foncé — cf. logo.svg */
+      .cls-1 {
+        fill: #052f4a;
+      }
+
+      /* Thème sombre : logo blanc — cf. logo_white.svg */
+      @media (prefers-color-scheme: dark) {
+        .cls-1 {
+          fill: #f9fafb;
+        }
+      }
+    </style>
+  </defs>
+  <g id="Calque_1-2" data-name="Calque 1">
+    <g>
+      <polygon class="cls-1" points="359.75 180.81 359.75 121.46 196.75 180.81 359.75 180.81"/>
+      <polygon class="cls-1" points="175.26 177.02 50.11 72 11.9 117.55 175.26 177.02"/>
+      <polygon class="cls-1" points="173.85 180.81 20.33 124.93 0 180.8 173.85 180.81"/>
+      <polygon class="cls-1" points="177.85 173.93 96.17 32.46 44.68 62.18 177.85 173.93"/>
+      <polygon class="cls-1" points="181.35 171.91 152.97 11.03 94.42 21.36 181.35 171.91"/>
+      <polygon class="cls-1" points="185.32 171.21 213.67 10.33 155.12 0 185.32 171.21"/>
+      <polygon class="cls-1" points="189.29 171.91 270.95 30.42 219.46 .7 189.29 171.91"/>
+      <polygon class="cls-1" points="279.68 23.37 192.78 173.93 317.91 68.92 279.68 23.37"/>
+      <polygon class="cls-1" points="328.54 65.26 195.38 177.02 348.88 121.12 328.54 65.26"/>
+    </g>
+  </g>
+</svg>

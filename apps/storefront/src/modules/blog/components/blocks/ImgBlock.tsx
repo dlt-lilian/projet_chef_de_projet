@@ -10,6 +10,7 @@ export default function ImgBlock({ src, alt, caption, fullWidth }: TImgBlock) {
           alt={alt}
           width={1600}
           height={900}
+          unoptimized
           sizes={fullWidth ? "100vw" : "(max-width: 768px) 100vw, 800px"}
           className="w-full h-auto object-cover transition-transform duration-700 rounded-lg aspect-[16/9]"
         />
