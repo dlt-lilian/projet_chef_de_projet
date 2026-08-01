@@ -1,6 +1,10 @@
 "use client"
 
 import { addToCart } from "@lib/data/cart"
+import {
+  ConfigurationEntry,
+  LINE_ITEM_CONFIG_KEY,
+} from "@lib/util/line-item-configuration"
 import { HttpTypes } from "@medusajs/types"
 import { Button, clx, Input, Label } from "@modules/common/components/ui"
 import { Icon } from "@modules/common/components/my_ui"
@@ -55,6 +59,29 @@ function selectedChoiceLabel(
   return option.choices.find((c) => c.id === id)?.label ?? "—"
 }
 
+/**
+ * Traduit l'état du configurateur en options lisibles à enregistrer sur la ligne
+ * de commande (metadata) : une entrée { label, value } par option renseignée.
+ * Les gravures vides sont ignorées ; les autres options ont toujours un choix.
+ */
+function buildConfiguration(
+  config: ConfiguratorProductConfig,
+  controller: UseProductConfiguratorReturn
+): ConfigurationEntry[] {
+  const entries: ConfigurationEntry[] = []
+  for (const option of config.options) {
+    if (option.type === "engraving") {
+      const text = controller.state.engraving?.trim()
+      if (text) entries.push({ label: option.label, value: text })
+      continue
+    }
+    const choiceId = controller.getSelectedChoiceId(option.id)
+    const choice = option.choices.find((c) => c.id === choiceId)
+    if (choice) entries.push({ label: option.label, value: choice.label })
+  }
+  return entries
+}
+
 export default function ConfiguratorSidebar({
   product,
   config,
@@ -71,7 +98,15 @@ export default function ConfiguratorSidebar({
     if (!variant?.id) return
     setIsAdding(true)
     try {
-      await addToCart({ variantId: variant.id, quantity: 1, countryCode })
+      const configuration = buildConfiguration(config, controller)
+      await addToCart({
+        variantId: variant.id,
+        quantity: 1,
+        countryCode,
+        metadata: configuration.length
+          ? { [LINE_ITEM_CONFIG_KEY]: configuration }
+          : undefined,
+      })
     } finally {
       setIsAdding(false)
     }

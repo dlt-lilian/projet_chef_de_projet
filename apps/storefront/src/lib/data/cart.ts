@@ -118,10 +118,14 @@ export async function addToCart({
   variantId,
   quantity,
   countryCode,
+  metadata,
 }: {
   variantId: string
   quantity: number
   countryCode: string
+  // Données libres attachées à la ligne (ex. options du configurateur 3D).
+  // Recopiées par Medusa du panier vers la commande à la validation.
+  metadata?: Record<string, unknown>
 }) {
   if (!variantId) {
     throw new Error("Missing variant ID when adding to cart")
@@ -143,6 +147,7 @@ export async function addToCart({
       {
         variant_id: variantId,
         quantity,
+        ...(metadata ? { metadata } : {}),
       },
       {},
       headers

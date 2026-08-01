@@ -6,6 +6,7 @@ import { HttpTypes } from "@medusajs/types"
 import CartItemSelect from "@modules/cart/components/cart-item-select"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import DeleteButton from "@modules/common/components/delete-button"
+import LineItemConfiguration from "@modules/common/components/line-item-configuration"
 import LineItemOptions from "@modules/common/components/line-item-options"
 import LineItemPrice from "@modules/common/components/line-item-price"
 import LineItemUnitPrice from "@modules/common/components/line-item-unit-price"
@@ -70,6 +71,10 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
           {item.product_title}
         </Text>
         <LineItemOptions variant={item.variant} data-testid="product-variant" />
+        <LineItemConfiguration
+          metadata={item.metadata}
+          data-testid="product-configuration"
+        />
       </Table.Cell>
 
       {type === "full" && (
