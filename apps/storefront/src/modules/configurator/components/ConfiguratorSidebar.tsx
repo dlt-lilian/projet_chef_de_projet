@@ -1,22 +1,19 @@
 "use client"
 
 import { addToCart } from "@lib/data/cart"
-import {
-  ConfigurationEntry,
-  LINE_ITEM_CONFIG_KEY,
-} from "@lib/util/line-item-configuration"
 import { HttpTypes } from "@medusajs/types"
 import { Button, clx, Input, Label } from "@modules/common/components/ui"
 import { Icon } from "@modules/common/components/my_ui"
 import ProductPrice from "@modules/products/components/product-price"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
-import { useParams } from "next/navigation"
+import { useParams, usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
 import {
   ConfiguratorOption,
   ConfiguratorProductConfig,
 } from "../config/configurableProducts"
 import { UseProductConfiguratorReturn } from "../hooks/useProductConfigurator"
+import { buildConfiguratorMetadata } from "../lib/persistence"
 
 type ProductVariant = NonNullable<HttpTypes.StoreProduct["variants"]>[number]
 
@@ -59,29 +56,6 @@ function selectedChoiceLabel(
   return option.choices.find((c) => c.id === id)?.label ?? "—"
 }
 
-/**
- * Traduit l'état du configurateur en options lisibles à enregistrer sur la ligne
- * de commande (metadata) : une entrée { label, value } par option renseignée.
- * Les gravures vides sont ignorées ; les autres options ont toujours un choix.
- */
-function buildConfiguration(
-  config: ConfiguratorProductConfig,
-  controller: UseProductConfiguratorReturn
-): ConfigurationEntry[] {
-  const entries: ConfigurationEntry[] = []
-  for (const option of config.options) {
-    if (option.type === "engraving") {
-      const text = controller.state.engraving?.trim()
-      if (text) entries.push({ label: option.label, value: text })
-      continue
-    }
-    const choiceId = controller.getSelectedChoiceId(option.id)
-    const choice = option.choices.find((c) => c.id === choiceId)
-    if (choice) entries.push({ label: option.label, value: choice.label })
-  }
-  return entries
-}
-
 export default function ConfiguratorSidebar({
   product,
   config,
@@ -90,6 +64,8 @@ export default function ConfiguratorSidebar({
   onActiveOptionChange,
 }: ConfiguratorSidebarProps) {
   const countryCode = useParams().countryCode as string
+  const router = useRouter()
+  const pathname = usePathname()
   const [isAdding, setIsAdding] = useState(false)
 
   const variant = product.variants?.[0]
@@ -98,15 +74,25 @@ export default function ConfiguratorSidebar({
     if (!variant?.id) return
     setIsAdding(true)
     try {
-      const configuration = buildConfiguration(config, controller)
-      await addToCart({
+      // Sérialise les choix (bois, couleur, motif, gravure) dans le metadata de
+      // la ligne : ils sont ainsi conservés dans le panier puis la commande.
+      const metadata = buildConfiguratorMetadata(
+        config,
+        controller.state,
+        product.handle
+      )
+      const lineId = await addToCart({
         variantId: variant.id,
         quantity: 1,
         countryCode,
-        metadata: configuration.length
-          ? { [LINE_ITEM_CONFIG_KEY]: configuration }
-          : undefined,
+        metadata,
       })
+      // Épingle la fiche sur la ligne qu'on vient d'ajouter : la configuration
+      // reste affichée (plus de retour au générique) et survit à un rechargement
+      // ou à un re-render déclenché par la revalidation du panier.
+      if (lineId) {
+        router.replace(`${pathname}?line=${lineId}`, { scroll: false })
+      }
     } finally {
       setIsAdding(false)
     }

@@ -15,6 +15,7 @@ import {
 } from "./cookies"
 import { getRegion } from "./regions"
 import { getLocale } from "./locale-actions"
+import { CONFIGURATOR_META } from "@modules/configurator/lib/persistence"
 
 /**
  * Retrieves a cart by its ID. If no ID is provided, it will use the cart ID from the cookies.
@@ -126,7 +127,7 @@ export async function addToCart({
   // Données libres attachées à la ligne (ex. options du configurateur 3D).
   // Recopiées par Medusa du panier vers la commande à la validation.
   metadata?: Record<string, unknown>
-}) {
+}): Promise<string | undefined> {
   if (!variantId) {
     throw new Error("Missing variant ID when adding to cart")
   }
@@ -160,6 +161,26 @@ export async function addToCart({
       revalidateTag(fulfillmentCacheTag)
     })
     .catch(medusaError)
+
+  // Pour un ajout configuré (metadata 3D), on renvoie l'id de la ligne afin que
+  // la fiche produit puisse s'épingler dessus (`?line=<id>`) et rester sur cette
+  // configuration. On retrouve la ligne par variant + résumé de config, qui est
+  // déterministe (cf. buildConfiguratorMetadata).
+  if (!metadata?.[CONFIGURATOR_META.summary]) return undefined
+
+  const summary = metadata[CONFIGURATOR_META.summary]
+  const refreshed = await retrieveCart(
+    undefined,
+    "id,*items,*items.metadata,*items.variant"
+  )
+  const line = refreshed?.items?.find(
+    (item) =>
+      item.variant_id === variantId &&
+      (item.metadata as Record<string, unknown> | null | undefined)?.[
+        CONFIGURATOR_META.summary
+      ] === summary
+  )
+  return line?.id
 }
 
 export async function updateLineItem({

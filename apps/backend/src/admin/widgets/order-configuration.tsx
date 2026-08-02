@@ -3,8 +3,9 @@ import { DetailWidgetProps, AdminOrder } from "@medusajs/types"
 import { Container, Heading, Text } from "@medusajs/ui"
 
 /** Clé sous laquelle le storefront range les options dans `line_item.metadata`
-    (cf. storefront `lib/util/line-item-configuration.ts`). */
-const LINE_ITEM_CONFIG_KEY = "configuration"
+    (cf. storefront `modules/configurator/lib/persistence.ts`,
+    `CONFIGURATOR_META.options`). */
+const CONFIGURATOR_OPTIONS_KEY = "configurator_options"
 
 type ConfigurationEntry = { label: string; value: string }
 
@@ -13,7 +14,7 @@ type ConfigurationEntry = { label: string; value: string }
 function readConfiguration(
   metadata: Record<string, unknown> | null | undefined
 ): ConfigurationEntry[] {
-  const raw = metadata?.[LINE_ITEM_CONFIG_KEY]
+  const raw = metadata?.[CONFIGURATOR_OPTIONS_KEY]
   if (!Array.isArray(raw)) return []
   return raw.filter(
     (entry): entry is ConfigurationEntry =>

@@ -1,7 +1,6 @@
 import { HttpTypes } from "@medusajs/types"
 import { Table, Text } from "@modules/common/components/ui"
 
-import LineItemConfiguration from "@modules/common/components/line-item-configuration"
 import LineItemOptions from "@modules/common/components/line-item-options"
 import LineItemPrice from "@modules/common/components/line-item-price"
 import LineItemUnitPrice from "@modules/common/components/line-item-unit-price"
@@ -28,10 +27,10 @@ const Item = ({ item, currencyCode }: ItemProps) => {
         >
           {item.product_title}
         </Text>
-        <LineItemOptions variant={item.variant} data-testid="product-variant" />
-        <LineItemConfiguration
+        <LineItemOptions
+          variant={item.variant}
           metadata={item.metadata}
-          data-testid="product-configuration"
+          data-testid="product-variant"
         />
       </Table.Cell>
 

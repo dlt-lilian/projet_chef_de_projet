@@ -6,11 +6,9 @@ import {
   ConfiguratorProductConfig,
   ConfiguratorTextureOption,
 } from "../config/configurableProducts"
+import { ConfiguratorState, InitialConfiguration } from "../lib/persistence"
 
-export type ConfiguratorState = {
-  selections: Record<string, string>
-  engraving: string
-}
+export type { ConfiguratorState }
 
 export type UseProductConfiguratorReturn = {
   state: ConfiguratorState
@@ -21,27 +19,40 @@ export type UseProductConfiguratorReturn = {
   getTargetMesh: (optionId: string) => string | string[] | undefined
 }
 
-function buildInitialSelections(
-  config: ConfiguratorProductConfig
-): Record<string, string> {
-  const initial: Record<string, string> = {}
+/**
+ * Choix par défaut : le choix « par défaut » défini en admin, sinon le premier,
+ * puis on surcharge avec la config initiale (rouverture d'un article du panier),
+ * en ne gardant que les choix encore valides pour la config courante.
+ */
+function buildInitialState(
+  config: ConfiguratorProductConfig,
+  initial?: InitialConfiguration
+): ConfiguratorState {
+  const selections: Record<string, string> = {}
   for (const option of config.options) {
     if (option.type === "engraving") continue
-    // Honore le choix « par défaut » défini en admin, sinon le premier.
     const preferred =
       option.choices.find((c) => c.isDefault) ?? option.choices[0]
-    if (preferred) initial[option.id] = preferred.id
+    if (preferred) selections[option.id] = preferred.id
+    // Surcharge par la config restaurée, si le choix existe toujours.
+    const restored = initial?.selections?.[option.id]
+    if (restored && option.choices.some((c) => c.id === restored)) {
+      selections[option.id] = restored
+    }
   }
-  return initial
+  return { selections, engraving: initial?.engraving ?? "" }
 }
 
 export function useProductConfigurator(
-  config: ConfiguratorProductConfig
+  config: ConfiguratorProductConfig,
+  /** Config restaurée (ex. rouverture d'une ligne de panier via `?line=`). */
+  initialConfiguration?: InitialConfiguration
 ): UseProductConfiguratorReturn {
-  const [state, setState] = useState<ConfiguratorState>(() => ({
-    selections: buildInitialSelections(config),
-    engraving: "",
-  }))
+  // Fournie par le serveur (déterministe) → identique en SSR et au 1er rendu
+  // client, donc pas de mismatch d'hydratation.
+  const [state, setState] = useState<ConfiguratorState>(() =>
+    buildInitialState(config, initialConfiguration)
+  )
 
   const optionsById = useMemo(() => {
     const map = new Map<string, ConfiguratorTextureOption | ConfiguratorColorOption>()

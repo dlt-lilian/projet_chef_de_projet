@@ -14,6 +14,7 @@ import LineItemOptions from "@modules/common/components/line-item-options"
 import LineItemPrice from "@modules/common/components/line-item-price"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Thumbnail from "@modules/products/components/thumbnail"
+import { readConfiguratorLineOptions } from "@modules/configurator/lib/persistence"
 import { usePathname } from "next/navigation"
 import { Fragment, useEffect, useRef, useState } from "react"
 
@@ -114,14 +115,21 @@ const CartDropdown = ({
                         ? -1
                         : 1
                     })
-                    .map((item) => (
+                    .map((item) => {
+                      // Article configuré (3D) → lien vers la fiche AVEC sa config.
+                      const productHref = readConfiguratorLineOptions(
+                        item.metadata
+                      )
+                        ? `/products/${item.product_handle}?line=${item.id}`
+                        : `/products/${item.product_handle}`
+                      return (
                       <div
                         className="grid grid-cols-[122px_1fr] gap-x-4"
                         key={item.id}
                         data-testid="cart-item"
                       >
                         <LocalizedClientLink
-                          href={`/products/${item.product_handle}`}
+                          href={productHref}
                           className="w-24"
                         >
                           <Thumbnail
@@ -136,7 +144,7 @@ const CartDropdown = ({
                               <div className="flex flex-col overflow-ellipsis whitespace-nowrap mr-4 w-[180px]">
                                 <h3 className="text-base-regular overflow-hidden text-ellipsis">
                                   <LocalizedClientLink
-                                    href={`/products/${item.product_handle}`}
+                                    href={productHref}
                                     data-testid="product-link"
                                   >
                                     {item.title}
@@ -144,6 +152,7 @@ const CartDropdown = ({
                                 </h3>
                                 <LineItemOptions
                                   variant={item.variant}
+                                  metadata={item.metadata}
                                   data-testid="cart-item-variant"
                                   data-value={item.variant}
                                 />
@@ -172,7 +181,8 @@ const CartDropdown = ({
                           </DeleteButton>
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
                 </div>
                 <div className="p-4 flex flex-col gap-y-4 text-small-regular">
                   <div className="flex items-center justify-between">
