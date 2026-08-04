@@ -33,6 +33,16 @@ export const ConfiguratorOption = model.define("configurator_option", {
   type: model.enum(["color", "texture", "motif", "engraving"]),
   // Mesh(es) du GLB ciblé(s) : "Papier" ou ["vis_1","vis_2"]. null pour engraving.
   target_mesh: model.json().nullable(),
+  /**
+   * Supplément forfaitaire EN CENTIMES, facturé dès que l'option est utilisée.
+   * N'a de sens que pour le type "engraving" (les autres types facturent au
+   * choix, cf. ConfiguratorChoice.price_delta) : une gravure à 10 € se règle
+   * ici avec 1000, et n'est comptée que si le client saisit un texte.
+   *
+   * Centimes entiers volontairement : un flottant (`real`) arrondirait mal les
+   * prix courants (12,90 € → 12,899999…) une fois additionné au prix de base.
+   */
+  price_delta: model.number().default(0),
   rank: model.number().default(0),
   product: model.belongsTo(() => ConfiguratorProduct, { mappedBy: "options" }),
   choices: model.hasMany(() => ConfiguratorChoice, { mappedBy: "option" }),
@@ -49,6 +59,13 @@ export const ConfiguratorChoice = model.define("configurator_choice", {
   texture_path: model.text().nullable(),
   // Assombrissement du bois (0 = naturel, 1 = noir) pour les teintes de bois.
   darken: model.float().nullable(),
+  /**
+   * Supplément de ce choix EN CENTIMES, ajouté au prix unitaire de la ligne
+   * quand le client le sélectionne (0 = inclus dans le prix de base).
+   * Ex. « Or » à +15 € → 1500. Voir ConfiguratorOption.price_delta pour le
+   * choix des centimes entiers.
+   */
+  price_delta: model.number().default(0),
   rank: model.number().default(0),
   // Choix sélectionné par défaut à l'ouverture du configurateur.
   is_default: model.boolean().default(false),

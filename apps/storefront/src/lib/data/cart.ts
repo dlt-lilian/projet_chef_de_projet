@@ -15,7 +15,6 @@ import {
 } from "./cookies"
 import { getRegion } from "./regions"
 import { getLocale } from "./locale-actions"
-import { CONFIGURATOR_META } from "@modules/configurator/lib/persistence"
 
 /**
  * Retrieves a cart by its ID. If no ID is provided, it will use the cart ID from the cookies.
@@ -119,15 +118,11 @@ export async function addToCart({
   variantId,
   quantity,
   countryCode,
-  metadata,
 }: {
   variantId: string
   quantity: number
   countryCode: string
-  // Données libres attachées à la ligne (ex. options du configurateur 3D).
-  // Recopiées par Medusa du panier vers la commande à la validation.
-  metadata?: Record<string, unknown>
-}): Promise<string | undefined> {
+}) {
   if (!variantId) {
     throw new Error("Missing variant ID when adding to cart")
   }
@@ -148,7 +143,6 @@ export async function addToCart({
       {
         variant_id: variantId,
         quantity,
-        ...(metadata ? { metadata } : {}),
       },
       {},
       headers
@@ -161,26 +155,75 @@ export async function addToCart({
       revalidateTag(fulfillmentCacheTag)
     })
     .catch(medusaError)
+}
 
-  // Pour un ajout configuré (metadata 3D), on renvoie l'id de la ligne afin que
-  // la fiche produit puisse s'épingler dessus (`?line=<id>`) et rester sur cette
-  // configuration. On retrouve la ligne par variant + résumé de config, qui est
-  // déterministe (cf. buildConfiguratorMetadata).
-  if (!metadata?.[CONFIGURATOR_META.summary]) return undefined
+/**
+ * Ajoute au panier un article personnalisé dans le configurateur 3D.
+ *
+ * Passe par la route dédiée `/store/carts/:id/configurator-line-items` plutôt
+ * que par `createLineItem` : c'est elle qui relit les suppléments en base, pose
+ * le prix de la ligne et écrit le metadata. On n'envoie donc QUE des
+ * identifiants de choix — jamais de libellé ni de prix, qui seraient
+ * manipulables depuis le navigateur.
+ *
+ * Renvoie l'id de la ligne créée, pour que la fiche produit puisse s'y épingler
+ * (`?line=<id>`) et rester sur cette configuration.
+ */
+export async function addConfiguredToCart({
+  variantId,
+  quantity,
+  countryCode,
+  handle,
+  selections,
+  engraving,
+}: {
+  variantId: string
+  quantity: number
+  countryCode: string
+  /** Handle du produit configurable (clé de la config côté backend). */
+  handle: string
+  /** Choix retenus : { id d'option → id de choix }. */
+  selections: Record<string, string>
+  engraving?: string
+}): Promise<string | undefined> {
+  if (!variantId) {
+    throw new Error("Missing variant ID when adding to cart")
+  }
 
-  const summary = metadata[CONFIGURATOR_META.summary]
-  const refreshed = await retrieveCart(
-    undefined,
-    "id,*items,*items.metadata,*items.variant"
-  )
-  const line = refreshed?.items?.find(
-    (item) =>
-      item.variant_id === variantId &&
-      (item.metadata as Record<string, unknown> | null | undefined)?.[
-        CONFIGURATOR_META.summary
-      ] === summary
-  )
-  return line?.id
+  const cart = await getOrSetCart(countryCode)
+
+  if (!cart) {
+    throw new Error("Error retrieving or creating cart")
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const result = await sdk.client
+    .fetch<{ line_id: string | null }>(
+      `/store/carts/${cart.id}/configurator-line-items`,
+      {
+        method: "POST",
+        body: {
+          variant_id: variantId,
+          quantity,
+          handle,
+          selections,
+          engraving: engraving ?? "",
+        },
+        headers,
+      }
+    )
+    .catch(medusaError)
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag)
+
+  const fulfillmentCacheTag = await getCacheTag("fulfillment")
+  revalidateTag(fulfillmentCacheTag)
+
+  return result?.line_id ?? undefined
 }
 
 export async function updateLineItem({

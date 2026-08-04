@@ -13,6 +13,15 @@ export type ConfiguratorChoice = {
    * semi-transparent par-dessus `bois_1.jpg`. Utilisé par les options « bois ».
    */
   darken?: number
+  /**
+   * Supplément facturé pour ce choix, EN CENTIMES (0 ou absent = compris dans
+   * le prix du produit). Défini dans la section Configurateur de l'admin.
+   *
+   * Sert à l'affichage uniquement : le montant réellement facturé est recalculé
+   * côté serveur à l'ajout au panier (cf. route store
+   * `carts/:id/configurator-line-items`), le navigateur n'envoie que des ids.
+   */
+  priceDelta?: number
   /** Choix sélectionné par défaut à l'ouverture (défini côté admin). */
   isDefault?: boolean
 }
@@ -26,6 +35,12 @@ type BaseOption = {
    * (ex. les 2 vis de l'éventail). Requis pour `texture`/`motif`/`color`.
    */
   targetMesh?: string | string[]
+  /**
+   * Forfait EN CENTIMES facturé quand l'option est utilisée. N'a de sens que
+   * pour `engraving` (compté si le client saisit un texte) : les autres types
+   * se tarifent au choix, via `ConfiguratorChoice.priceDelta`.
+   */
+  priceDelta?: number
 }
 
 export type ConfiguratorTextureOption = BaseOption & {

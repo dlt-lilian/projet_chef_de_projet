@@ -35,52 +35,42 @@ export const CONFIGURATOR_META = {
   engraving: "configurator_engraving",
   options: "configurator_options",
   summary: "configurator_summary",
+  priceDelta: "configurator_price_delta",
 } as const
 
 /** Une option configurée, prête à l'affichage (libellé + valeur lisibles). */
-export type ConfiguratorLineOption = { label: string; value: string }
+export type ConfiguratorLineOption = {
+  label: string
+  value: string
+  /** Supplément facturé pour cette option, EN CENTIMES (0 = compris). */
+  priceDelta?: number
+}
 
 /**
- * Construit le `metadata` de ligne de panier à partir de l'état du configurateur.
+ * Total des suppléments de la configuration courante, EN CENTIMES.
  *
- * Déterministe : mêmes config + mêmes choix ⇒ objet identique. Medusa compare ce
- * metadata (`deepEqualObj`) pour décider de fusionner deux lignes du même variant
- * (config identique → +1 quantité) ou de les séparer (configs différentes).
+ * Affichage seulement (« Options : + 25,00 € » dans le configurateur). Le
+ * montant facturé est recalculé depuis la base par la route store
+ * `carts/:id/configurator-line-items` — le navigateur n'envoie jamais de prix.
  */
-export function buildConfiguratorMetadata(
+export function computeConfiguratorSurcharge(
   config: ConfiguratorProductConfig,
-  state: ConfiguratorState,
-  handle: string
-): Record<string, unknown> {
-  const selections: Record<string, string> = {}
-  const options: ConfiguratorLineOption[] = []
+  state: ConfiguratorState
+): number {
+  let total = 0
 
   for (const option of config.options) {
-    if (option.type === "engraving") continue
+    if (option.type === "engraving") {
+      if (state.engraving.trim()) total += option.priceDelta ?? 0
+      continue
+    }
     const choiceId = state.selections[option.id]
     if (!choiceId) continue
     const choice = option.choices.find((c) => c.id === choiceId)
-    if (!choice) continue
-    selections[option.id] = choiceId
-    options.push({ label: option.label, value: choice.label })
+    if (choice) total += choice.priceDelta ?? 0
   }
 
-  const engraving = state.engraving.trim()
-  const engravingOption = config.options.find((o) => o.type === "engraving")
-  if (engraving && engravingOption) {
-    options.push({ label: engravingOption.label, value: engraving })
-  }
-
-  const summary = options.map((o) => `${o.label}: ${o.value}`).join(" · ")
-
-  const metadata: Record<string, unknown> = {
-    [CONFIGURATOR_META.handle]: handle,
-    [CONFIGURATOR_META.selections]: selections,
-    [CONFIGURATOR_META.options]: options,
-    [CONFIGURATOR_META.summary]: summary,
-  }
-  if (engraving) metadata[CONFIGURATOR_META.engraving] = engraving
-  return metadata
+  return total
 }
 
 /**
@@ -94,13 +84,20 @@ export function readConfiguratorLineOptions(
   const raw = metadata[CONFIGURATOR_META.options]
   if (!Array.isArray(raw)) return null
 
-  const options = raw.filter(
-    (o): o is ConfiguratorLineOption =>
-      !!o &&
-      typeof o === "object" &&
-      typeof (o as { label?: unknown }).label === "string" &&
-      typeof (o as { value?: unknown }).value === "string"
-  )
+  const options = raw
+    .filter(
+      (o): o is ConfiguratorLineOption =>
+        !!o &&
+        typeof o === "object" &&
+        typeof (o as { label?: unknown }).label === "string" &&
+        typeof (o as { value?: unknown }).value === "string"
+    )
+    .map((o) => ({
+      label: o.label,
+      value: o.value,
+      // Absent des lignes créées avant la tarification des options.
+      priceDelta: typeof o.priceDelta === "number" ? o.priceDelta : undefined,
+    }))
   return options.length ? options : null
 }
 

@@ -27,6 +27,10 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       label: o.label,
       type: o.type,
       targetMesh: o.target_mesh ?? undefined,
+      // Supplément en centimes : sert à l'affichage (« + 15,00 € ») et au
+      // total indicatif du configurateur. Le montant réellement facturé est
+      // toujours recalculé côté serveur à l'ajout au panier.
+      priceDelta: Math.max(0, Math.round(o.price_delta ?? 0)),
       choices: [...((o.choices as any[]) ?? [])]
         .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
         .map((c) => ({
@@ -35,6 +39,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
           ...(c.color_hex ? { colorHex: c.color_hex } : {}),
           ...(c.texture_path ? { texturePath: c.texture_path } : {}),
           ...(c.darken != null ? { darken: c.darken } : {}),
+          priceDelta: Math.max(0, Math.round(c.price_delta ?? 0)),
           isDefault: !!c.is_default,
         })),
     }))

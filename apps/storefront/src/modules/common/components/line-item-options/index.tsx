@@ -29,6 +29,15 @@ const LineItemOptions = ({
           >
             <span className="text-ui-fg-muted">{option.label} :</span>{" "}
             {option.value}
+            {/* Supplément déjà compris dans le prix de la ligne : rappelé ici
+                pour que le client sache d'où vient l'écart avec le prix affiché
+                en boutique. */}
+            {!!option.priceDelta && (
+              <span className="text-ui-fg-muted">
+                {" "}
+                (+{(option.priceDelta / 100).toFixed(2).replace(".", ",")} €)
+              </span>
+            )}
           </Text>
         ))}
       </div>

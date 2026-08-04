@@ -4,13 +4,15 @@ import type {
 } from "@medusajs/framework/http"
 import { CONFIGURATOR_MODULE } from "../../../../modules/configurator"
 import type ConfiguratorModuleService from "../../../../modules/configurator/service"
+import { parsePriceDelta } from "../../../../modules/configurator/price"
 
 /**
  * POST /admin/configurator/choices
  * Ajoute un choix (couleur / motif / texture) à une option.
  *
  * Body : { option_id, choice_key, label, color_hex?, texture_path?,
- *          darken?, rank?, is_default? }
+ *          darken?, price_delta?, rank?, is_default? }
+ * price_delta : supplément EN CENTIMES facturé quand ce choix est sélectionné.
  */
 export const POST = async (
   req: AuthenticatedMedusaRequest,
@@ -25,6 +27,14 @@ export const POST = async (
     })
   }
 
+  const priceDelta =
+    "price_delta" in body ? parsePriceDelta(body.price_delta) : 0
+  if (priceDelta === undefined) {
+    return res.status(400).json({
+      message: "price_delta doit être un nombre de centimes positif ou nul.",
+    })
+  }
+
   const choice = await svc.createConfiguratorChoices({
     option_id: body.option_id as string,
     choice_key: body.choice_key as string,
@@ -32,6 +42,7 @@ export const POST = async (
     color_hex: (body.color_hex as string) ?? null,
     texture_path: (body.texture_path as string) ?? null,
     darken: (body.darken as number) ?? null,
+    price_delta: priceDelta,
     rank: (body.rank as number) ?? 0,
     is_default: (body.is_default as boolean) ?? false,
   })

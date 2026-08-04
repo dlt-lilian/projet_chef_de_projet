@@ -1,6 +1,7 @@
 "use client"
 
-import { addToCart } from "@lib/data/cart"
+import { addConfiguredToCart } from "@lib/data/cart"
+import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 import { Button, clx, Input, Label } from "@modules/common/components/ui"
 import { Icon } from "@modules/common/components/my_ui"
@@ -13,7 +14,7 @@ import {
   ConfiguratorProductConfig,
 } from "../config/configurableProducts"
 import { UseProductConfiguratorReturn } from "../hooks/useProductConfigurator"
-import { buildConfiguratorMetadata } from "../lib/persistence"
+import { computeConfiguratorSurcharge } from "../lib/persistence"
 
 type ProductVariant = NonNullable<HttpTypes.StoreProduct["variants"]>[number]
 
@@ -27,6 +28,15 @@ type ConfiguratorSidebarProps = {
 }
 
 const ENGRAVING_MAX_LENGTH = 30
+
+/** « + 15,00 € » à partir d'un supplément en centimes ; vide si gratuit. */
+function formatSurcharge(cents: number | undefined, currencyCode: string) {
+  if (!cents) return ""
+  return `+ ${convertToLocale({
+    amount: cents / 100,
+    currency_code: currencyCode,
+  })}`
+}
 
 /** Icône thématique par type d'option (en-têtes des menus déroulants mobile). */
 function iconForOption(option: ConfiguratorOption): string {
@@ -69,23 +79,25 @@ export default function ConfiguratorSidebar({
   const [isAdding, setIsAdding] = useState(false)
 
   const variant = product.variants?.[0]
+  const currencyCode = variant?.calculated_price?.currency_code ?? "eur"
+  // Total des suppléments des options retenues — indicatif : le montant facturé
+  // est recalculé en base par la route d'ajout au panier.
+  const surchargeCents = computeConfiguratorSurcharge(config, controller.state)
 
   const handleAddToCart = async () => {
     if (!variant?.id) return
     setIsAdding(true)
     try {
-      // Sérialise les choix (bois, couleur, motif, gravure) dans le metadata de
-      // la ligne : ils sont ainsi conservés dans le panier puis la commande.
-      const metadata = buildConfiguratorMetadata(
-        config,
-        controller.state,
-        product.handle
-      )
-      const lineId = await addToCart({
+      // N'envoie que les identifiants de choix : le serveur relit les libellés
+      // et les suppléments en base, pose le prix de la ligne et écrit le
+      // metadata (conservé du panier jusqu'à la commande).
+      const lineId = await addConfiguredToCart({
         variantId: variant.id,
         quantity: 1,
         countryCode,
-        metadata,
+        handle: product.handle,
+        selections: controller.state.selections,
+        engraving: controller.state.engraving,
       })
       // Épingle la fiche sur la ligne qu'on vient d'ajouter : la configuration
       // reste affichée (plus de retour au générique) et survit à un rechargement
@@ -118,6 +130,7 @@ export default function ConfiguratorSidebar({
               option={option}
               controller={controller}
               onOptionChange={onOptionChange}
+              currencyCode={currencyCode}
             />
           ))}
         </div>
@@ -128,6 +141,8 @@ export default function ConfiguratorSidebar({
             variant={variant}
             isAdding={isAdding}
             onAddToCart={handleAddToCart}
+            surchargeCents={surchargeCents}
+            currencyCode={currencyCode}
           />
         </div>
       </aside>
@@ -177,6 +192,7 @@ export default function ConfiguratorSidebar({
                     option={option}
                     controller={controller}
                     onOptionChange={onOptionChange}
+                    currencyCode={currencyCode}
                     inputId={`config-m-${option.id}`}
                   />
                 </div>
@@ -191,6 +207,8 @@ export default function ConfiguratorSidebar({
             variant={variant}
             isAdding={isAdding}
             onAddToCart={handleAddToCart}
+            surchargeCents={surchargeCents}
+            currencyCode={currencyCode}
           />
         </div>
       </div>
@@ -205,18 +223,46 @@ type ConfiguratorActionsProps = {
   variant: ProductVariant | undefined
   isAdding: boolean
   onAddToCart: () => void
+  /** Total des suppléments des options retenues, en centimes. */
+  surchargeCents: number
+  currencyCode: string
 }
 
-/** Prix + bouton d'ajout au panier (partagé desktop / mobile). */
+/** Prix + suppléments + bouton d'ajout au panier (partagé desktop / mobile). */
 function ConfiguratorActions({
   product,
   variant,
   isAdding,
   onAddToCart,
+  surchargeCents,
+  currencyCode,
 }: ConfiguratorActionsProps) {
+  const basePrice = variant?.calculated_price?.calculated_amount
+
   return (
     <>
       <ProductPrice product={product} variant={variant} />
+
+      {surchargeCents > 0 && (
+        <div className="flex flex-col gap-1 border-t border-stone-200 pt-2 text-sm">
+          <div className="flex justify-between text-stone-600">
+            <span>Options</span>
+            <span>{formatSurcharge(surchargeCents, currencyCode)}</span>
+          </div>
+          {typeof basePrice === "number" && (
+            <div className="flex justify-between font-medium text-stone-900">
+              <span>Total</span>
+              <span>
+                {convertToLocale({
+                  amount: basePrice + surchargeCents / 100,
+                  currency_code: currencyCode,
+                })}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       <Button
         onClick={onAddToCart}
         disabled={!variant || isAdding}
@@ -235,6 +281,7 @@ type OptionControlProps = {
   option: ConfiguratorOption
   controller: UseProductConfiguratorReturn
   onOptionChange: (option: ConfiguratorOption, choiceId: string) => void
+  currencyCode: string
   /** Id de l'input de gravure ; unique par contexte (desktop vs mobile) pour
       éviter un id HTML dupliqué quand les deux rendus coexistent dans le DOM. */
   inputId?: string
@@ -242,16 +289,25 @@ type OptionControlProps = {
 
 /** Ligne d'option desktop : libellé + contrôle. */
 function OptionRow(props: OptionControlProps) {
-  const { option } = props
+  const { option, currencyCode } = props
   const inputId = `config-${option.id}`
+  // Forfait de gravure : annoncé à côté du libellé, faute de choix à tarifer.
+  const flatFee =
+    option.type === "engraving"
+      ? formatSurcharge(option.priceDelta, currencyCode)
+      : ""
+
   return (
     <div className="flex flex-col gap-2">
-      <Label
-        htmlFor={option.type === "engraving" ? inputId : undefined}
-        className="text-sm font-medium"
-      >
-        {option.label}
-      </Label>
+      <div className="flex items-baseline justify-between gap-2">
+        <Label
+          htmlFor={option.type === "engraving" ? inputId : undefined}
+          className="text-sm font-medium"
+        >
+          {option.label}
+        </Label>
+        {flatFee && <span className="text-xs text-stone-500">{flatFee}</span>}
+      </div>
       <OptionControl {...props} inputId={inputId} />
     </div>
   )
@@ -263,9 +319,11 @@ function OptionControl({
   option,
   controller,
   onOptionChange,
+  currencyCode,
   inputId,
 }: OptionControlProps) {
   if (option.type === "engraving") {
+    const fee = formatSurcharge(option.priceDelta, currencyCode)
     return (
       <div className="flex flex-col gap-2">
         <Input
@@ -277,7 +335,12 @@ function OptionControl({
           maxLength={ENGRAVING_MAX_LENGTH}
         />
         <p className="text-xs text-stone-500">
-          La gravure sera confirmée à la commande.
+          {fee
+            ? `Gravure en supplément (${fee.replace(
+                "+ ",
+                ""
+              )}), facturée si vous saisissez un texte. Elle sera confirmée à la commande.`
+            : "La gravure sera confirmée à la commande."}
         </p>
       </div>
     )
@@ -293,27 +356,30 @@ function OptionControl({
     >
       {option.choices.map((choice) => {
         const isActive = choice.id === selectedId
+        const surcharge = formatSurcharge(choice.priceDelta, currencyCode)
         return (
-          <button
-            key={choice.id}
-            type="button"
-            role="radio"
-            aria-checked={isActive}
-            title={choice.label}
-            onClick={() => {
-              controller.setSelection(option.id, choice.id)
-              onOptionChange(option, choice.id)
-            }}
-            className={clx(
-              "h-12 w-12 rounded border bg-stone-950 bg-cover bg-center transition-shadow",
-              isActive
-                ? "border-stone-900 ring-2 ring-stone-900 ring-offset-1"
-                : "border-stone-300 hover:border-stone-500"
-            )}
-            style={
-              choice.colorHex
-                ? { backgroundColor: choice.colorHex }
-                : choice.texturePath
+          <div key={choice.id} className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              title={
+                surcharge ? `${choice.label} (${surcharge})` : choice.label
+              }
+              onClick={() => {
+                controller.setSelection(option.id, choice.id)
+                onOptionChange(option, choice.id)
+              }}
+              className={clx(
+                "h-12 w-12 rounded border bg-stone-950 bg-cover bg-center transition-shadow",
+                isActive
+                  ? "border-stone-900 ring-2 ring-stone-900 ring-offset-1"
+                  : "border-stone-300 hover:border-stone-500"
+              )}
+              style={
+                choice.colorHex
+                  ? { backgroundColor: choice.colorHex }
+                  : choice.texturePath
                   ? {
                       // Aperçu : bois éventuellement assombri par un calque noir.
                       backgroundImage: choice.darken
@@ -321,10 +387,18 @@ function OptionControl({
                         : `url(${choice.texturePath})`,
                     }
                   : undefined
-            }
-          >
-            <span className="sr-only">{choice.label}</span>
-          </button>
+              }
+            >
+              <span className="sr-only">
+                {surcharge ? `${choice.label} (${surcharge})` : choice.label}
+              </span>
+            </button>
+            {surcharge && (
+              <span className="text-[10px] leading-none text-stone-500">
+                {surcharge}
+              </span>
+            )}
+          </div>
         )
       })}
     </div>

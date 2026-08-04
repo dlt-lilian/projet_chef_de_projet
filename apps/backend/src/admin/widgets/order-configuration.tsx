@@ -14,7 +14,19 @@ const META = {
   legacy: "configuration",
 } as const
 
-type ConfigurationEntry = { label: string; value: string }
+type ConfigurationEntry = {
+  label: string
+  value: string
+  /** Supplément facturé pour cette option, EN CENTIMES (absent = 0 ou ligne
+      créée avant la mise en place de la tarification des options). */
+  priceDelta?: number
+}
+
+/** « + 15,00 € » à partir d'un supplément en centimes ; vide si gratuit. */
+function formatSurcharge(cents?: number): string {
+  if (!cents) return ""
+  return `+ ${(cents / 100).toFixed(2).replace(".", ",")} €`
+}
 
 /** Ligne de commande telle qu'on l'exploite ici (sous-ensemble d'AdminOrderLineItem). */
 type OrderItem = {
@@ -219,6 +231,13 @@ const OrderConfigurationWidget = ({ data }: DetailWidgetProps<AdminOrder>) => {
                     <span className="whitespace-pre-wrap text-ui-fg-base">
                       {entry.value}
                     </span>
+                    {/* Supplément déjà compris dans le prix de la ligne : montré
+                        pour justifier l'écart avec le tarif catalogue. */}
+                    {entry.priceDelta ? (
+                      <span className="ml-auto shrink-0 text-ui-fg-muted">
+                        {formatSurcharge(entry.priceDelta)}
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ul>

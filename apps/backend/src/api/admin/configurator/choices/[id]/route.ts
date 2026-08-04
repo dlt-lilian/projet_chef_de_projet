@@ -4,10 +4,11 @@ import type {
 } from "@medusajs/framework/http"
 import { CONFIGURATOR_MODULE } from "../../../../../modules/configurator"
 import type ConfiguratorModuleService from "../../../../../modules/configurator/service"
+import { parsePriceDelta } from "../../../../../modules/configurator/price"
 
 /**
  * PUT /admin/configurator/choices/:id
- * Met à jour un choix (label, couleur, texture, rang, défaut…).
+ * Met à jour un choix (label, couleur, texture, supplément, rang, défaut…).
  */
 export const PUT = async (
   req: AuthenticatedMedusaRequest,
@@ -34,6 +35,16 @@ export const PUT = async (
     "is_default",
   ]) {
     if (key in body) patch[key] = body[key]
+  }
+
+  if ("price_delta" in body) {
+    const priceDelta = parsePriceDelta(body.price_delta)
+    if (priceDelta === undefined) {
+      return res.status(400).json({
+        message: "price_delta doit être un nombre de centimes positif ou nul.",
+      })
+    }
+    patch.price_delta = priceDelta
   }
 
   const updated = await svc.updateConfiguratorChoices(patch)

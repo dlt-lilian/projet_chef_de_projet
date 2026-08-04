@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework/http"
 import { CONFIGURATOR_MODULE } from "../../../../../modules/configurator"
 import type ConfiguratorModuleService from "../../../../../modules/configurator/service"
+import { parsePriceDelta } from "../../../../../modules/configurator/price"
 
 const OPTION_TYPES = ["color", "texture", "motif", "engraving"]
 
@@ -33,6 +34,16 @@ export const PUT = async (
   const patch: Record<string, unknown> = { id }
   for (const key of ["option_key", "label", "type", "target_mesh", "rank"]) {
     if (key in body) patch[key] = body[key]
+  }
+
+  if ("price_delta" in body) {
+    const priceDelta = parsePriceDelta(body.price_delta)
+    if (priceDelta === undefined) {
+      return res.status(400).json({
+        message: "price_delta doit être un nombre de centimes positif ou nul.",
+      })
+    }
+    patch.price_delta = priceDelta
   }
 
   const updated = await svc.updateConfiguratorOptions(patch)

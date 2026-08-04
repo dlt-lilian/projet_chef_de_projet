@@ -11,6 +11,8 @@ export type Choice = {
   color_hex?: string | null
   texture_path?: string | null
   darken?: number | null
+  /** Supplément facturé pour ce choix, EN CENTIMES (0 = compris dans le prix). */
+  price_delta?: number | null
   rank: number
   is_default: boolean
 }
@@ -21,6 +23,8 @@ export type Option = {
   label: string
   type: OptionType
   target_mesh?: string | string[] | null
+  /** Forfait EN CENTIMES facturé quand l'option est utilisée (type engraving). */
+  price_delta?: number | null
   rank: number
   choices: Choice[]
 }
@@ -43,6 +47,49 @@ export async function fetchProducts(): Promise<Product[]> {
   if (!res.ok) throw new Error("Chargement impossible.")
   const { products } = await res.json()
   return products
+}
+
+// ─── Prix ─────────────────────────────────────────────────────────────────────
+// La base stocke des centimes entiers (pas de flottant : 12,90 € doit rester
+// 12,90 € une fois ajouté au prix de base) ; les formulaires affichent des euros.
+
+/** Centimes → valeur du champ euros (« 1500 » → « 15.00 »). */
+function centsToEuros(cents?: number | null): string {
+  return ((cents ?? 0) / 100).toFixed(2)
+}
+
+/** Champ euros → centimes ; tolère la virgule décimale et les saisies vides. */
+function eurosToCents(euros: string): number {
+  const n = Number(String(euros).replace(",", ".").trim())
+  if (!Number.isFinite(n) || n < 0) return 0
+  return Math.round(n * 100)
+}
+
+/** Champ « Supplément », partagé par les formulaires de choix et d'option. */
+function PriceField({
+  value,
+  onChange,
+  hint,
+}: {
+  value: string
+  onChange: (v: string) => void
+  hint?: string
+}) {
+  return (
+    <div className="w-28">
+      <Label size="xsmall" className="text-ui-fg-muted">
+        Supplément €
+      </Label>
+      <Input
+        type="number"
+        step="0.01"
+        min="0"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        title={hint ?? "Ajouté au prix du produit quand ce choix est retenu"}
+      />
+    </div>
+  )
 }
 
 function slugify(s: string): string {
@@ -307,6 +354,7 @@ function OptionRow({
   const [targetMesh, setTargetMesh] = useState(
     formatTargetMesh(option.target_mesh)
   )
+  const [price, setPrice] = useState(centsToEuros(option.price_delta))
   const [rank, setRank] = useState(String(option.rank ?? 0))
   const [busy, setBusy] = useState(false)
 
@@ -322,6 +370,7 @@ function OptionRow({
           label,
           type,
           target_mesh: parseTargetMesh(targetMesh),
+          price_delta: eurosToCents(price),
           rank: Number(rank),
         }),
       })
@@ -387,6 +436,15 @@ function OptionRow({
         </select>
       </div>
       <MeshSelect value={targetMesh} onChange={setTargetMesh} available={meshes} />
+      {/* Les autres types se tarifent au choix (cf. PriceField de ChoiceRow) ;
+          la gravure n'a pas de choix, d'où ce forfait au niveau de l'option. */}
+      {type === "engraving" && (
+        <PriceField
+          value={price}
+          onChange={setPrice}
+          hint="Forfait facturé si le client saisit un texte de gravure"
+        />
+      )}
       <div className="w-16">
         <Label size="xsmall" className="text-ui-fg-muted">Rang</Label>
         <Input
@@ -428,6 +486,7 @@ function AddOption({
   const [label, setLabel] = useState("")
   const [type, setType] = useState<OptionType>("color")
   const [targetMesh, setTargetMesh] = useState("")
+  const [price, setPrice] = useState("0.00")
   const [busy, setBusy] = useState(false)
 
   const add = async () => {
@@ -447,6 +506,7 @@ function AddOption({
           label,
           type,
           target_mesh: parseTargetMesh(targetMesh),
+          price_delta: type === "engraving" ? eurosToCents(price) : 0,
           rank: existingCount,
         }),
       })
@@ -454,6 +514,7 @@ function AddOption({
       toast.success(`Option « ${label} » ajoutée`)
       setLabel("")
       setTargetMesh("")
+      setPrice("0.00")
       onAdded()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Échec de l'ajout")
@@ -488,6 +549,13 @@ function AddOption({
         </select>
       </div>
       <MeshSelect value={targetMesh} onChange={setTargetMesh} available={meshes} />
+      {type === "engraving" && (
+        <PriceField
+          value={price}
+          onChange={setPrice}
+          hint="Forfait facturé si le client saisit un texte de gravure"
+        />
+      )}
       <Button size="small" variant="secondary" onClick={add} isLoading={busy}>
         + Ajouter l'option
       </Button>
@@ -513,13 +581,18 @@ function ChoiceRow({
   const [color, setColor] = useState(choice.color_hex ?? "#cccccc")
   const [texture, setTexture] = useState(choice.texture_path ?? "")
   const [darken, setDarken] = useState(String(choice.darken ?? 0))
+  const [price, setPrice] = useState(centsToEuros(choice.price_delta))
   const [rank, setRank] = useState(String(choice.rank ?? 0))
   const [busy, setBusy] = useState(false)
 
   const save = async () => {
     setBusy(true)
     try {
-      const body: Record<string, unknown> = { label, rank: Number(rank) }
+      const body: Record<string, unknown> = {
+        label,
+        rank: Number(rank),
+        price_delta: eurosToCents(price),
+      }
       if (isColor) body.color_hex = color
       else body.texture_path = texture || null
       if (isTexture) body.darken = Number(darken)
@@ -622,6 +695,8 @@ function ChoiceRow({
         </div>
       )}
 
+      <PriceField value={price} onChange={setPrice} />
+
       <div className="w-16">
         <Label size="xsmall" className="text-ui-fg-muted">Rang</Label>
         <Input
@@ -677,6 +752,7 @@ function AddChoice({
   const [color, setColor] = useState("#C4A882")
   const [texture, setTexture] = useState("")
   const [darken, setDarken] = useState("0")
+  const [price, setPrice] = useState("0.00")
   const [busy, setBusy] = useState(false)
 
   const add = async () => {
@@ -690,6 +766,7 @@ function AddChoice({
         option_id: option.id,
         choice_key: slugify(label) || `choix-${Date.now()}`,
         label,
+        price_delta: eurosToCents(price),
         rank: option.choices.length,
       }
       if (isColor) body.color_hex = color
@@ -705,6 +782,7 @@ function AddChoice({
       toast.success(`« ${label} » ajouté`)
       setLabel("")
       setTexture("")
+      setPrice("0.00")
       onAdded()
     } catch {
       toast.error("Échec de l'ajout")
@@ -751,6 +829,7 @@ function AddChoice({
           />
         </div>
       )}
+      <PriceField value={price} onChange={setPrice} />
       <Button size="small" variant="secondary" onClick={add} isLoading={busy}>
         + Ajouter
       </Button>

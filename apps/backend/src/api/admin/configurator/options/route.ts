@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework/http"
 import { CONFIGURATOR_MODULE } from "../../../../modules/configurator"
 import type ConfiguratorModuleService from "../../../../modules/configurator/service"
+import { parsePriceDelta } from "../../../../modules/configurator/price"
 
 const OPTION_TYPES = ["color", "texture", "motif", "engraving"]
 
@@ -11,8 +12,10 @@ const OPTION_TYPES = ["color", "texture", "motif", "engraving"]
  * POST /admin/configurator/options
  * Crée une option (axe de personnalisation) pour un produit configurable.
  *
- * Body : { product_id, option_key, label, type, target_mesh?, rank? }
+ * Body : { product_id, option_key, label, type, target_mesh?, price_delta?, rank? }
  * target_mesh peut être une chaîne ("Papier") ou un tableau (["vis_1","vis_2"]).
+ * price_delta : forfait EN CENTIMES, pertinent pour le type "engraving"
+ * uniquement (les autres types facturent au choix).
  */
 export const POST = async (
   req: AuthenticatedMedusaRequest,
@@ -32,6 +35,14 @@ export const POST = async (
     })
   }
 
+  const priceDelta =
+    "price_delta" in body ? parsePriceDelta(body.price_delta) : 0
+  if (priceDelta === undefined) {
+    return res.status(400).json({
+      message: "price_delta doit être un nombre de centimes positif ou nul.",
+    })
+  }
+
   const option = await svc.createConfiguratorOptions({
     product_id: body.product_id as string,
     option_key: body.option_key as string,
@@ -42,6 +53,7 @@ export const POST = async (
     target_mesh: (body.target_mesh ?? null) as unknown as
       | Record<string, unknown>
       | null,
+    price_delta: priceDelta,
     rank: (body.rank as number) ?? 0,
   })
 
