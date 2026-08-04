@@ -34,12 +34,15 @@ const computeTarget = (
       remaining_percentage: (currentAmount / targetAmount) * 100,
     }
   } else if (priceRule.operator === "gte") {
+    // `gte` : le seuil lui-même est atteint (20 € pour « offerte dès 20 € »).
+    // Comparer avec `>` afficherait « plus que 0,00 € » pile au seuil, alors que
+    // le backend applique déjà la gratuité.
     return {
       current_amount: currentAmount,
       target_amount: targetAmount,
-      target_reached: currentAmount > targetAmount,
+      target_reached: currentAmount >= targetAmount,
       target_remaining:
-        currentAmount > targetAmount ? 0 : targetAmount - currentAmount,
+        currentAmount >= targetAmount ? 0 : targetAmount - currentAmount,
       remaining_percentage: (currentAmount / targetAmount) * 100,
     }
   } else if (priceRule.operator === "lt") {
