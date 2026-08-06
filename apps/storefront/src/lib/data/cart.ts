@@ -527,8 +527,13 @@ export async function listCartOptions() {
   const headers = {
     ...(await getAuthHeaders()),
   }
+  // Tag `fulfillment` et non `shippingOptions` : c'est le seul que les mutations
+  // du panier revalident. Sous `shippingOptions`, cette réponse `force-cache`
+  // n'était jamais invalidée — le bandeau « livraison offerte » restait figé sur
+  // un panier périmé, alors qu'elle interroge le même endpoint que
+  // `listCartShippingMethods`, déjà taggé `fulfillment`.
   const next = {
-    ...(await getCacheOptions("shippingOptions")),
+    ...(await getCacheOptions("fulfillment")),
   }
 
   return await sdk.client.fetch<{
