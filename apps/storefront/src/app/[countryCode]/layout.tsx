@@ -14,6 +14,8 @@ import "styles/globals.css"
 
 import localFont from "next/font/local"
 import JsonLd from "@modules/common/components/json-ld"
+import { ConsentProvider } from "@lib/context/consent-context"
+import CookieConsent from "@modules/layout/components/cookie-consent"
 
 /**
  * Layout racine (porte <html>/<body>).
@@ -86,7 +88,18 @@ export default async function CountryLayout(props: {
     >
     <body>
     <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
-    <main className="relative">{props.children}</main>
+    {/* Consentement monté ICI, et non dans (main) : le bandeau doit aussi
+        couvrir le tunnel de commande, et le lien « Gestion des cookies » du
+        pied de page a besoin du même contexte. Composant client dans un layout
+        serveur → aucune incidence sur le pré-rendu statique des pages. */}
+    <ConsentProvider>
+      {/* Placé AVANT <main> : positionné en `fixed`, sa place dans le DOM
+          n'change rien visuellement, mais il devient le premier élément de
+          l'ordre de tabulation — un lecteur d'écran ou une navigation clavier
+          rencontre le choix immédiatement, sans traverser toute la page. */}
+      <CookieConsent />
+      <main className="relative">{props.children}</main>
+    </ConsentProvider>
     </body>
     </html>
   )

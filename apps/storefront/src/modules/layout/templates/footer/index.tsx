@@ -1,5 +1,6 @@
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { Icon } from "@modules/common/components/my_ui"
+import CookiePreferencesLink from "@modules/layout/components/cookie-consent/preferences-link"
 
 const shopLinks = [
   { label: "Baguettes", href: "/products/baguettes" },
@@ -18,6 +19,7 @@ const helpLinks = [
   { label: "Livraison & retours", href: "/livraison-retours" },
   { label: "Mentions légales", href: "/legal" },
   { label: "CGV", href: "/cgv" },
+  { label: "Cookies", href: "/cookies" },
 ]
 
 const socials = [
@@ -107,6 +109,11 @@ export default async function Footer() {
                   </LocalizedClientLink>
                 </li>
               ))}
+              {/* Rouvre le panneau de consentement : retirer son accord doit
+                  être aussi simple que de l'avoir donné (art. 7.3 RGPD). */}
+              <li>
+                <CookiePreferencesLink className="text-left hover:text-primary transition-colors" />
+              </li>
             </ul>
           </div>
         </div>
