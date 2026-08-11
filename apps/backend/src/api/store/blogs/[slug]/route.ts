@@ -19,5 +19,11 @@ export const GET = async (
     return res.status(404).json({ message: `Article "${slug}" introuvable.` })
   }
 
+  // Une page autonome n'est servie qu'à son URL personnalisée : la laisser
+  // aussi sur /blog/:slug créerait un doublon de contenu (mauvais pour le SEO).
+  if (post.path) {
+    return res.status(404).json({ message: `Article "${slug}" introuvable.` })
+  }
+
   res.json({ blog: post })
 }

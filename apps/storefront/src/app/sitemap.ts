@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next"
 import { HttpTypes } from "@medusajs/types"
 import { absoluteUrl } from "@lib/util/seo"
-import { getAllArticles } from "@lib/blog"
+import { getAllArticles, getAllPages } from "@lib/blog"
 
 /**
  * sitemap.xml natif (Next Metadata route) → servi sur /sitemap.xml.
@@ -67,7 +67,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const regionId = regions[0]?.id
 
-  const [productsData, categoriesData, collectionsData, articles] =
+  const [productsData, categoriesData, collectionsData, articles, pages] =
     await Promise.all([
       fetchStore<{ products: HttpTypes.StoreProduct[] }>(
         `/store/products?fields=handle,updated_at&limit=1000&region_id=${regionId}`
@@ -79,6 +79,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         `/store/collections?fields=handle,updated_at&limit=1000`
       ),
       getAllArticles().catch(() => []),
+      getAllPages().catch(() => []),
     ])
 
   const products = productsData?.products ?? []
@@ -161,6 +162,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: toDate(a.updated_at),
         changeFrequency: "monthly",
         priority: 0.6,
+      })
+    }
+
+    // Pages autonomes rédigées dans le backoffice (mentions légales, CGV…)
+    for (const p of pages) {
+      if (!p.path) continue
+      entries.push({
+        url: absoluteUrl(`/${cc}/${p.path}`),
+        lastModified: toDate(p.updated_at),
+        changeFrequency: "yearly",
+        priority: 0.3,
       })
     }
   }

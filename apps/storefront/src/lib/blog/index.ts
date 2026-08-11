@@ -11,6 +11,9 @@ const BACKEND_URL = (
 
 const BASE = `${BACKEND_URL}/store/blogs`
 
+/** Pages autonomes : articles dotés d'une URL personnalisée. */
+const PAGES_BASE = `${BACKEND_URL}/store/pages`
+
 /** Headers communs (publishable API key Medusa) */
 function headers() {
   return {
@@ -70,6 +73,49 @@ export async function getArticleBySlug(slug: string): Promise<BlogPost | null> {
   } catch (err) {
     console.error(`[blog] getArticleBySlug("${slug}") a échoué (${BASE}) :`, err)
     return null
+  }
+}
+
+/**
+ * Page autonome complète (avec blocs) par URL personnalisée.
+ * Utilisé par la route /[pagePath].
+ */
+export async function getPageByPath(path: string): Promise<BlogPost | null> {
+  try {
+    const res = await fetch(`${PAGES_BASE}/${encodeURIComponent(path)}`, {
+      headers: headers(),
+      next: { revalidate: 60 },
+    })
+
+    if (!res.ok) return null
+
+    const { page } = await res.json()
+    if (!page) return null
+
+    return { ...page, blocks: normalizeBlocks(page.blocks) } as BlogPost
+  } catch (err) {
+    console.error(`[blog] getPageByPath("${path}") a échoué (${PAGES_BASE}) :`, err)
+    return null
+  }
+}
+
+/**
+ * Toutes les pages autonomes publiées (sans blocs) — sitemap et
+ * generateStaticParams de la route /[pagePath].
+ */
+export async function getAllPages(): Promise<BlogPostPreview[]> {
+  try {
+    const res = await fetch(PAGES_BASE, {
+      headers: headers(),
+      next: { revalidate: 60 },
+    })
+
+    if (!res.ok) return []
+    const { pages } = await res.json()
+    return pages as BlogPostPreview[]
+  } catch (err) {
+    console.error(`[blog] getAllPages a échoué (${PAGES_BASE}) :`, err)
+    return []
   }
 }
 

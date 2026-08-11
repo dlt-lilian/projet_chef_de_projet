@@ -28,6 +28,11 @@ export type BlogFormData = {
   read_time:  string
   featured:   boolean
   published:  boolean
+  /** URL personnalisée : renseignée → page autonome, vide → article de blog */
+  path:       string
+  hide_breadcrumb: boolean
+  hide_meta:       boolean
+  hide_footer:     boolean
   blocks:     Block[]
 }
 
@@ -36,6 +41,29 @@ type BlogFormProps = {
   onSubmit: (data: BlogFormData) => Promise<void>
   mode: "create" | "edit"
 }
+
+/**
+ * Sections du template d'article masquables une par une.
+ * Utile pour réutiliser le blog comme éditeur de pages statiques
+ * (mentions légales, CGV…) : on ne garde alors que le contenu.
+ */
+const LAYOUT_TOGGLES = [
+  {
+    field: "hide_breadcrumb" as const,
+    label: "Masquer le fil d'ariane",
+    hint:  "Barre du haut : lien « ← Blog » et catégorie.",
+  },
+  {
+    field: "hide_meta" as const,
+    label: "Masquer les méta-données",
+    hint:  "Catégorie, date, temps de lecture, auteur et séparateur.",
+  },
+  {
+    field: "hide_footer" as const,
+    label: "Masquer le pied d'article",
+    hint:  "Bloc « Écrit par » et lien de retour au blog.",
+  },
+]
 
 const EMPTY: BlogFormData = {
   slug:      "",
@@ -49,12 +77,22 @@ const EMPTY: BlogFormData = {
   read_time: "",
   featured:  false,
   published: false,
+  path:      "",
+  hide_breadcrumb: false,
+  hide_meta:       false,
+  hide_footer:     false,
   blocks:    [],
 }
 
 export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps) {
   const navigate = useNavigate()
-  const [data, setData]     = useState<BlogFormData>({ ...EMPTY, ...initialData })
+  const [data, setData]     = useState<BlogFormData>({
+    ...EMPTY,
+    ...initialData,
+    // Le backend renvoie `null` quand il n'y a pas d'URL personnalisée :
+    // un <Input value={null}> repasserait le champ en non contrôlé.
+    path: initialData?.path ?? "",
+  })
   const [saving, setSaving] = useState(false)
 
   const set = (field: keyof BlogFormData) => (
@@ -80,6 +118,18 @@ export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps)
         }
         : {}),
     }))
+  }
+
+  // Nettoie l'URL personnalisée à la frappe. Volontairement plus permissif que
+  // le backend (tirets de fin conservés) : sinon impossible de taper un tiret.
+  const handlePathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const path = e.target.value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "")
+    setData(prev => ({ ...prev, path }))
   }
 
   // Auto-remplit date_iso depuis date si elle ressemble à YYYY-MM-DD
@@ -234,6 +284,56 @@ export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps)
               onCheckedChange={v => setData(prev => ({ ...prev, featured: v }))}
             />
           </div>
+        </div>
+      </div>
+
+      <Divider />
+
+      {/* ── Page autonome ────────────────────────────────────────────────── */}
+      <div>
+        <Heading level="h2" className="mb-2">Page autonome</Heading>
+        <Text size="small" className="text-ui-fg-muted mb-5">
+          Renseigne une URL pour transformer cet article en page du site
+          (mentions légales, CGV…). Elle disparaît alors de la liste du blog et
+          n'est plus servie sous /blog.
+        </Text>
+        <Label>URL personnalisée</Label>
+        <Input
+          value={data.path}
+          onChange={handlePathChange}
+          placeholder="mentions-legales"
+          className="font-mono text-sm"
+        />
+        <Text size="xsmall" className="text-ui-fg-muted mt-1">
+          {data.path ? (
+            <>Page servie sur <strong>/{data.path}</strong>, hors liste du blog.</>
+          ) : (
+            <>Vide : article de blog classique, publié sur <strong>/blog/{data.slug || "..."}</strong>.</>
+          )}
+        </Text>
+      </div>
+
+      <Divider />
+
+      {/* ── Mise en page ─────────────────────────────────────────────────── */}
+      <div>
+        <Heading level="h2" className="mb-2">Mise en page</Heading>
+        <Text size="small" className="text-ui-fg-muted mb-5">
+          Masque les habillages du template pour obtenir une page de contenu nue.
+        </Text>
+        <div className="flex flex-col gap-4">
+          {LAYOUT_TOGGLES.map(({ field, label, hint }) => (
+            <div key={field} className="flex items-center justify-between">
+              <div>
+                <Text weight="plus">{label}</Text>
+                <Text size="small" className="text-ui-fg-muted">{hint}</Text>
+              </div>
+              <Switch
+                checked={data[field]}
+                onCheckedChange={v => setData(prev => ({ ...prev, [field]: v }))}
+              />
+            </div>
+          ))}
         </div>
       </div>
 

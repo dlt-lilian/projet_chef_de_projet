@@ -167,6 +167,27 @@ export function breadcrumbJsonLd(
   }
 }
 
+/**
+ * WebPage — page éditoriale autonome (mentions légales, CGV…). Volontairement
+ * pas un `BlogPosting` : ces pages n'ont ni auteur ni date de publication qui
+ * fassent sens pour un moteur de recherche.
+ */
+export function webPageJsonLd(input: {
+  title: string
+  description?: string | null
+  path: string
+}): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: input.title,
+    description: input.description || undefined,
+    url: absoluteUrl(input.path),
+    inLanguage: "fr-FR",
+    isPartOf: { "@type": "WebSite", name: SITE_NAME, url: baseUrl() },
+  }
+}
+
 /** Liste d'items (pages listing : store, catégories, collections). */
 export function itemListJsonLd(
   items: { name: string; path: string }[]

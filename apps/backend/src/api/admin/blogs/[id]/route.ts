@@ -1,5 +1,6 @@
 import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { BLOG_MODULE } from "../../../../modules/blog"
+import { normalizePagePath, validatePagePath } from "../../../../modules/blog/page-path"
 import type BlogModuleService from "../../../../modules/blog/service"
 
 /**
@@ -47,6 +48,23 @@ export const PUT = async (
     }
   }
 
+  // URL personnalisée : format, segments réservés, unicité (hors soi-même).
+  // Champ absent du body → on conserve celle déjà enregistrée.
+  const pagePath =
+    body.path === undefined ? existing.path : normalizePagePath(body.path)
+
+  if (pagePath && pagePath !== existing.path) {
+    const invalid = validatePagePath(pagePath)
+    if (invalid) return res.status(400).json({ message: invalid })
+
+    const [pathConflict] = await blogService.listBlogPosts({ path: pagePath })
+    if (pathConflict && pathConflict.id !== id) {
+      return res.status(409).json({
+        message: `L'URL "/${pagePath}" est déjà utilisée par "${pathConflict.title}".`,
+      })
+    }
+  }
+
   // MedusaService updateBlogPosts attend : ({ id, ...data })
   // Le champ blocks (JSONB) doit être explicitement inclus
   const updated = await blogService.updateBlogPosts({
@@ -62,6 +80,12 @@ export const PUT = async (
     read_time: body.read_time as string,
     featured:  body.featured  as boolean,
     published: body.published as boolean,
+    path:      pagePath,
+    // Fallback sur l'existant : une mise à jour partielle ne doit pas
+    // réinitialiser les options de mise en page.
+    hide_breadcrumb: (body.hide_breadcrumb as boolean) ?? existing.hide_breadcrumb,
+    hide_meta:       (body.hide_meta       as boolean) ?? existing.hide_meta,
+    hide_footer:     (body.hide_footer     as boolean) ?? existing.hide_footer,
     blocks:    (Array.isArray(body.blocks) ? body.blocks : existing.blocks) as unknown as Record<string, unknown>,
   })
 

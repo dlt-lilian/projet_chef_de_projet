@@ -26,6 +26,20 @@ const BlogPost = model.define("blog_post", {
   featured: model.boolean().default(false),
   published: model.boolean().default(true),
 
+  // ── Page autonome ──────────────────────────────────────────────────
+  // URL personnalisée sur un seul segment (ex. "mentions-legales").
+  // Renseignée → l'article devient une PAGE : servie à /{path}, absente de
+  // la liste du blog et injoignable via /blog/{slug} (pas de doublon SEO).
+  // NULL → article de blog classique.
+  path: model.text().nullable(),
+
+  // ── Mise en page (masquage des sections du template) ───────────────
+  // Permet de réutiliser le template blog pour des pages statiques
+  // (mentions légales, CGV…) sans fil d'ariane, méta ni pied de page.
+  hide_breadcrumb: model.boolean().default(false),
+  hide_meta:       model.boolean().default(false),
+  hide_footer:     model.boolean().default(false),
+
   // ── Contenu ────────────────────────────────────────────────────────
   // Tableau de blocs JSON (banner, titre, texte, img, doubleimg…)
   blocks: model.json(),

@@ -1160,6 +1160,70 @@
           "enumItems": [],
           "mappedType": "boolean"
         },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "hide_breadcrumb": {
+          "name": "hide_breadcrumb",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "false",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
+        "hide_meta": {
+          "name": "hide_meta",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "false",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
+        "hide_footer": {
+          "name": "hide_footer",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "false",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
         "blocks": {
           "name": "blocks",
           "type": "jsonb",
@@ -1270,6 +1334,17 @@
           "unique": false,
           "primary": false,
           "expression": "CREATE INDEX idx_blog_post_published_date ON public.blog_post USING btree (published, date_iso DESC) WHERE (deleted_at IS NULL)"
+        },
+        {
+          "columnNames": [
+            "path"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "idx_blog_post_path",
+          "unique": true,
+          "primary": false,
+          "expression": "CREATE UNIQUE INDEX idx_blog_post_path ON public.blog_post USING btree (path) WHERE ((deleted_at IS NULL) AND (path IS NOT NULL))"
         }
       ],
       "checks": [],

@@ -1,5 +1,6 @@
 import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { BLOG_MODULE } from "../../../modules/blog"
+import { normalizePagePath, validatePagePath } from "../../../modules/blog/page-path"
 import type BlogModuleService from "../../../modules/blog/service"
 
 /**
@@ -50,6 +51,20 @@ export const POST = async (
     })
   }
 
+  // URL personnalisée : format, segments réservés, unicité
+  const pagePath = normalizePagePath(body.path)
+  if (pagePath) {
+    const invalid = validatePagePath(pagePath)
+    if (invalid) return res.status(400).json({ message: invalid })
+
+    const [pathConflict] = await blogService.listBlogPosts({ path: pagePath })
+    if (pathConflict) {
+      return res.status(409).json({
+        message: `L'URL "/${pagePath}" est déjà utilisée par "${pathConflict.title}".`,
+      })
+    }
+  }
+
   const post = await blogService.createBlogPosts({
     slug:      body.slug      as string,
     title:     body.title     as string,
@@ -62,6 +77,10 @@ export const POST = async (
     read_time: (body.read_time as string) ?? "",
     featured:  (body.featured as boolean) ?? false,
     published: (body.published as boolean) ?? false,
+    path:      pagePath,
+    hide_breadcrumb: (body.hide_breadcrumb as boolean) ?? false,
+    hide_meta:       (body.hide_meta       as boolean) ?? false,
+    hide_footer:     (body.hide_footer     as boolean) ?? false,
     blocks:    (Array.isArray(body.blocks) ? body.blocks : []) as unknown as Record<string, unknown>,
   })
 

@@ -22,6 +22,7 @@ type BlogPost = {
   date: string
   published: boolean
   featured: boolean
+  path: string | null
 }
 
 async function fetchBlogs(): Promise<BlogPost[]> {
@@ -142,7 +143,7 @@ export default function BlogListPage() {
                   <div>
                     <Text weight="plus" size="small">{post.title}</Text>
                     <Text size="xsmall" className="text-ui-fg-muted font-mono">
-                      /blog/{post.slug}
+                      {post.path ? `/${post.path}` : `/blog/${post.slug}`}
                     </Text>
                   </div>
                 </Table.Cell>
@@ -163,8 +164,12 @@ export default function BlogListPage() {
                     >
                       {post.published ? "Publié" : "Brouillon"}
                     </Badge>
-                    {post.featured && (
-                      <Badge size="2xsmall" color="blue">À la une</Badge>
+                    {post.path ? (
+                      <Badge size="2xsmall" color="orange">Page</Badge>
+                    ) : (
+                      post.featured && (
+                        <Badge size="2xsmall" color="blue">À la une</Badge>
+                      )
                     )}
                   </div>
                 </Table.Cell>

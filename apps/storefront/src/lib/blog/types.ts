@@ -23,6 +23,16 @@ export type BlogPost = {
   read_time: string
   featured:  boolean
   published: boolean
+  /**
+   * URL personnalisée sur un seul segment (« mentions-legales »). Renseignée →
+   * page autonome servie à /{path}, hors liste du blog et hors /blog/{slug}.
+   * `null` → article de blog classique.
+   */
+  path:      string | null
+  /** Masquage des habillages du template (pages statiques : mentions légales, CGV…) */
+  hide_breadcrumb: boolean
+  hide_meta:       boolean
+  hide_footer:     boolean
   blocks:    Block[]
   created_at: string
   updated_at: string

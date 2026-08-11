@@ -14,6 +14,23 @@ class BlogModuleService extends MedusaService({ BlogPost }) {
   }
 
   /**
+   * Page autonome par URL personnalisée (uniquement si publiée).
+   */
+  async getPageByPath(path: string) {
+    if (!path) return null
+    const [page] = await this.listBlogPosts({ path, published: true })
+    return page ?? null
+  }
+
+  /**
+   * Toutes les pages autonomes publiées — sitemap et prérendu du storefront.
+   */
+  async getPublishedPages() {
+    const posts = await this.listBlogPosts({ published: true }, { take: 1000 })
+    return posts.filter((p) => Boolean(p.path))
+  }
+
+  /**
    * Liste les articles publiés, triés du plus récent au plus ancien.
    * Utilisé par le storefront.
    */
@@ -25,11 +42,17 @@ class BlogModuleService extends MedusaService({ BlogPost }) {
     const filters: Record<string, unknown> = { published: true }
     if (options?.category) filters.category = options.category
 
-    const posts = await this.listBlogPosts(filters, {
+    const all = await this.listBlogPosts(filters, {
       take: options?.limit ?? 100,
       skip: options?.offset ?? 0,
       // Tri géré côté API après récupération (date_iso string)
     })
+
+    // Les pages autonomes (URL personnalisée) ne sont pas des articles :
+    // elles vivent à leur propre URL et n'apparaissent dans aucune liste.
+    // Filtre en JS et non en SQL : `path` peut valoir NULL ou "" selon
+    // l'ancienneté de la ligne, un `where path is null` en raterait la moitié.
+    const posts = all.filter((p) => !p.path)
 
     // Tri par date_iso décroissant
     posts.sort(
@@ -52,7 +75,10 @@ class BlogModuleService extends MedusaService({ BlogPost }) {
    * Retourne les N derniers articles publiés (pour l'ArticleGrid homepage).
    */
   async getLatestPosts(count = 3) {
-    return this.getPublishedPosts({ limit: count })
+    // On tronque APRÈS coup : `limit` s'applique avant le retrait des pages
+    // autonomes, il rendrait moins de `count` articles s'il en croisait.
+    const posts = await this.getPublishedPosts()
+    return posts.slice(0, count)
   }
 
   /**
