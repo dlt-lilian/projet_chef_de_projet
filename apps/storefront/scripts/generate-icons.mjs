@@ -28,7 +28,7 @@ const USED = {
     "umbrella", "letter-text", "user-round", "shopping-cart", "home", "mail",
     "menu", "package", "leaf", "hand-heart", "instagram", "facebook",
     "youtube", "palette", "layers", "sparkles", "pen-line", "settings-2",
-    "search",
+    "search", "cookie",
   ],
   hugeicons: ["chopsticks"],
   "lucide-lab": ["fan-handheld"],

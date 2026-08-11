@@ -2,6 +2,7 @@
 
 import { useConsent } from "@lib/context/consent-context"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import CookiePreferencesButton from "./floating-button"
 import CookiePreferencesDialog from "./preferences-dialog"
 
 /**
@@ -23,8 +24,14 @@ import CookiePreferencesDialog from "./preferences-dialog"
  * (`needsChoice` reste faux), donc rien ne diverge à l'hydratation.
  */
 export default function CookieConsent() {
-  const { needsChoice, isPreferencesOpen, acceptAll, rejectAll, openPreferences } =
-    useConsent()
+  const {
+    isLoaded,
+    needsChoice,
+    isPreferencesOpen,
+    acceptAll,
+    rejectAll,
+    openPreferences,
+  } = useConsent()
 
   return (
     <>
@@ -91,6 +98,13 @@ export default function CookieConsent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* `isLoaded &&` est indispensable : sans lui, le bouton s'afficherait
+          au tout premier rendu — avant même la relecture du cookie — puis
+          disparaîtrait derrière le bandeau chez qui n'a jamais répondu. */}
+      {isLoaded && !needsChoice && !isPreferencesOpen && (
+        <CookiePreferencesButton />
       )}
 
       {isPreferencesOpen && <CookiePreferencesDialog />}
