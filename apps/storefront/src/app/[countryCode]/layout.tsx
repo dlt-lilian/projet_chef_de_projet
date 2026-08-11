@@ -16,6 +16,7 @@ import localFont from "next/font/local"
 import JsonLd from "@modules/common/components/json-ld"
 import { ConsentProvider } from "@lib/context/consent-context"
 import CookieConsent from "@modules/layout/components/cookie-consent"
+import GoogleTags from "@modules/analytics/components/google-tags"
 
 /**
  * Layout racine (porte <html>/<body>).
@@ -98,6 +99,9 @@ export default async function CountryLayout(props: {
           l'ordre de tabulation — un lecteur d'écran ou une navigation clavier
           rencontre le choix immédiatement, sans traverser toute la page. */}
       <CookieConsent />
+      {/* Sous le provider, donc conditionnées au consentement : sans accord,
+          aucune balise Google n'est insérée dans la page. */}
+      <GoogleTags />
       <main className="relative">{props.children}</main>
     </ConsentProvider>
     </body>

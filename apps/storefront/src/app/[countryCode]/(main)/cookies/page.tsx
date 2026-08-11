@@ -25,6 +25,21 @@ type CookieRow = {
   duration: string
 }
 
+const analyticsCookies: CookieRow[] = [
+  {
+    name: "_ga",
+    purpose:
+      "Déposé par Google Analytics pour distinguer les visiteurs les uns des autres.",
+    duration: "13 mois",
+  },
+  {
+    name: "_ga_<ID>",
+    purpose:
+      "Déposé par Google Analytics pour conserver l'état de la session de mesure.",
+    duration: "13 mois",
+  },
+]
+
 const necessaryCookies: CookieRow[] = [
   {
     name: "_medusa_cart_id",
@@ -135,13 +150,30 @@ export default function CookiesPage() {
         <CookieTable rows={necessaryCookies} />
 
         <h2 className="mt-10 text-xl font-semibold text-grey-90">
-          Mesure d&apos;audience et publicité
+          Mesure d&apos;audience
         </h2>
         <p className="mt-2 leading-relaxed text-grey-70">
-          Aucun cookie de mesure d&apos;audience ni de publicité n&apos;est
-          déposé sur ce site à ce jour. Si nous en ajoutons, ils seront listés
-          ici et ne seront activés qu&apos;après votre accord explicite&nbsp;;
-          votre choix précédent vous sera alors redemandé.
+          Nous utilisons <strong className="font-semibold">Google Analytics</strong>{" "}
+          pour savoir quelles pages sont consultées et améliorer la boutique.
+          Ces cookies ne sont déposés qu&apos;après votre accord&nbsp;: tant que
+          vous n&apos;avez pas accepté cette finalité, le script de Google
+          n&apos;est pas chargé et aucune donnée ne lui est transmise. Si vous
+          retirez votre accord, la mesure s&apos;arrête et les cookies ci-dessous
+          sont supprimés.
+        </p>
+        <p className="mt-2 leading-relaxed text-grey-70">
+          Destinataire&nbsp;: Google Ireland Limited. Les données peuvent être
+          transférées aux États-Unis dans le cadre du Data Privacy Framework.
+          Les adresses IP sont tronquées par Google avant enregistrement.
+        </p>
+        <CookieTable rows={analyticsCookies} />
+
+        <h2 className="mt-10 text-xl font-semibold text-grey-90">Publicité</h2>
+        <p className="mt-2 leading-relaxed text-grey-70">
+          Aucun cookie publicitaire n&apos;est déposé sur ce site à ce jour. Si
+          nous en ajoutons, ils seront listés ici et ne seront activés
+          qu&apos;après votre accord explicite&nbsp;; votre choix précédent vous
+          sera alors redemandé.
         </p>
 
         <h2 className="mt-10 text-xl font-semibold text-grey-90">

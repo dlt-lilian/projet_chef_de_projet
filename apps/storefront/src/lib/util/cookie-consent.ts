@@ -26,8 +26,15 @@
 
 export const CONSENT_COOKIE_NAME = "hinaso_consent"
 
-/** Toute évolution des finalités rend les consentements passés caducs. */
-export const CONSENT_VERSION = 1
+/**
+ * Toute évolution des finalités rend les consentements passés caducs.
+ *
+ * v2 — ajout de Google Analytics. La finalité « Mesure d'audience » existait
+ * déjà, mais elle avait été présentée alors qu'AUCUN traceur n'était déposé et
+ * qu'aucun destinataire n'était nommé. Un accord donné sur cette base ne couvre
+ * pas un transfert de données à Google : on redemande.
+ */
+export const CONSENT_VERSION = 2
 
 /** ~6 mois, recommandation CNIL pour la durée de validité du choix. */
 export const CONSENT_MAX_AGE = 60 * 60 * 24 * 182
@@ -60,7 +67,7 @@ export const CONSENT_CATEGORIES: ConsentCategoryInfo[] = [
     id: "analytics",
     label: "Mesure d'audience",
     description:
-      "Nous aide à comprendre quelles pages sont consultées et à améliorer la boutique. Les statistiques sont agrégées et ne servent pas à vous identifier.",
+      "Google Analytics nous aide à comprendre quelles pages sont consultées et à améliorer la boutique. Les statistiques sont agrégées et ne servent pas à vous identifier ; elles impliquent un transfert de données à Google.",
   },
   {
     id: "marketing",
