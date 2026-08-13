@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation"
-import { getAllPages, getPageByPath } from "@lib/blog"
-import { listRegions } from "@lib/data/regions"
+import { getPageByPath } from "@lib/blog"
 import ArticleTemplate from "@modules/blog/templates/article"
 import type { Metadata } from "next"
 import JsonLd from "@modules/common/components/json-ld"
@@ -15,46 +14,24 @@ import { canonicalPath, hreflangAlternates, webPageJsonLd } from "@lib/util/seo"
  * route fixe ne prend (en Next.js, /store, /blog, /contact… gagnent toujours).
  * Un chemin sans page correspondante retombe donc sur le 404 habituel.
  *
- * `dynamicParams` reste à sa valeur par défaut (true) : une page créée dans
- * l'admin est en ligne à la revalidation suivante, sans redéploiement.
+ * ⚠️ `force-dynamic` est OBLIGATOIRE ici, ne pas le remplacer par `revalidate`.
+ * Le layout (main) lit les cookies à chaque requête (retrieveCustomer /
+ * retrieveCart). Avec `revalidate`, Next tente une génération statique de la
+ * route et cette lecture de cookies lève alors DYNAMIC_SERVER_USAGE au lieu de
+ * basculer en rendu dynamique → 500 sur TOUTES les URL captées, page existante
+ * ou non. Les autres routes dynamiques de l'app (products, collections,
+ * categories) sont dans le même cas et ne déclarent aucun `revalidate`.
+ *
+ * La fraîcheur reste assurée en amont : `getPageByPath` met la réponse du
+ * backend en cache 60 s. Pas de `generateStaticParams` non plus — sans
+ * prérendu il ne servirait à rien, et une page créée dans l'admin est en
+ * ligne immédiatement, sans redéploiement.
  */
 
 // Next.js 15 : params est une Promise
 type Props = { params: Promise<{ pagePath: string; countryCode: string }> }
 
-export const revalidate = 60
-
-export async function generateStaticParams() {
-  try {
-    // Deux segments dynamiques ([countryCode] et [pagePath]) : les deux
-    // doivent être fournis, sinon le build de prod échoue.
-    const countryCodes = await listRegions().then((regions) =>
-      regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
-    )
-
-    if (!countryCodes) return []
-
-    const pages = await getAllPages()
-
-    return countryCodes
-      .filter(Boolean)
-      .flatMap((countryCode) =>
-        pages
-          .filter((p) => p.path)
-          .map((p) => ({
-            countryCode: countryCode as string,
-            pagePath: p.path as string,
-          }))
-      )
-  } catch (error) {
-    console.error(
-      `Failed to generate static paths for standalone pages: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }.`
-    )
-    return []
-  }
-}
+export const dynamic = "force-dynamic"
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { pagePath, countryCode } = await params
