@@ -4,6 +4,7 @@ import TitleBlock from "./TitleBlock"
 import TextBlock from "./TextBlock"
 import ImgBlock from "./ImgBlock"
 import DoubleImgBlock from "./DoubleImgBlock"
+import TableBlock from "./TableBlock"
 
 export default function BlockRenderer({ blocks }: { blocks: Block[] }) {
   if (!Array.isArray(blocks)) return null
@@ -17,6 +18,7 @@ export default function BlockRenderer({ blocks }: { blocks: Block[] }) {
           case "texte":     return <TextBlock      key={key} {...block} />
           case "img":       return <ImgBlock       key={key} {...block} />
           case "doubleimg": return <DoubleImgBlock key={key} {...block} />
+          case "tableau":   return <TableBlock     key={key} {...block} />
           default:          return null
         }
       })}

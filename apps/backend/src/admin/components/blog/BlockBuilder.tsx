@@ -3,6 +3,7 @@ import { Button, Input, Textarea, Select, Label, Text, Badge } from "@medusajs/u
 import {
   PlusMini,
   Trash,
+  XMarkMini,
   ArrowUpMini,
   ArrowDownMini,
   Photo,
@@ -10,6 +11,7 @@ import {
   ChatBubbleLeftRight,
   BarsThree,
   SquaresPlus,
+  GridList,
 } from "@medusajs/icons"
 import { ImageField, type FolderOption } from "../common/ImageField"
 
@@ -21,6 +23,7 @@ type Block =
   | { type: "texte";     content: string; dropcap?: boolean }
   | { type: "img";       src: string; alt: string; caption?: string; fullWidth?: boolean }
   | { type: "doubleimg"; images: [{ src: string; alt: string; caption?: string }, { src: string; alt: string; caption?: string }] }
+  | { type: "tableau";   headers: string[]; rows: string[][]; caption?: string; firstColHeader?: boolean }
 
 type BlockBuilderProps = {
   value: Block[]
@@ -36,6 +39,7 @@ const BLOCK_LABELS: Record<string, string> = {
   texte:     "Texte",
   img:       "Image",
   doubleimg: "Double image",
+  tableau:   "Tableau",
 }
 
 const BLOCK_ICONS: Record<string, React.ReactNode> = {
@@ -44,6 +48,7 @@ const BLOCK_ICONS: Record<string, React.ReactNode> = {
   texte:     <ChatBubbleLeftRight className="w-4 h-4" />,
   img:       <DocumentText className="w-4 h-4" />,
   doubleimg: <SquaresPlus className="w-4 h-4" />,
+  tableau:   <GridList className="w-4 h-4" />,
 }
 
 function defaultBlock(type: string): Block {
@@ -53,6 +58,7 @@ function defaultBlock(type: string): Block {
     case "texte":     return { type: "texte",     content: "", dropcap: false }
     case "img":       return { type: "img",       src: "", alt: "", caption: "", fullWidth: false }
     case "doubleimg": return { type: "doubleimg", images: [{ src: "", alt: "", caption: "" }, { src: "", alt: "", caption: "" }] }
+    case "tableau":   return { type: "tableau",   headers: ["", ""], rows: [["", ""], ["", ""]], caption: "", firstColHeader: false }
     default:          return { type: "texte",     content: "" }
   }
 }
@@ -201,6 +207,149 @@ function DoubleImgEditor({ block, onChange, folders }: { block: Extract<Block, {
   )
 }
 
+function TableEditor({ block, onChange }: { block: Extract<Block, { type: "tableau" }>; onChange: (b: Block) => void }) {
+  // Les en-têtes font foi pour le nombre de colonnes : toutes les opérations
+  // ci-dessous gardent les lignes alignées dessus.
+  const headers = block.headers ?? []
+  const rows    = block.rows ?? []
+  const cols    = Math.max(headers.length, 1)
+
+  const setHeader = (c: number, val: string) => {
+    const next = [...headers]
+    next[c] = val
+    onChange({ ...block, headers: next })
+  }
+
+  const setCell = (r: number, c: number, val: string) => {
+    const next = rows.map(row => [...row])
+    next[r][c] = val
+    onChange({ ...block, rows: next })
+  }
+
+  const addCol = () => onChange({
+    ...block,
+    headers: [...headers, ""],
+    rows:    rows.map(row => [...row, ""]),
+  })
+
+  const removeCol = (c: number) => {
+    if (cols <= 1) return
+    onChange({
+      ...block,
+      headers: headers.filter((_, i) => i !== c),
+      rows:    rows.map(row => row.filter((_, i) => i !== c)),
+    })
+  }
+
+  const addRow    = () => onChange({ ...block, rows: [...rows, Array(cols).fill("")] })
+  const removeRow = (r: number) => onChange({ ...block, rows: rows.filter((_, i) => i !== r) })
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto">
+        <table className="border-separate border-spacing-1">
+          <tbody>
+
+            {/* Ligne d'en-tête */}
+            <tr>
+              {Array.from({ length: cols }).map((_, c) => (
+                <td key={c} className="min-w-[10rem]">
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <Label size="xsmall">Colonne {c + 1}</Label>
+                    <Button
+                      type="button"
+                      variant="transparent"
+                      size="small"
+                      onClick={() => removeCol(c)}
+                      disabled={cols <= 1}
+                      title="Supprimer la colonne"
+                      className="text-ui-fg-muted"
+                    >
+                      <XMarkMini />
+                    </Button>
+                  </div>
+                  <Input
+                    size="small"
+                    value={headers[c] ?? ""}
+                    onChange={e => setHeader(c, e.target.value)}
+                    placeholder="En-tête"
+                  />
+                </td>
+              ))}
+              <td />
+            </tr>
+
+            {/* Lignes de données */}
+            {rows.map((row, r) => (
+              <tr key={r}>
+                {Array.from({ length: cols }).map((_, c) => (
+                  <td key={c}>
+                    <Input
+                      size="small"
+                      value={row[c] ?? ""}
+                      onChange={e => setCell(r, c, e.target.value)}
+                      placeholder="—"
+                    />
+                  </td>
+                ))}
+                <td>
+                  <Button
+                    type="button"
+                    variant="transparent"
+                    size="small"
+                    onClick={() => removeRow(r)}
+                    title="Supprimer la ligne"
+                    className="text-ui-fg-error hover:text-ui-fg-error"
+                  >
+                    <Trash />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex gap-2">
+        <Button type="button" variant="secondary" size="small" onClick={addRow}>
+          <PlusMini className="mr-1" />Ligne
+        </Button>
+        <Button type="button" variant="secondary" size="small" onClick={addCol}>
+          <PlusMini className="mr-1" />Colonne
+        </Button>
+      </div>
+
+      <Text size="xsmall" className="text-ui-fg-muted">
+        HTML accepté dans les cellules. En-têtes tous vides : le tableau est
+        affiché sans ligne d'en-tête.
+      </Text>
+
+      <div>
+        <Label size="xsmall">Légende (optionnel)</Label>
+        <Input
+          size="small"
+          value={block.caption ?? ""}
+          onChange={e => onChange({ ...block, caption: e.target.value })}
+          placeholder="Légende sous le tableau"
+        />
+      </div>
+
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={block.firstColHeader ?? false}
+          onChange={e => onChange({ ...block, firstColHeader: e.target.checked })}
+          className="rounded"
+        />
+        <Text size="small" className="text-ui-fg-subtle">
+          Première colonne en en-tête (tableau de caractéristiques)
+        </Text>
+      </label>
+    </div>
+  )
+}
+
 function BlockEditor({ block, onChange, folders }: { block: Block; onChange: (b: Block) => void; folders: FolderOption[] }) {
   switch (block.type) {
     case "banner":    return <BannerEditor    block={block} onChange={onChange} folders={folders} />
@@ -208,6 +357,7 @@ function BlockEditor({ block, onChange, folders }: { block: Block; onChange: (b:
     case "texte":     return <TextEditor      block={block} onChange={onChange} />
     case "img":       return <ImgEditor       block={block} onChange={onChange} folders={folders} />
     case "doubleimg": return <DoubleImgEditor block={block} onChange={onChange} folders={folders} />
+    case "tableau":   return <TableEditor     block={block} onChange={onChange} />
   }
 }
 
@@ -281,11 +431,17 @@ export default function BlockBuilder({ value, onChange, slug }: BlockBuilderProp
                   {block.content.replace(/<[^>]+>/g, "").slice(0, 60) || "—"}
                 </Text>
               )}
+              {block.type === "tableau" && (
+                <Text size="xsmall" className="text-ui-fg-muted truncate max-w-xs">
+                  {(block.headers?.length ?? 0)} col. × {(block.rows?.length ?? 0)} lignes
+                </Text>
+              )}
             </div>
 
             {/* Contrôles */}
             <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
               <Button
+                type="button"
                 variant="transparent"
                 size="small"
                 onClick={() => moveBlock(i, -1)}
@@ -295,6 +451,7 @@ export default function BlockBuilder({ value, onChange, slug }: BlockBuilderProp
                 <ArrowUpMini />
               </Button>
               <Button
+                type="button"
                 variant="transparent"
                 size="small"
                 onClick={() => moveBlock(i, 1)}
@@ -304,6 +461,7 @@ export default function BlockBuilder({ value, onChange, slug }: BlockBuilderProp
                 <ArrowDownMini />
               </Button>
               <Button
+                type="button"
                 variant="transparent"
                 size="small"
                 onClick={() => removeBlock(i)}
@@ -332,6 +490,7 @@ export default function BlockBuilder({ value, onChange, slug }: BlockBuilderProp
         {Object.entries(BLOCK_LABELS).map(([type, label]) => (
           <Button
             key={type}
+            type="button"
             variant="secondary"
             size="small"
             onClick={() => addBlock(type)}

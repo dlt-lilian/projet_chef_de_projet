@@ -41,7 +41,7 @@ const BlogPost = model.define("blog_post", {
   hide_footer:     model.boolean().default(false),
 
   // ── Contenu ────────────────────────────────────────────────────────
-  // Tableau de blocs JSON (banner, titre, texte, img, doubleimg…)
+  // Tableau de blocs JSON (banner, titre, texte, img, doubleimg, tableau…)
   blocks: model.json(),
 })
 

@@ -5,8 +5,14 @@ export type TitleBlock    = { type: "titre";     level: 1 | 2 | 3; text: string 
 export type TextBlock     = { type: "texte";     content: string; dropcap?: boolean }
 export type ImgBlock      = { type: "img";       src: string; alt: string; caption?: string; fullWidth?: boolean }
 export type DoubleImgBlock = { type: "doubleimg"; images: { src: string; alt: string; caption?: string }[] }
+/**
+ * Tableau. `headers` fixe le nombre de colonnes ; en-têtes toutes vides →
+ * rendu sans <thead>. `firstColHeader` bascule la 1re colonne en <th scope="row">
+ * (tableaux de caractéristiques). Cellules en HTML, comme les blocs texte.
+ */
+export type TableBlock   = { type: "tableau";   headers: string[]; rows: string[][]; caption?: string; firstColHeader?: boolean }
 
-export type Block = BannerBlock | TitleBlock | TextBlock | ImgBlock | DoubleImgBlock
+export type Block = BannerBlock | TitleBlock | TextBlock | ImgBlock | DoubleImgBlock | TableBlock
 
 // ─── Article (tel que retourné par l'API Medusa) ──────────────────────────────
 
