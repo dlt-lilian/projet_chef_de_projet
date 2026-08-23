@@ -166,3 +166,38 @@ export async function getAllSlugs(): Promise<{ slug: string }[]> {
   const articles = await getAllArticles()
   return articles.map((a) => ({ slug: a.slug }))
 }
+
+/**
+ * Retire casse et accents pour comparer « Éventail » et « eventail ».
+ * Plage U+0300–U+036F : diacritiques combinants isolés par la normalisation NFD.
+ */
+function normalizeForSearch(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+}
+
+/**
+ * Recherche plein texte dans les articles publiés.
+ *
+ * L'API blog n'expose pas de paramètre de recherche : le corpus est petit et
+ * déjà mis en cache 60 s par `getAllArticles`, on filtre donc en mémoire sur le
+ * titre, l'accroche et la catégorie. Le jour où le volume d'articles le
+ * justifie, cette fonction est le seul endroit à remplacer par un appel
+ * serveur.
+ */
+export async function searchArticles(
+  query: string
+): Promise<BlogPostPreview[]> {
+  const needle = normalizeForSearch(query.trim())
+  if (!needle) return []
+
+  const articles = await getAllArticles()
+
+  return articles.filter((article) =>
+    [article.title, article.excerpt, article.category]
+      .filter(Boolean)
+      .some((field) => normalizeForSearch(field).includes(needle))
+  )
+}

@@ -6,7 +6,8 @@ import { ArrowRightMini, XMark } from "@medusajs/icons"
 import { HttpTypes } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { Text, clx } from "@modules/common/components/ui"
-import { Icon, Input } from "@modules/common/components/my_ui"
+import { Icon } from "@modules/common/components/my_ui"
+import SearchInput from "@modules/search/components/search-input"
 import { Fragment } from "react"
 import CountrySelect from "../country-select"
 import LanguageSelect from "../language-select"
@@ -86,11 +87,9 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
                       </button>
                     </div>
 
-                    <Input
-                      variant="search"
-                      placeholder="Rechercher..."
-                      size="full"
-                    />
+                    {/* Valider referme le menu, sinon il reste ouvert
+                        par-dessus les résultats. */}
+                    <SearchInput size="full" onSubmitted={close} />
 
                     <ul className="flex flex-col gap-1">
                       {NavItems.map((item) => (

@@ -7,7 +7,8 @@ import { StoreRegion } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import CartButton from "@modules/layout/components/cart-button"
 import SideMenu from "@modules/layout/components/side-menu"
-import { Icon, Input } from "@modules/common/components/my_ui"
+import SearchInput from "@modules/search/components/search-input"
+import { Icon } from "@modules/common/components/my_ui"
 import Image from "next/image"
 
 export default async function Nav() {
@@ -86,7 +87,7 @@ export default async function Nav() {
           {/* RIGHT — Search, Account, Cart */}
           <div className="flex items-center gap-4 small:gap-5 justify-end">
             <div className="hidden small:block">
-              <Input variant="search" placeholder="Rechercher..." />
+              <SearchInput />
             </div>
 
             <LocalizedClientLink
