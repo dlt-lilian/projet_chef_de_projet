@@ -10,8 +10,11 @@ import {
 } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { Button, clx } from "@modules/common/components/ui"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { StoreFreeShippingPrice } from "types/global"
+
+/** Délai avant fermeture automatique du nudge, aligné sur le dropdown panier. */
+const AUTO_CLOSE_MS = 5000
 
 const computeTarget = (
   cart: HttpTypes.StoreCart,
@@ -200,15 +203,59 @@ function FreeShippingPopup({
   price: StoreFreeShippingPrice
 }) {
   const [isClosed, setIsClosed] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+
+  const totalItems =
+    cart.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
+
+  // Le nudge est une réaction à l’ajout au panier, pas un bandeau permanent :
+  // au chargement d’une page (accueil comprise) on reste masqué, on n’ouvre
+  // que lorsque la quantité totale du panier augmente. Le layout étant
+  // persistant, la ref survit aux navigations et ne se réinitialise qu’au
+  // rechargement complet.
+  const previousItems = useRef(totalItems)
+
+  const autoCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  )
+
+  const cancelAutoClose = () => {
+    if (autoCloseTimer.current) {
+      clearTimeout(autoCloseTimer.current)
+      autoCloseTimer.current = undefined
+    }
+  }
+
+  const restartAutoClose = () => {
+    cancelAutoClose()
+    autoCloseTimer.current = setTimeout(() => setIsOpen(false), AUTO_CLOSE_MS)
+  }
+
+  useEffect(() => {
+    if (totalItems > previousItems.current) {
+      setIsClosed(false)
+      setIsOpen(true)
+      restartAutoClose()
+    }
+    previousItems.current = totalItems
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalItems])
+
+  useEffect(() => {
+    return () => cancelAutoClose()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div
+      onMouseEnter={cancelAutoClose}
+      onMouseLeave={restartAutoClose}
       className={clx(
         "fixed bottom-5 right-5 flex flex-col items-end gap-2 transition-all duration-500 ease-in-out z-10",
         {
           "opacity-0 invisible delay-1000": price.target_reached,
-          "opacity-0 invisible": isClosed,
-          "opacity-100 visible": !price.target_reached && !isClosed,
+          "opacity-0 invisible": isClosed || !isOpen,
+          "opacity-100 visible": isOpen && !price.target_reached && !isClosed,
         }
       )}
     >
@@ -221,10 +268,10 @@ function FreeShippingPopup({
         </Button>
       </div>
 
-      <div className="w-[400px] bg-black text-white p-6 rounded-lg ">
+      <div className="w-[400px] max-w-[calc(100vw-2.5rem)] bg-black text-white p-6 rounded-lg ">
         <div className="pb-4">
           <div className="space-y-3">
-            <div className="flex justify-between text-[15px] text-neutral-400">
+            <div className="flex justify-between gap-3 text-[15px] text-neutral-400">
               <div>
                 {price.target_reached ? (
                   <div className="flex items-center gap-1.5">
