@@ -7,6 +7,7 @@ import { StoreRegion } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import CartButton from "@modules/layout/components/cart-button"
 import SideMenu from "@modules/layout/components/side-menu"
+import MobileSearch from "@modules/search/components/mobile-search"
 import SearchInput from "@modules/search/components/search-input"
 import { Icon } from "@modules/common/components/my_ui"
 import Image from "next/image"
@@ -89,6 +90,8 @@ export default async function Nav() {
             <div className="hidden small:block">
               <SearchInput />
             </div>
+
+            <MobileSearch />
 
             <LocalizedClientLink
               href="/account"

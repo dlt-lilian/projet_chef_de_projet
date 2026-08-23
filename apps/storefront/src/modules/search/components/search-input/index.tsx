@@ -31,8 +31,10 @@ type SearchInputProps = {
   size?: "max" | "full"
   /** Valeur initiale du champ (page de résultats : on réaffiche la requête). */
   defaultValue?: string
-  /** Appelé après validation — sert à refermer le menu latéral sur mobile. */
+  /** Appelé après validation — referme le panneau de recherche mobile. */
   onSubmitted?: () => void
+  /** Place le curseur dans le champ au montage (ouverture de la loupe mobile). */
+  autoFocus?: boolean
 }
 
 /**
@@ -48,6 +50,7 @@ const SearchInput = ({
   size = "max",
   defaultValue = "",
   onSubmitted,
+  autoFocus,
 }: SearchInputProps) => {
   const { countryCode } = useParams()
   const router = useRouter()
@@ -261,6 +264,7 @@ const SearchInput = ({
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => setIsOpen(true)}
           placeholder="Rechercher..."
+          autoFocus={autoFocus}
           aria-label="Rechercher un produit ou un article"
           role="combobox"
           aria-expanded={isOpen && hasQuery}
