@@ -91,7 +91,7 @@ export default async function Nav() {
 
             <LocalizedClientLink
               href="/account"
-              className="hidden small:flex items-center gap-1 text-grey-90 hover:text-primary transition-colors"
+              className="flex items-center gap-1 text-grey-90 hover:text-primary transition-colors"
               data-testid="nav-account-link"
               aria-label="Mon compte"
             >

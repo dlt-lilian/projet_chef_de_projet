@@ -9,6 +9,7 @@ import {
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@modules/common/components/ui"
+import { Icon } from "@modules/common/components/my_ui"
 import DeleteButton from "@modules/common/components/delete-button"
 import LineItemOptions from "@modules/common/components/line-item-options"
 import LineItemPrice from "@modules/common/components/line-item-price"
@@ -83,10 +84,21 @@ const CartDropdown = ({
       <Popover className="relative h-full">
         <PopoverButton className="h-full">
           <LocalizedClientLink
-            className="hover:text-ui-fg-base"
+            className="relative flex items-center text-grey-90 hover:text-primary transition-colors"
             href="/cart"
             data-testid="nav-cart-link"
-          >{`Panier (${totalItems})`}</LocalizedClientLink>
+            aria-label={`Panier (${totalItems})`}
+          >
+            <Icon name="shopping-cart" size={20} />
+            {totalItems > 0 && (
+              <span
+                className="absolute -top-1.5 -right-2 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-circle bg-primary text-white text-[10px] font-semibold leading-none"
+                data-testid="nav-cart-count"
+              >
+                {totalItems}
+              </span>
+            )}
+          </LocalizedClientLink>
         </PopoverButton>
         <Transition
           show={cartDropdownOpen}
