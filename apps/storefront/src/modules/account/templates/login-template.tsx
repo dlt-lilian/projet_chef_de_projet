@@ -10,13 +10,24 @@ export enum LOGIN_VIEW {
   REGISTER = "register",
 }
 
-const LoginTemplate = () => {
+type LoginTemplateProps = {
+  /** Destination après connexion (tunnel de commande, typiquement). */
+  redirectTo?: string
+  /** Raison de l'arrivée sur cette page, affichée au-dessus du formulaire. */
+  notice?: string
+}
+
+const LoginTemplate = ({ redirectTo, notice }: LoginTemplateProps) => {
   const [currentView, setCurrentView] = useState("sign-in")
 
   return (
     <div className="w-full flex justify-start px-8 py-8">
       {currentView === "sign-in" ? (
-        <Login setCurrentView={setCurrentView} />
+        <Login
+          setCurrentView={setCurrentView}
+          redirectTo={redirectTo}
+          notice={notice}
+        />
       ) : (
         <Register setCurrentView={setCurrentView} />
       )}

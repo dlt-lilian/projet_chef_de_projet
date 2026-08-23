@@ -10,6 +10,7 @@ import { HttpTypes } from "@medusajs/types"
 
 type SummaryProps = {
   cart: HttpTypes.StoreCart
+  customer: HttpTypes.StoreCustomer | null
 }
 
 function getCheckoutStep(cart: HttpTypes.StoreCart) {
@@ -22,8 +23,16 @@ function getCheckoutStep(cart: HttpTypes.StoreCart) {
   }
 }
 
-const Summary = ({ cart }: SummaryProps) => {
+const Summary = ({ cart, customer }: SummaryProps) => {
   const step = getCheckoutStep(cart)
+  const checkoutHref = `/checkout?step=${step}`
+
+  // Finaliser une commande exige un compte : sans session on passe par la
+  // connexion, qui ramène au tunnel une fois connecté. La route /checkout
+  // applique la même règle, ce lien n'est que le chemin confortable.
+  const href = customer
+    ? checkoutHref
+    : `/account?redirect=${encodeURIComponent(checkoutHref)}`
 
   return (
     <div className="flex flex-col gap-y-4">
@@ -33,10 +42,7 @@ const Summary = ({ cart }: SummaryProps) => {
       <DiscountCode cart={cart} />
       <Divider />
       <CartTotals totals={cart} />
-      <LocalizedClientLink
-        href={"/checkout?step=" + step}
-        data-testid="checkout-button"
-      >
+      <LocalizedClientLink href={href} data-testid="checkout-button">
         <Button className="w-full h-10">Commander</Button>
       </LocalizedClientLink>
     </div>

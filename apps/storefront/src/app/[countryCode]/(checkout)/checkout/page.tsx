@@ -4,13 +4,19 @@ import PaymentWrapper from "@modules/checkout/components/payment-wrapper"
 import CheckoutForm from "@modules/checkout/templates/checkout-form"
 import CheckoutSummary from "@modules/checkout/templates/checkout-summary"
 import { Metadata } from "next"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 
 export const metadata: Metadata = {
   title: "Commande",
 }
 
-export default async function Checkout() {
+export default async function Checkout(props: {
+  params: Promise<{ countryCode: string }>
+  searchParams: Promise<{ step?: string }>
+}) {
+  const { countryCode } = await props.params
+  const { step } = await props.searchParams
+
   const cart = await retrieveCart()
 
   if (!cart) {
@@ -18,6 +24,13 @@ export default async function Checkout() {
   }
 
   const customer = await retrieveCustomer()
+
+  // La règle vit ici et pas seulement sur le bouton du panier : sinon taper
+  // l'URL du tunnel suffirait à commander sans compte.
+  if (!customer) {
+    const target = step ? `/checkout?step=${step}` : "/checkout"
+    redirect(`/${countryCode}/account?redirect=${encodeURIComponent(target)}`)
+  }
 
   return (
     <div className="grid grid-cols-1 small:grid-cols-[1fr_416px] content-container gap-x-40 py-12">

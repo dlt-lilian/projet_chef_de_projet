@@ -107,6 +107,7 @@ export async function signup(_currentState: unknown, formData: FormData) {
 export async function login(_currentState: unknown, formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
+  const redirectTo = formData.get("redirect")
 
   try {
     await sdk.auth
@@ -124,6 +125,17 @@ export async function login(_currentState: unknown, formData: FormData) {
     await transferCart()
   } catch (error) {
     return String(error)
+  }
+
+  // Hors de tout try/catch : redirect() lève une exception de contrôle que Next
+  // doit recevoir. La capturer annulerait silencieusement la redirection.
+  // Re-validé ici car formData reste sous contrôle du client.
+  if (
+    typeof redirectTo === "string" &&
+    redirectTo.startsWith("/") &&
+    !redirectTo.startsWith("//")
+  ) {
+    redirect(redirectTo)
   }
 }
 

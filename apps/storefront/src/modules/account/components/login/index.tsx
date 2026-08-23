@@ -7,9 +7,12 @@ import { useActionState } from "react"
 
 type Props = {
   setCurrentView: (view: LOGIN_VIEW) => void
+  /** Chemin interne déjà validé côté serveur, rejoué après connexion. */
+  redirectTo?: string
+  notice?: string
 }
 
-const Login = ({ setCurrentView }: Props) => {
+const Login = ({ setCurrentView, redirectTo, notice }: Props) => {
   const [message, formAction] = useActionState(login, null)
 
   return (
@@ -18,10 +21,22 @@ const Login = ({ setCurrentView }: Props) => {
       data-testid="login-page"
     >
       <h1 className="text-large-semi uppercase mb-6">Connexion</h1>
-      <p className="text-center text-base-regular text-ui-fg-base mb-8">
-        Connectez-vous pour accéder à votre compte.
-      </p>
+      {notice ? (
+        <p
+          className="w-full mb-8 rounded-rounded border border-grey-20 bg-grey-10 px-4 py-3 text-center text-base-regular text-grey-90"
+          data-testid="login-notice"
+        >
+          {notice}
+        </p>
+      ) : (
+        <p className="text-center text-base-regular text-ui-fg-base mb-8">
+          Connectez-vous pour accéder à votre compte.
+        </p>
+      )}
       <form className="w-full" action={formAction}>
+        {redirectTo && (
+          <input type="hidden" name="redirect" value={redirectTo} />
+        )}
         <div className="flex flex-col w-full gap-y-2">
           <Input
             label="E-mail"
