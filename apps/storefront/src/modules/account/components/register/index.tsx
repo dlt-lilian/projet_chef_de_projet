@@ -10,9 +10,12 @@ import { signup } from "@lib/data/customer"
 
 type Props = {
   setCurrentView: (view: LOGIN_VIEW) => void
+  /** Chemin interne déjà validé côté serveur, rejoué après inscription. */
+  redirectTo?: string
+  notice?: string
 }
 
-const Register = ({ setCurrentView }: Props) => {
+const Register = ({ setCurrentView, redirectTo, notice }: Props) => {
   const [message, formAction] = useActionState(signup as (state: string | null, formData: FormData) => Promise<string | null>, null as string | null)
 
   return (
@@ -23,7 +26,18 @@ const Register = ({ setCurrentView }: Props) => {
       <h1 className="text-large-semi uppercase mb-6">
         Créer un compte
       </h1>
+      {notice && (
+        <p
+          className="w-full mb-6 rounded-rounded border border-grey-20 bg-grey-10 px-4 py-3 text-center text-base-regular text-grey-90"
+          data-testid="register-notice"
+        >
+          {notice}
+        </p>
+      )}
       <form className="w-full flex flex-col" action={formAction}>
+        {redirectTo && (
+          <input type="hidden" name="redirect" value={redirectTo} />
+        )}
         <div className="flex flex-col w-full gap-y-2">
           <Input
             label="Prénom"

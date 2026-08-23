@@ -29,7 +29,11 @@ const LoginTemplate = ({ redirectTo, notice }: LoginTemplateProps) => {
           notice={notice}
         />
       ) : (
-        <Register setCurrentView={setCurrentView} />
+        <Register
+          setCurrentView={setCurrentView}
+          redirectTo={redirectTo}
+          notice={notice}
+        />
       )}
     </div>
   )

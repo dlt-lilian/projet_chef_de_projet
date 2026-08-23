@@ -1,23 +1,16 @@
 import { Metadata } from "next"
 
 import LoginTemplate from "@modules/account/templates/login-template"
+import { isSafeInternalPath } from "@lib/util/safe-redirect"
 
 export const metadata: Metadata = {
   title: "Connexion",
   description: "Connectez-vous à votre compte Hinaso.",
 }
 
-/**
- * N'accepte qu'un chemin interne. La valeur vient de l'URL et finit dans une
- * redirection : sans ce filtre, `?redirect=https://…` ferait du site un
- * tremplin vers un domaine tiers. `//` est rejeté, c'est une URL
- * protocol-relative.
- */
+/** Chemin interne validé, préfixé du pays courant. */
 function safeRedirect(target: string | undefined, countryCode: string) {
-  if (!target?.startsWith("/") || target.startsWith("//")) {
-    return undefined
-  }
-  return `/${countryCode}${target}`
+  return isSafeInternalPath(target) ? `/${countryCode}${target}` : undefined
 }
 
 export default async function Login(props: {

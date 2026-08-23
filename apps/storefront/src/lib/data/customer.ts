@@ -2,6 +2,7 @@
 
 import { sdk } from "@lib/config"
 import medusaError from "@lib/util/medusa-error"
+import { isSafeInternalPath } from "@lib/util/safe-redirect"
 import { HttpTypes } from "@medusajs/types"
 import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
@@ -61,12 +62,17 @@ export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
 
 export async function signup(_currentState: unknown, formData: FormData) {
   const password = formData.get("password") as string
+  const redirectTo = formData.get("redirect")
   const customerForm = {
     email: formData.get("email") as string,
     first_name: formData.get("first_name") as string,
     last_name: formData.get("last_name") as string,
     phone: formData.get("phone") as string,
   }
+
+  // Renseigné dans le try, relu après : un redirect() posé à l'intérieur
+  // serait avalé par le catch et renvoyé comme message d'erreur.
+  let createdCustomer: HttpTypes.StoreCustomer | null = null
 
   try {
     const token = await sdk.auth.register("customer", "emailpass", {
@@ -80,11 +86,12 @@ export async function signup(_currentState: unknown, formData: FormData) {
       ...(await getAuthHeaders()),
     }
 
-    const { customer: createdCustomer } = await sdk.store.customer.create(
+    const { customer } = await sdk.store.customer.create(
       customerForm,
       {},
       headers
     )
+    createdCustomer = customer
 
     const loginToken = await sdk.auth.login("customer", "emailpass", {
       email: customerForm.email,
@@ -97,11 +104,18 @@ export async function signup(_currentState: unknown, formData: FormData) {
     revalidateTag(customerCacheTag)
 
     await transferCart()
-
-    return createdCustomer
   } catch (error) {
     return String(error)
   }
+
+  // Hors du try : redirect() lève une exception de contrôle que Next doit
+  // recevoir. L'inscription connecte déjà le client, il peut donc enchaîner
+  // directement sur le tunnel plutôt que d'atterrir sur son espace.
+  if (isSafeInternalPath(redirectTo)) {
+    redirect(redirectTo)
+  }
+
+  return createdCustomer
 }
 
 export async function login(_currentState: unknown, formData: FormData) {
@@ -129,12 +143,7 @@ export async function login(_currentState: unknown, formData: FormData) {
 
   // Hors de tout try/catch : redirect() lève une exception de contrôle que Next
   // doit recevoir. La capturer annulerait silencieusement la redirection.
-  // Re-validé ici car formData reste sous contrôle du client.
-  if (
-    typeof redirectTo === "string" &&
-    redirectTo.startsWith("/") &&
-    !redirectTo.startsWith("//")
-  ) {
+  if (isSafeInternalPath(redirectTo)) {
     redirect(redirectTo)
   }
 }
