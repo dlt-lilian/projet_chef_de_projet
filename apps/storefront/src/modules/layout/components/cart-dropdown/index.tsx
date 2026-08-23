@@ -75,14 +75,20 @@ const CartDropdown = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalItems, itemRef.current])
 
+  // Zone de survol du dropdown. `h-full` ne résolvait à rien (aucun parent n'a
+  // de hauteur définie) : le menu ne s'ouvrait qu'au survol des 20 px de
+  // l'icône, et se positionnait À L'INTÉRIEUR du header. `self-stretch` étire
+  // la zone sur la ligne, `-my-5 py-5` la prolonge sur le padding vertical de
+  // la nav : elle couvre toute la hauteur du header et sert de référence de
+  // position au panneau, d'où `top-[calc(100%+1px)]` = juste sous la bordure.
   return (
     <div
-      className="h-full z-50"
+      className="relative z-50 flex items-center self-stretch small:-my-5 small:py-5"
       onMouseEnter={openAndCancel}
       onMouseLeave={close}
     >
-      <Popover className="relative h-full">
-        <PopoverButton className="h-full">
+      <Popover className="flex items-center">
+        <PopoverButton className="flex items-center">
           <LocalizedClientLink
             className="relative flex items-center text-grey-90 hover:text-primary transition-colors"
             href="/cart"
