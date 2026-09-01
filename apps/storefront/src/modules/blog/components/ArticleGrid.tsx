@@ -1,4 +1,4 @@
-import Link from "next/link"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import BlogCard from "./BlogCard"
 import { getLatestArticles } from "@lib/blog"
 import type { BlogPostPreview } from "@lib/blog/types"
@@ -29,12 +29,12 @@ export default async function ArticleGrid({
             {heading}
           </h2>
         </div>
-        <Link
+        <LocalizedClientLink
           href="/blog"
           className="text-sm text-primary hover:underline transition-colors hidden md:block"
         >
           Tous les articles →
-        </Link>
+        </LocalizedClientLink>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
@@ -44,12 +44,12 @@ export default async function ArticleGrid({
       </div>
 
       <div className="mt-10 text-center md:hidden">
-        <Link
+        <LocalizedClientLink
           href="/blog"
           className="text-sm text-primary hover:underline transition-colors"
         >
           Tous les articles →
-        </Link>
+        </LocalizedClientLink>
       </div>
     </section>
   )

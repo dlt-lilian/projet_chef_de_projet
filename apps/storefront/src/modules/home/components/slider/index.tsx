@@ -3,7 +3,7 @@
 import useEmblaCarousel from "embla-carousel-react"
 import { useCallback, useEffect, useState } from "react"
 import clsx from "clsx"
-import Link from "next/link"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Image from "next/image"
 import { Icon } from "@modules/common/components/my_ui"
 
@@ -73,7 +73,7 @@ function SlideItem({
         <p className="text-white/80 text-sm sm:text-base mb-6 leading-relaxed max-w-xl">
           {slide.text}
         </p>
-        <Link
+        <LocalizedClientLink
           href={slide.link}
           className="inline-flex items-center gap-2 w-max
                bg-white text-sky-950 font-medium text-sm
@@ -82,7 +82,7 @@ function SlideItem({
         >
           Découvrir
           <Icon name="arrow-right" size={16} />
-        </Link>
+        </LocalizedClientLink>
       </div>
     </div>
   )

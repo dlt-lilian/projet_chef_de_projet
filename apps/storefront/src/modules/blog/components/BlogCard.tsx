@@ -1,5 +1,5 @@
 import Image from "next/image"
-import Link from "next/link"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import type { BlogPostPreview } from "@lib/blog/types"
 
 type BlogCardProps = {
@@ -19,7 +19,7 @@ export default function BlogCard({
 
   if (featured) {
     return (
-      <Link href={`/blog/${slug}`} className="group block relative overflow-hidden rounded-2xl">
+      <LocalizedClientLink href={`/blog/${slug}`} className="group block relative overflow-hidden rounded-2xl">
         <div className="relative h-[480px] w-full overflow-hidden">
           {cover && (
             <Image
@@ -52,13 +52,13 @@ export default function BlogCard({
             <span>{read_time}</span>
           </div>
         </div>
-      </Link>
+      </LocalizedClientLink>
     )
   }
 
   if (horizontal) {
     return (
-      <Link
+      <LocalizedClientLink
         href={`/blog/${slug}`}
         className="group flex gap-4 py-4 border-b border-grey-20 hover:border-grey-30 transition-colors last:border-0"
       >
@@ -87,12 +87,12 @@ export default function BlogCard({
             {date} · {read_time}
           </p>
         </div>
-      </Link>
+      </LocalizedClientLink>
     )
   }
 
   return (
-    <Link href={`/blog/${slug}`} className="group flex flex-col">
+    <LocalizedClientLink href={`/blog/${slug}`} className="group flex flex-col">
       <div className="relative aspect-[16/10] overflow-hidden mb-4 bg-grey-20 rounded-2xl">
         {cover && (
           <Image
@@ -119,6 +119,6 @@ export default function BlogCard({
           </span>
         </div>
       </div>
-    </Link>
+    </LocalizedClientLink>
   )
 }
