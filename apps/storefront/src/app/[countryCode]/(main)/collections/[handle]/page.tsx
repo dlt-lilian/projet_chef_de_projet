@@ -79,7 +79,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
   const subPath = `/collections/${params.handle}`
   const canonical = canonicalPath(params.countryCode, subPath)
-  const description = `Collection ${collection.title} — pièces d'artisanat japonais faites main par Hinaso.`
+  const description = `Collection ${collection.title} — accessoires japonais sur-mesure, conçus et fabriqués en France.`
 
   return {
     // Le gabarit du layout racine ajoute « | Hinaso ».

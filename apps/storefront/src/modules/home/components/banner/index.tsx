@@ -13,14 +13,18 @@ const features: Feature[] = [
     description: "Expédition rapide et emballage protecteur.",
   },
   {
+    // TODO: « leaf » (feuille) ne signe pas la fabrication française — icône à
+    // revoir (map-pin / flag) une fois le jeu d'icônes disponible vérifié.
     icon: "leaf",
-    title: "Matériaux nobles",
-    description: "Bois, laque et tissus sélectionnés au Japon.",
+    title: "Fabriqué en France",
+    description: "Conception et fabrication réalisées en France.",
   },
   {
+    // Remplace « Fait à la main / artisans passionnés » : invérifiable en l'état,
+    // là où le sur-mesure, lui, est démontré par le configurateur de la fiche.
     icon: "hand-heart",
-    title: "Fait à la main",
-    description: "Pièces façonnées par des artisans passionnés.",
+    title: "Pièce sur-mesure",
+    description: "Couleur, matière, motif : vous configurez la vôtre en 3D.",
   },
 ]
 

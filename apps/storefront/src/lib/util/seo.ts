@@ -9,23 +9,62 @@ import { getBaseURL } from "@lib/util/env"
  * le jour de la bascule, seule cette variable change, jamais le code.
  */
 
+/**
+ * ⚠️ RÈGLE D'ÉCRITURE — à respecter dans TOUT texte public du site.
+ *
+ * 1. ORIGINE. Les produits sont de STYLE japonais mais sont CONÇUS ET FABRIQUÉS
+ *    EN FRANCE. Aucune formulation ne doit suggérer une origine, une matière ou
+ *    un savoir-faire japonais : « artisanat japonais », « authentique »,
+ *    « matériaux sélectionnés au Japon », « tradition Kōgei »… sont des
+ *    allégations d'origine fausses (exposition juridique) et détruisent
+ *    l'argument différenciant. « japonais » reste légitime comme DESCRIPTEUR DE
+ *    PRODUIT (« baguettes japonaises ») : c'est ce que cherchent les visiteurs.
+ *    Il devient faux dès qu'il qualifie la fabrication ou la matière.
+ *
+ * 2. AMBIGUÏTÉ. « personnalisé » seul désigne le plus souvent, dans cette
+ *    niche, un motif imprimé : toujours l'accompagner d'un mot qui tranche —
+ *    « sur-mesure », « que vous configurez », « à configurer en 3D ».
+ *    « configurer » plutôt que « composer » : c'est le verbe que les acheteurs
+ *    français associent déjà à ce mécanisme (configurateur auto, de cuisine).
+ *    Et jamais « créer de zéro » : le configurateur offre 5 teintes, 5 couleurs,
+ *    3 motifs, 4 finitions — c'est un choix dans un catalogue. Promettre la
+ *    création ex nihilo serait démenti dès l'ouverture de la fiche produit.
+ *
+ * 3. HIÉRARCHIE. La promesse centrale est le CONFIGURATEUR : couleur, teinte,
+ *    toile, papier, motif, finitions, vus en 3D. La gravure n'est QU'UNE option
+ *    parmi trois à cinq, facturée en supplément et placée en dernier dans
+ *    chaque produit — ne jamais l'installer en tête d'un titre ni d'un H1.
+ */
 export const SITE_NAME = "Hinaso"
-export const SITE_TAGLINE = "Artisanat japonais"
+export const SITE_TAGLINE = "Accessoires japonais à configurer en 3D"
 
-/** Titre par défaut (accueil / pages sans titre propre). Ne reçoit PAS le suffixe. */
+/**
+ * Titre par défaut (accueil / pages sans titre propre). Ne reçoit PAS le suffixe.
+ * 59 caractères ; « sur-mesure » démarre au 30e — donc encore visible sur mobile,
+ * où l'affichage est tronqué autour du 40e.
+ *
+ * L'accueil ne porte aucun mot-clé du corpus (aucun ne lui est assigné) : il
+ * vend la marque et le mécanisme, pas une requête. Y empiler « baguettes
+ * japonaises » et consorts cannibaliserait les fiches produit.
+ */
 export const SITE_DEFAULT_TITLE =
-  "Hinaso — Artisanat japonais authentique fait main"
+  "Hinaso — accessoires japonais sur-mesure à configurer en 3D"
 
 /** Gabarit appliqué aux titres de page : « Ma page » → « Ma page | Hinaso ». */
 export const SITE_TITLE_TEMPLATE = "%s | Hinaso"
 
+/** 152 caractères. Ouvre sur ce que le visiteur FAIT, pas sur ce que le site est. */
 export const SITE_DEFAULT_DESCRIPTION =
-  "Hinaso façonne des pièces d'artisanat japonais — baguettes, éventails et parapluies faits main. Matériaux nobles, personnalisation et livraison soignée."
+  "Choisissez l'essence, la couleur, le motif et voyez la pièce en 3D avant de commander. Baguettes, éventails et ombrelles japonaises fabriqués en France."
 
 /** Locale OpenGraph (le contenu du site est actuellement en français). */
 export const OG_LOCALE = "fr_FR"
 
-/** Marché prioritaire — sert de repère pour le futur x-default hreflang. */
+/**
+ * Marché prioritaire. Source unique pour DEUX choses qui doivent coïncider :
+ * le `x-default` du cluster hreflang (plus bas) et le pays servi par défaut
+ * par le middleware quand l'URL n'en porte aucun.
+ */
 export const PRIMARY_COUNTRY = "fr"
 
 /** Base sans slash final, pour composer des URLs absolues (JSON-LD, sameAs…). */

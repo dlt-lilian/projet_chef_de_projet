@@ -41,8 +41,8 @@ export default async function Footer() {
               Hinaso
             </LocalizedClientLink>
             <p className="text-sm text-gray-600 mt-3 max-w-[260px] leading-relaxed">
-              L'artisanat japonais à votre porte. Pièces uniques, façonnées à la
-              main.
+              Accessoires japonais à configurer en 3D. Conçus et fabriqués en
+              France.
             </p>
             <div className="flex items-center gap-3 mt-5">
               {socials.map((s) => (

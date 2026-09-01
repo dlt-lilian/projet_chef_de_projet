@@ -33,21 +33,24 @@ const HINASO_PRODUCTS = [
     handle: "baguettes",
     title: "Baguettes Japonaises",
     description:
-      "Baguettes japonaises en bois, personnalisables : essence de bois et gravure. Façonnées dans la tradition Kōgei.",
+      "Baguettes japonaises à configurer en 3D : couleur et teinte du bois au choix, gravure en option. Conçues et fabriquées en France.",
     price: 25,
   },
   {
     handle: "eventail",
     title: "Éventail Japonais",
     description:
-      "Éventail japonais (sensu) personnalisable : tissu et motif. Élégance et savoir-faire artisanal.",
+      "Éventail japonais (sensu) à configurer en 3D : monture, papier, motif et finition des vis. Conçu et fabriqué en France.",
     price: 35,
   },
   {
     handle: "parapluie",
     title: "Parapluie Japonais",
+    // TODO (lot 2) : « parapluie japonais » est une requête à ne pas cibler
+    // (majoritairement entomologique). À renommer « ombrelle japonaise » en même
+    // temps que le handle, l'URL, la navigation et la redirection 301.
     description:
-      "Parapluie japonais (wagasa) personnalisable. Pièce d'exception inspirée de l'artisanat traditionnel.",
+      "Parapluie japonais (wagasa) à configurer en 3D : couleur et toile au choix, gravure du manche en option. Conçu et fabriqué en France.",
     price: 45,
   },
 ];

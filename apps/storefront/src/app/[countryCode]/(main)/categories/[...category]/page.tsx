@@ -70,7 +70,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     const canonical = canonicalPath(params.countryCode, subPath)
     const description = (
       productCategory.description ||
-      `Découvrez notre sélection ${productCategory.name} — artisanat japonais fait main par Hinaso.`
+      `${productCategory.name} : essence, couleur, motif et finitions au choix, à configurer en 3D. Conçus et fabriqués en France par Hinaso.`
     ).slice(0, 160)
 
     return {

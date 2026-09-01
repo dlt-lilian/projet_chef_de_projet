@@ -9,7 +9,7 @@ export async function generateMetadata(props: {
   const { countryCode } = await props.params
   const canonical = canonicalPath(countryCode, "/blog")
   const description =
-    "Articles & récits sur l'artisanat japonais : savoir-faire, matières et coulisses de l'atelier Hinaso."
+    "Essences de bois, matières, usages et entretien : nos articles sur les baguettes, éventails et ombrelles japonaises que nous fabriquons en France."
 
   return {
     title: "Blog",

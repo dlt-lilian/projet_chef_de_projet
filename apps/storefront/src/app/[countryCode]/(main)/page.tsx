@@ -57,8 +57,8 @@ export default async function Home(props: {
       {/* H1 unique de l'accueil : le hero est un carrousel (plusieurs <h2>),
           on fournit donc un H1 sémantique accessible sans perturber le visuel. */}
       <h1 className="sr-only">
-        Hinaso — Artisanat japonais authentique : baguettes, éventails et
-        parapluies faits main
+        Baguettes, éventails et ombrelles japonaises à configurer en 3D, conçus
+        et fabriqués en France
       </h1>
 
       <Slider slides={slides} />

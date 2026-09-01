@@ -110,7 +110,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const description = (
     product.description ||
     product.subtitle ||
-    `${product.title} — pièce d'artisanat japonais faite main par Hinaso.`
+    `${product.title} — à configurer en 3D, conçu et fabriqué en France par Hinaso.`
   ).slice(0, 160)
   const images = product.thumbnail ? [product.thumbnail] : []
   const ogTitle = `${product.title} | Hinaso`
