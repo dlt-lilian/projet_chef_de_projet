@@ -5,20 +5,36 @@ import CookiePreferencesLink from "@modules/layout/components/cookie-consent/pre
 const shopLinks = [
   { label: "Baguettes", href: "/products/baguettes" },
   { label: "Éventail", href: "/products/eventail" },
-  { label: "Parapluie", href: "/products/parapluie" },
+  { label: "Ombrelle", href: "/products/ombrelle" },
   { label: "Toute la boutique", href: "/store" },
 ]
 
+/**
+ * ⚠️ N'inscrire ici QUE des pages qui existent réellement.
+ *
+ * « Notre histoire » (/about), « Livraison & retours » (/livraison-retours) et
+ * « CGV » (/cgv) pointaient vers des pages jamais créées : trois 404 servies
+ * depuis le pied de page, donc sur TOUTES les pages du site. Elles sont
+ * retirées plutôt que redirigées — un lien absent vaut mieux qu'un lien mort,
+ * pour le visiteur comme pour le crawl.
+ *
+ * Pour rétablir l'une d'elles : créer la page dans l'admin (Blog → champ
+ * « path »), vérifier qu'elle répond en 200, puis remettre sa ligne ici.
+ */
 const aboutLinks = [
   { label: "Le Blog", href: "/blog" },
-  { label: "Notre histoire", href: "/about" },
   { label: "Contact", href: "/contact" },
 ]
 
 const helpLinks = [
-  { label: "Livraison & retours", href: "/livraison-retours" },
-  { label: "Mentions légales", href: "/legal" },
-  { label: "CGV", href: "/cgv" },
+  // La page est publiée à /mentions-legales ; /legal n'a jamais existé.
+  { label: "Mentions légales", href: "/mentions-legales" },
+  // Existe en base mais n'était liée depuis aucune page : le RGPD impose
+  // qu'elle reste accessible en permanence.
+  {
+    label: "Politique de confidentialité",
+    href: "/politique-de-confidentialite",
+  },
   { label: "Cookies", href: "/cookies" },
 ]
 

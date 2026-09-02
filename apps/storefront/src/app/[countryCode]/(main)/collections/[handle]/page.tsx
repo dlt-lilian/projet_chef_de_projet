@@ -24,6 +24,28 @@ type Props = {
 
 export const PRODUCT_LIMIT = 12
 
+/**
+ * Récupère une collection en traitant l'absence ET l'erreur comme « introuvable ».
+ *
+ * Sans ce garde-fou, un handle inconnu renvoyait un 500 : `getCollectionByHandle`
+ * lève quand le backend répond autre chose qu'un 2xx, et l'exception remontait
+ * jusqu'à la page. C'était la seule route dynamique du site dans ce cas
+ * (produits, catégories, articles et pages autonomes renvoyaient déjà 404).
+ *
+ * L'écart compte pour le référencement : un 404 retire l'URL de l'index, un 500
+ * signale un site en panne et fait ralentir le crawl.
+ *
+ * Le try/catch n'enveloppe QUE l'appel réseau — jamais `notFound()`, dont le
+ * mécanisme repose sur une exception qui doit remonter intacte.
+ */
+async function findCollection(handle: string) {
+  try {
+    return await getCollectionByHandle(handle)
+  } catch {
+    return null
+  }
+}
+
 export async function generateStaticParams() {
   // Repli gracieux si le backend est injoignable au build (même schéma que
   // products/categories/blog) : sans ce try/catch, une simple indisponibilité
@@ -71,7 +93,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params
-  const collection = await getCollectionByHandle(params.handle)
+  const collection = await findCollection(params.handle)
 
   if (!collection) {
     notFound()
@@ -99,9 +121,7 @@ export default async function CollectionPage(props: Props) {
   const params = await props.params
   const { sortBy, page } = searchParams
 
-  const collection = await getCollectionByHandle(params.handle).then(
-    (collection) => collection
-  )
+  const collection = await findCollection(params.handle)
 
   if (!collection) {
     notFound()

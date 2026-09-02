@@ -11,7 +11,7 @@ import {
 // ──────────────────────────────────────────────────────────────────────
 // Seed des produits du configurator 3D.
 // Handles alignés sur CONFIGURABLE_HANDLES du storefront :
-//   baguettes · eventail · parapluie
+//   baguettes · eventail · ombrelle
 //
 // Remplace l'ancien seed (handles baguettes-japonaises / pack-kogei) :
 //   1. supprime les anciens produits orphelins (try/catch — non bloquant)
@@ -44,13 +44,15 @@ const HINASO_PRODUCTS = [
     price: 35,
   },
   {
-    handle: "parapluie",
-    title: "Parapluie Japonais",
-    // TODO (lot 2) : « parapluie japonais » est une requête à ne pas cibler
-    // (majoritairement entomologique). À renommer « ombrelle japonaise » en même
-    // temps que le handle, l'URL, la navigation et la redirection 301.
+    // « ombrelle japonaise » (1 000 rech./mois) et non « parapluie japonais »
+    // (65, et majoritairement entomologique : le parapluie japonais est une
+    // technique d'échantillonnage d'insectes). Les bases DÉJÀ en ligne sont
+    // migrées par `rename-parapluie-to-ombrelle` ; ce seed ne couvre que les
+    // installations fraîches.
+    handle: "ombrelle",
+    title: "Ombrelle Japonaise",
     description:
-      "Parapluie japonais (wagasa) à configurer en 3D : couleur et toile au choix, gravure du manche en option. Conçu et fabriqué en France.",
+      "Ombrelle japonaise à configurer en 3D : couleur, toile, gravure du manche. Voyez le rendu avant de commander. Conçue et fabriquée en France.",
     price: 45,
   },
 ];

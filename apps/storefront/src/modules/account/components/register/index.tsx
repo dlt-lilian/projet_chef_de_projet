@@ -67,14 +67,14 @@ const Register = ({ setCurrentView }: Props) => {
         <span className="text-center text-ui-fg-base text-small-regular mt-6">
          En créant votre compte vous acceptez notre{" "}
           <LocalizedClientLink
-            href="/content/privacy-policy"
+            href="/politique-de-confidentialite"
             className="underline"
           >
             politique de confidentialité
           </LocalizedClientLink>{" "}
           ainsi que nos{" "}
           <LocalizedClientLink
-            href="/content/terms-of-use"
+            href="/mentions-legales"
             className="underline"
           >
             mentions légales

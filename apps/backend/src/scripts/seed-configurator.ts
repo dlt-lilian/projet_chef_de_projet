@@ -103,7 +103,9 @@ const PRODUCTS: SeedProduct[] = [
     ],
   },
   {
-    handle: "parapluie",
+    handle: "ombrelle",
+    // Le nom de l'objet R2 garde « parapluie » : le renommer côté stockage
+    // casserait les configs déjà en base. Sans effet SEO (asset non indexé).
     glbPath: `${R2}/3D/parapluie-01KWHATRDETE4AB94S8X16PJ67.glb`,
     options: [
       { id: "color", label: "Couleur", type: "color", targetMesh: "Material_0", choices: COLOR_CHOICES },
@@ -112,12 +114,12 @@ const PRODUCTS: SeedProduct[] = [
         label: "Toile",
         type: "texture",
         targetMesh: "Material_0",
-        // TODO assets : textures parapluie (indigo/kraft/black) jamais uploadées.
+        // TODO assets : textures ombrelle (indigo/kraft/black) jamais uploadées.
         // À déposer sur R2 puis remplacer ces chemins (idem configurableProducts.ts).
         choices: [
-          { id: "indigo", label: "Indigo", texturePath: "/3d/parapluie/textures/indigo.jpg" },
-          { id: "kraft", label: "Kraft", texturePath: "/3d/parapluie/textures/kraft.jpg" },
-          { id: "black", label: "Noir", texturePath: "/3d/parapluie/textures/black.jpg" },
+          { id: "indigo", label: "Indigo", texturePath: "/3d/ombrelle/textures/indigo.jpg" },
+          { id: "kraft", label: "Kraft", texturePath: "/3d/ombrelle/textures/kraft.jpg" },
+          { id: "black", label: "Noir", texturePath: "/3d/ombrelle/textures/black.jpg" },
         ],
       },
       { id: "engraving", label: "Gravure du manche", type: "engraving" },

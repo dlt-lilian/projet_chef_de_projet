@@ -1,4 +1,4 @@
-export type ConfigurableHandle = "baguettes" | "eventail" | "parapluie"
+export type ConfigurableHandle = "baguettes" | "eventail" | "ombrelle"
 
 export type ConfiguratorOptionType = "texture" | "motif" | "color" | "engraving"
 
@@ -81,7 +81,7 @@ export type ProductConfigMap = Record<
 export const CONFIGURABLE_HANDLES: ConfigurableHandle[] = [
   "baguettes",
   "eventail",
-  "parapluie",
+  "ombrelle",
 ]
 
 /** Palette de couleurs unies Hinaso (laque / bois teinté), partagée par les produits. */
@@ -220,7 +220,9 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
       },
     ],
   },
-  parapluie: {
+  ombrelle: {
+    // Le nom de l'objet R2 garde « parapluie » : le renommer côté stockage
+    // casserait les configs déjà en base. Sans effet SEO (asset non indexé).
     glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/parapluie-01KWHATRDETE4AB94S8X16PJ67.glb",
     options: [
       {
@@ -239,17 +241,17 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
           {
             id: "indigo",
             label: "Indigo",
-            texturePath: "/3d/parapluie/textures/indigo.jpg",
+            texturePath: "/3d/ombrelle/textures/indigo.jpg",
           },
           {
             id: "kraft",
             label: "Kraft",
-            texturePath: "/3d/parapluie/textures/kraft.jpg",
+            texturePath: "/3d/ombrelle/textures/kraft.jpg",
           },
           {
             id: "black",
             label: "Noir",
-            texturePath: "/3d/parapluie/textures/black.jpg",
+            texturePath: "/3d/ombrelle/textures/black.jpg",
           },
         ],
       },
