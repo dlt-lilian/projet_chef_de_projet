@@ -2,6 +2,7 @@ import { MetadataRoute } from "next"
 import { HttpTypes } from "@medusajs/types"
 import { absoluteUrl } from "@lib/util/seo"
 import { getAllArticles, getAllPages } from "@lib/blog"
+import { OCCASION_LANDINGS } from "@lib/content/occasions"
 
 /**
  * sitemap.xml natif (Next Metadata route) → servi sur /sitemap.xml.
@@ -112,6 +113,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.5,
       },
       {
+        url: absoluteUrl(`/${cc}/offrir`),
+        lastModified: now,
+        changeFrequency: "monthly",
+        priority: 0.6,
+      },
+      {
         url: absoluteUrl(`/${cc}/contact`),
         lastModified: now,
         changeFrequency: "yearly",
@@ -124,6 +131,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.2,
       }
     )
+
+    // Landings d'occasion : contenu statique (lib/content/occasions.ts), donc
+    // aucun appel backend — elles figurent au sitemap même si le backend est
+    // injoignable, contrairement au catalogue.
+    for (const o of OCCASION_LANDINGS) {
+      entries.push({
+        url: absoluteUrl(`/${cc}/offrir/${o.slug}`),
+        lastModified: now,
+        changeFrequency: "monthly",
+        priority: 0.7,
+      })
+    }
 
     for (const p of products) {
       if (!p.handle) continue

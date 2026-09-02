@@ -260,6 +260,10 @@ type ProductJsonLdInput = {
   price?: number | null
   currency?: string | null
   availability: "InStock" | "OutOfStock"
+  /** Matière principale (ex. « Hêtre massif »). Omise tant qu'elle est inconnue. */
+  material?: string | null
+  /** Pays de fabrication, code ISO 3166-1 alpha-2 (ex. « FR »). */
+  countryOfOrigin?: string | null
 }
 
 /** Product + Offer — rich result e-commerce. */
@@ -286,8 +290,44 @@ export function productJsonLd(input: ProductJsonLdInput): JsonLd {
     image: images.length ? images : undefined,
     sku: input.sku || undefined,
     brand: { "@type": "Brand", name: SITE_NAME },
+    // Omis tant que la donnée réelle n'est pas fournie : une matière fausse dans
+    // le JSON-LD est pire que son absence — Google compare la donnée structurée
+    // au contenu de la page et dévalide l'ensemble en cas d'écart.
+    material: input.material || undefined,
+    countryOfOrigin: input.countryOfOrigin
+      ? { "@type": "Country", name: input.countryOfOrigin }
+      : undefined,
     url: absoluteUrl(input.path),
     offers,
+    // TODO: `hasMerchantReturnPolicy` et `shippingDetails` — délibérément
+    // absents. Ils exigent des valeurs chiffrées (fenêtre de rétractation,
+    // délai et frais de livraison) dont aucune n'est arrêtée à ce jour.
+    // Point d'attention : l'art. L221-28 3° du Code de la consommation exclut
+    // le droit de rétractation pour les biens confectionnés selon les
+    // spécifications du consommateur — ce qui est exactement le cas des pièces
+    // sorties du configurateur. La politique doit donc être tranchée
+    // juridiquement avant d'être déclarée ici.
+  }
+}
+
+/**
+ * FAQPage — éligible au rich result « questions fréquentes ».
+ *
+ * À n'émettre QUE si les mêmes questions/réponses sont visibles dans le HTML
+ * de la page : Google invalide un FAQPage dont le contenu n'apparaît pas à
+ * l'écran. Ici les deux viennent de `lib/content/products.ts`, source unique.
+ */
+export function faqPageJsonLd(
+  items: { question: string; answer: string }[]
+): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((it) => ({
+      "@type": "Question",
+      name: it.question,
+      acceptedAnswer: { "@type": "Answer", text: it.answer },
+    })),
   }
 }
 

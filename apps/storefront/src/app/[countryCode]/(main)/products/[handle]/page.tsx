@@ -20,9 +20,12 @@ import { getProductPrice } from "@lib/util/get-product-price"
 import {
   breadcrumbJsonLd,
   canonicalPath,
+  faqPageJsonLd,
   hreflangAlternates,
   productJsonLd,
 } from "@lib/util/seo"
+import { getProductEditorial } from "@lib/content/products"
+import EditorialSection from "@modules/common/components/editorial"
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
@@ -107,17 +110,27 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   }
 
   const canonical = canonicalPath(params.countryCode, `/products/${handle}`)
-  const description = (
-    product.description ||
-    product.subtitle ||
-    `${product.title} — à configurer en 3D, conçu et fabriqué en France par Hinaso.`
-  ).slice(0, 160)
+
+  // Le titre produit Medusa nomme l'article ; il ne fait pas un bon title SEO
+  // (« Ombrelle Japonaise | Hinaso » = 28 caractères, la moitié de la place
+  // disponible en SERP). Quand la fiche a un contenu éditorial, ses `seoTitle`
+  // et `seoDescription` — calibrés 55-60 et 140-155 caractères — priment.
+  const editorial = getProductEditorial(handle)
+
+  const description =
+    editorial?.seoDescription ??
+    (
+      product.description ||
+      product.subtitle ||
+      `${product.title} — à configurer en 3D, conçu et fabriqué en France par Hinaso.`
+    ).slice(0, 160)
+  const title = editorial?.seoTitle ?? product.title
   const images = product.thumbnail ? [product.thumbnail] : []
-  const ogTitle = `${product.title} | Hinaso`
+  const ogTitle = `${title} | Hinaso`
 
   return {
     // Le gabarit du layout racine ajoute « | Hinaso » au titre.
-    title: product.title,
+    title,
     description,
     alternates: { canonical, languages: hreflangAlternates(`/products/${handle}`) },
     openGraph: {
@@ -170,6 +183,11 @@ export default async function ProductPage(props: Props) {
     params.countryCode,
     `/products/${pricedProduct.handle}`
   )
+  const editorial = getProductEditorial(pricedProduct.handle)
+
+  // Première catégorie rattachée : chaque produit n'en a qu'une aujourd'hui.
+  const productCategory = pricedProduct.categories?.[0]
+
   const jsonLd = [
     productJsonLd({
       name: pricedProduct.title,
@@ -183,13 +201,35 @@ export default async function ProductPage(props: Props) {
       price: cheapestPrice?.calculated_price_number ?? null,
       currency: cheapestPrice?.currency_code ?? region.currency_code,
       availability: inStock ? "InStock" : "OutOfStock",
+      material: editorial?.material,
+      countryOfOrigin: editorial?.countryOfOrigin,
     }),
+    // Fil d'Ariane : Accueil › Boutique › Catégorie › Produit. Le niveau
+    // catégorie vient du rattachement réel en base et disparaît si le produit
+    // n'en a aucun — jamais de maillon vers une URL qui n'existerait pas.
     breadcrumbJsonLd([
       { name: "Accueil", path: canonicalPath(params.countryCode) },
       { name: "Boutique", path: canonicalPath(params.countryCode, "/store") },
+      ...(productCategory
+        ? [
+            {
+              name: productCategory.name,
+              path: canonicalPath(
+                params.countryCode,
+                `/categories/${productCategory.handle}`
+              ),
+            },
+          ]
+        : []),
       { name: pricedProduct.title, path: productPath },
     ]),
   ]
+
+  // FAQPage seulement si les questions sont réellement affichées plus bas :
+  // Google invalide un FAQPage dont le contenu n'est pas visible sur la page.
+  if (editorial?.faq.length) {
+    jsonLd.push(faqPageJsonLd(editorial.faq))
+  }
 
   if (isConfigurableProduct(pricedProduct.handle)) {
     // Config éditable depuis l'admin (table configurator_*), avec repli sur la
@@ -218,6 +258,10 @@ export default async function ProductPage(props: Props) {
           config={config}
           initialConfiguration={initialConfiguration}
         />
+        {/* Rendu APRÈS le configurateur : sur ces fiches, c'est le seul texte
+            indexable de la page — le configurateur est un composant client dont
+            le corps ne contient que des libellés d'options. */}
+        {editorial && <EditorialSection editorial={editorial} />}
       </>
     )
   }
@@ -233,6 +277,7 @@ export default async function ProductPage(props: Props) {
         countryCode={params.countryCode}
         images={images ?? []}
       />
+      {editorial && <EditorialSection editorial={editorial} />}
     </>
   )
 }

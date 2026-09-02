@@ -2,10 +2,36 @@ import LocalizedClientLink from "@modules/common/components/localized-client-lin
 import { Icon } from "@modules/common/components/my_ui"
 import CookiePreferencesLink from "@modules/layout/components/cookie-consent/preferences-link"
 
+/**
+ * Le pied de page pointe sur les CATÉGORIES, la navbar sur les fiches.
+ *
+ * C'est ce qui donne aux pages de catégorie le maillage dont elles ont besoin
+ * pour se positionner sur des requêtes larges, sans allonger le parcours
+ * d'achat : la navbar, présente sur chaque page, mène toujours au configurateur
+ * en un clic.
+ *
+ * Ancres volontairement PLUS PRÉCISES que la requête ciblée (« baguettes
+ * japonaises à configurer » et non « baguettes japonaises ») : une ancre en
+ * correspondance exacte, répétée sur toutes les pages du site, est le signal
+ * de sur-optimisation le plus facile à détecter.
+ */
 const shopLinks = [
-  { label: "Baguettes", href: "/products/baguettes" },
-  { label: "Éventail", href: "/products/eventail" },
-  { label: "Ombrelle", href: "/products/ombrelle" },
+  {
+    label: "Baguettes japonaises à configurer",
+    href: "/categories/baguettes-japonaises",
+  },
+  {
+    label: "Éventails japonais sur-mesure",
+    href: "/categories/eventail-japonais",
+  },
+  {
+    label: "Ombrelles japonaises sur-mesure",
+    href: "/categories/ombrelle-japonaise",
+  },
+  // Un seul lien vers le hub, et non six vers chaque occasion : lister six
+  // landings de plus dans le pied de page diluerait le maillage au lieu de le
+  // renforcer. C'est /offrir qui les distribue.
+  { label: "Idées cadeaux à faire graver", href: "/offrir" },
   { label: "Toute la boutique", href: "/store" },
 ]
 

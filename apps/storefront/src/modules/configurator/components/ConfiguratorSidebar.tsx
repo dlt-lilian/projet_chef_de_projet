@@ -113,16 +113,11 @@ export default function ConfiguratorSidebar({
   return (
     <>
       {/* ───────────── DESKTOP : sidebar classique (≥ md) ───────────── */}
+      {/* Le titre produit ne vit plus ici : cette barre est marquée
+          `hidden md:flex`, le H1 était donc en `display:none` sous 768 px.
+          Il est remonté dans ConfiguratorLayout, hors des branches
+          responsives — un seul H1, visible à tous les breakpoints. */}
       <aside className="hidden md:flex flex-col gap-6 w-full md:w-[40%] md:max-w-[420px] md:min-w-[320px] p-6 md:border-l border-stone-200 bg-white">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold text-stone-900">
-            {product.title}
-          </h1>
-          {product.subtitle && (
-            <p className="text-sm text-stone-600">{product.subtitle}</p>
-          )}
-        </header>
-
         <div className="flex flex-col gap-6">
           {config.options.map((option) => (
             <OptionRow

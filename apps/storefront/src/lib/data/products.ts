@@ -62,8 +62,13 @@ export const listProducts = async ({
           limit,
           offset,
           region_id: region?.id,
+          // `+categories.*` : alimente le niveau « catégorie » du fil d'Ariane
+          // et de son JSON-LD sur les fiches produit. Deux champs par catégorie,
+          // charge utile négligeable, et une seule source de vérité — le
+          // rattachement réel en base, pas une table de correspondance figée
+          // dans le code qui dériverait à la première modification en admin.
           fields:
-            "*variants.calculated_price,+variants.inventory_quantity,*variants.images,+metadata,+tags,",
+            "*variants.calculated_price,+variants.inventory_quantity,*variants.images,+metadata,+tags,+categories.handle,+categories.name,",
           ...queryParams,
         },
         headers,

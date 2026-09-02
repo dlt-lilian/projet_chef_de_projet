@@ -1,6 +1,7 @@
 "use client"
 
 import { HttpTypes } from "@medusajs/types"
+import Image from "next/image"
 import { lazy, Suspense, useCallback, useMemo, useRef } from "react"
 import {
   ConfiguratorOption,
@@ -111,37 +112,86 @@ export default function ConfiguratorLayout({
     [config]
   )
 
+  // Poster de premier rendu. Le visuel produit remplace l'aplat gris qui
+  // s'affichait jusqu'ici derrière « Chargement du configurateur… » : trois
+  // fiches sur trois ouvraient donc sur un rectangle vide le temps de charger
+  // ~1 Mo de three.js puis le GLB.
+  //
+  // Ce repli est rendu CÔTÉ SERVEUR (React sérialise le fallback d'un Suspense
+  // dans le HTML initial), il constitue donc un vrai élément LCP mesurable —
+  // ce que ne pouvait pas être un aplat de couleur.
+  const posterSrc = product.thumbnail ?? undefined
+  const posterAlt = `${product.title} — aperçu avant chargement du configurateur 3D`
+
   return (
-    <section
-      className="flex flex-col md:flex-row w-full h-[calc(100dvh-61px)] md:h-auto md:min-h-[80vh]"
-      data-testid="configurator-layout"
-    >
-      <div className="flex-1 min-h-0 w-full md:w-[60%] bg-stone-50">
-        <Suspense
-          fallback={
-            <div className="w-full h-full min-h-[240px] md:min-h-[480px] bg-stone-100 flex items-center justify-center">
-              <div className="px-3 py-1.5 rounded-full bg-white/80 text-sm text-stone-700 shadow-sm">
-                Chargement du configurateur…
+    <div className="flex flex-col w-full h-[calc(100dvh-61px)] md:h-auto md:min-h-[80vh]">
+      {/* Titre produit — H1 UNIQUE de la page, hors des deux branches
+          responsives.
+          Il vivait auparavant dans la barre latérale desktop, marquée
+          `hidden md:flex` : sous 768 px il était donc en `display:none`, et la
+          feuille mobile n'affichait aucun nom de produit. Deux conséquences —
+          l'indexation de Google est mobile-first, et un visiteur mobile
+          arrivait sur une fiche sans jamais lire ce qu'il regardait.
+          Le sortir ici plutôt que de le dupliquer dans chaque branche garde un
+          H1 et un seul dans le DOM, visible à tous les breakpoints. */}
+      <header className="flex-none px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4 border-b border-stone-200 bg-white">
+        <h1 className="text-xl md:text-2xl font-semibold text-stone-900">
+          {product.title}
+        </h1>
+        {product.subtitle && (
+          <p className="mt-1 text-sm text-stone-600">{product.subtitle}</p>
+        )}
+      </header>
+
+      {/* `flex-1 min-h-0` : la hauteur bornée est portée par le conteneur
+          ci-dessus, la zone configurateur occupe simplement ce qui reste sous
+          l'en-tête — la feuille mobile garde donc son `max-h-[60%]` sans jamais
+          déborder sous la ligne de flottaison. */}
+      <section
+        className="flex flex-1 min-h-0 flex-col md:flex-row w-full"
+        data-testid="configurator-layout"
+      >
+        <div className="flex-1 min-h-0 w-full md:w-[60%] bg-stone-50">
+          <Suspense
+            fallback={
+              <div className="relative w-full h-full min-h-[240px] md:min-h-[480px] bg-stone-100 flex items-center justify-center">
+                {posterSrc && (
+                  <Image
+                    src={posterSrc}
+                    alt={posterAlt}
+                    fill
+                    // `priority` : c'est l'élément LCP de la fiche, on veut un
+                    // <link rel="preload"> plutôt qu'un chargement différé.
+                    priority
+                    sizes="(max-width: 768px) 100vw, 60vw"
+                    className="object-contain"
+                  />
+                )}
+                <div className="relative px-3 py-1.5 rounded-full bg-white/80 text-sm text-stone-700 shadow-sm">
+                  Chargement du configurateur…
+                </div>
               </div>
-            </div>
-          }
-        >
-          <ConfiguratorViewer
-            ref={viewerRef}
-            glbPath={config.glbPath}
-            rotationSpeed={config.autoRotate === false ? 0 : 1}
-            modelRotationDeg={modelRotationDeg}
-            onModelReady={handleModelReady}
-          />
-        </Suspense>
-      </div>
-      <ConfiguratorSidebar
-        product={product}
-        config={config}
-        controller={controller}
-        onOptionChange={applyOption}
-        onActiveOptionChange={handleActiveOption}
-      />
-    </section>
+            }
+          >
+            <ConfiguratorViewer
+              ref={viewerRef}
+              glbPath={config.glbPath}
+              rotationSpeed={config.autoRotate === false ? 0 : 1}
+              modelRotationDeg={modelRotationDeg}
+              onModelReady={handleModelReady}
+              posterSrc={posterSrc}
+              posterAlt={posterAlt}
+            />
+          </Suspense>
+        </div>
+        <ConfiguratorSidebar
+          product={product}
+          config={config}
+          controller={controller}
+          onOptionChange={applyOption}
+          onActiveOptionChange={handleActiveOption}
+        />
+      </section>
+    </div>
   )
 }

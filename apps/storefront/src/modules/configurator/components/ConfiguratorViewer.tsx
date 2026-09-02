@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react"
+import Image from "next/image"
 import type { Object3D, Vector3 } from "three"
 import {
   ThreeContext,
@@ -56,13 +57,31 @@ type ConfiguratorViewerProps = {
   /** Orientation initiale du modèle en degrés [x, y, z] (défaut : [0, 0, 90]). */
   modelRotationDeg?: [number, number, number]
   onModelReady?: () => void
+  /**
+   * Visuel affiché derrière le canvas pendant le chargement du GLB.
+   *
+   * Le même poster couvre déjà le chargement du chunk three.js, côté
+   * ConfiguratorLayout. Le reprendre ici évite qu'il ne cède la place à un
+   * aplat gris entre les deux phases : le visiteur voit le produit en continu,
+   * de la première peinture jusqu'au modèle 3D.
+   */
+  posterSrc?: string
+  /** Texte alternatif du poster. Requis dès que `posterSrc` est fourni. */
+  posterAlt?: string
 }
 
 const ConfiguratorViewer = forwardRef<
   ConfiguratorViewerHandle,
   ConfiguratorViewerProps
 >(function ConfiguratorViewer(
-  { glbPath, rotationSpeed = 1.0, modelRotationDeg, onModelReady },
+  {
+    glbPath,
+    rotationSpeed = 1.0,
+    modelRotationDeg,
+    onModelReady,
+    posterSrc,
+    posterAlt,
+  },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -210,6 +229,15 @@ const ConfiguratorViewer = forwardRef<
         className="block w-full h-full"
         data-testid="configurator-canvas"
       />
+      {loading && !error && posterSrc && (
+        <Image
+          src={posterSrc}
+          alt={posterAlt ?? ""}
+          fill
+          sizes="(max-width: 768px) 100vw, 60vw"
+          className="object-contain pointer-events-none"
+        />
+      )}
       {loading && !error && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="px-3 py-1.5 rounded-full bg-white/80 text-sm text-stone-700 shadow-sm">
