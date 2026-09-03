@@ -5,8 +5,12 @@ import { HttpTypes } from "@medusajs/types"
 import { getCacheOptions } from "./cookies"
 
 export const retrieveCollection = async (id: string) => {
+  // Fenêtre de revalidation obligatoire : les tags seuls ne rafraîchissent
+  // jamais le catalogue (cf. `getCacheOptions`, cookies.ts). Sans elle, une
+  // collection modifiée en admin n'apparaissait qu'au redéploiement suivant.
   const next = {
     ...(await getCacheOptions("collections")),
+    revalidate: 60,
   }
 
   return await sdk.client
@@ -14,7 +18,6 @@ export const retrieveCollection = async (id: string) => {
       `/store/collections/${id}`,
       {
         next,
-        cache: "force-cache",
       }
     )
     .then(({ collection }) => collection)
@@ -23,8 +26,10 @@ export const retrieveCollection = async (id: string) => {
 export const listCollections = async (
   queryParams: Record<string, string> = {}
 ): Promise<{ collections: HttpTypes.StoreCollection[]; count: number }> => {
+  // Cf. `retrieveCollection` ci-dessus.
   const next = {
     ...(await getCacheOptions("collections")),
+    revalidate: 60,
   }
 
   queryParams.limit = queryParams.limit || "100"
@@ -36,7 +41,6 @@ export const listCollections = async (
       {
         query: queryParams,
         next,
-        cache: "force-cache",
       }
     )
     .then(({ collections }) => ({ collections, count: collections.length }))
@@ -45,15 +49,16 @@ export const listCollections = async (
 export const getCollectionByHandle = async (
   handle: string
 ): Promise<HttpTypes.StoreCollection | null> => {
+  // Cf. `retrieveCollection` ci-dessus.
   const next = {
     ...(await getCacheOptions("collections")),
+    revalidate: 60,
   }
 
   return await sdk.client
     .fetch<HttpTypes.StoreCollectionListResponse>(`/store/collections`, {
       query: { handle, fields: "*products" },
       next,
-      cache: "force-cache",
     })
     .then(({ collections }) => collections[0] || null)
 }

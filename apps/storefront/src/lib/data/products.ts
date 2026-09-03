@@ -49,8 +49,14 @@ export const listProducts = async ({
     ...(await getAuthHeaders()),
   }
 
+  // `revalidate` OBLIGATOIRE, ne pas le retirer au profit des seuls tags :
+  // ceux-ci sont nominatifs et rien côté admin ne les déclenche (cf. le détail
+  // sur `getCacheOptions`, cookies.ts). Sans lui, une image ajoutée sur une
+  // fiche produit n'apparaissait sur les cartes qu'au redéploiement suivant.
+  // 60 s, comme le blog (lib/blog).
   const next = {
     ...(await getCacheOptions("products")),
+    revalidate: 60,
   }
 
   return sdk.client
@@ -72,8 +78,12 @@ export const listProducts = async ({
           ...queryParams,
         },
         headers,
+        // `cache` volontairement absent ici et sur les autres lectures de
+        // catalogue : `next.revalidate` suffit à opter pour la mise en cache et
+        // porte déjà la fenêtre de fraîcheur. Cumuler `cache: "force-cache"`
+        // ferait doublon (Next 15 signale la contradiction) — même écriture que
+        // `lib/blog`.
         next,
-        cache: "force-cache",
       }
     )
     .then(({ products, count }) => {

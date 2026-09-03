@@ -3,8 +3,12 @@ import { HttpTypes } from "@medusajs/types"
 import { getCacheOptions } from "./cookies"
 
 export const listCategories = async (query?: Record<string, unknown>) => {
+  // Fenêtre de revalidation obligatoire : les tags seuls ne rafraîchissent
+  // jamais le catalogue (cf. `getCacheOptions`, cookies.ts). Sans elle, une
+  // catégorie créée ou renommée en admin n'apparaissait qu'au redéploiement.
   const next = {
     ...(await getCacheOptions("categories")),
+    revalidate: 60,
   }
 
   const limit = query?.limit || 100
@@ -20,7 +24,6 @@ export const listCategories = async (query?: Record<string, unknown>) => {
           ...query,
         },
         next,
-        cache: "force-cache",
       }
     )
     .then(({ product_categories }) => product_categories)
@@ -29,8 +32,10 @@ export const listCategories = async (query?: Record<string, unknown>) => {
 export const getCategoryByHandle = async (categoryHandle: string[]) => {
   const handle = `${categoryHandle.join("/")}`
 
+  // Cf. `listCategories` ci-dessus.
   const next = {
     ...(await getCacheOptions("categories")),
+    revalidate: 60,
   }
 
   return sdk.client
@@ -42,7 +47,6 @@ export const getCategoryByHandle = async (categoryHandle: string[]) => {
           handle,
         },
         next,
-        cache: "force-cache",
       }
     )
     .then(({ product_categories }) => product_categories[0])

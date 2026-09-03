@@ -33,6 +33,32 @@ export const getCacheTag = async (tag: string): Promise<string> => {
   }
 }
 
+/**
+ * Tags de cache Next pour un fetch Medusa.
+ *
+ * ⚠️ Ces tags NE SUFFISENT PAS à rafraîchir le catalogue : tout appelant qui
+ * lit du contenu piloté depuis l'admin (produits, catégories, collections,
+ * régions) DOIT aussi poser son propre `next.revalidate`.
+ *
+ * Deux raisons :
+ *
+ * 1. Le tag renvoyé vaut `<tag>-<cacheId>`, où `cacheId` est le cookie
+ *    `_medusa_cache_id` — un UUID tiré PAR VISITEUR dans le middleware. Il
+ *    n'est donc revalidable que depuis une action de ce visiteur précis, et
+ *    rien côté admin Medusa ne le déclenche : il n'existe ni route
+ *    `/api/revalidate` ni subscriber `product.updated`.
+ * 2. Sans cookie (premier rendu, crawler), on renvoie `{}` : l'entrée est
+ *    alors mise en cache SANS AUCUN TAG, donc strictement impossible à
+ *    invalider.
+ *
+ * Sur Railway (`next start`, cache disque persistant), une réponse sans
+ * fenêtre de revalidation reste figée pour toute la durée de vie du conteneur
+ * — jusqu'au redéploiement suivant.
+ *
+ * Les données propres au visiteur (panier, client, commandes) échappent à ça :
+ * leurs mutations appellent `revalidateTag` avec le `cacheId` de l'utilisateur
+ * en cours. Pour elles, les tags seuls sont la bonne réponse.
+ */
 export const getCacheOptions = async (
   tag: string
 ): Promise<{ tags: string[] } | Record<string, never>> => {

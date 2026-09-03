@@ -16,8 +16,12 @@ export const retrieveVariant = async (
     ...authHeaders,
   }
 
+  // Fenêtre de revalidation obligatoire : les tags seuls ne rafraîchissent
+  // jamais le catalogue (cf. `getCacheOptions`, cookies.ts). Aligné sur
+  // `listProducts`, dont cette lecture est le pendant à l'échelle variante.
   const next = {
     ...(await getCacheOptions("variants")),
+    revalidate: 60,
   }
 
   return await sdk.client
@@ -30,7 +34,6 @@ export const retrieveVariant = async (
         },
         headers,
         next,
-        cache: "force-cache",
       }
     )
     .then(({ variant }) => variant)
