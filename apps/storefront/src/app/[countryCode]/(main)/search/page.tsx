@@ -13,7 +13,7 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
   const { q } = await props.searchParams
   const canonical = canonicalPath(countryCode, "/search")
   const description =
-    "Recherchez parmi les produits et les articles Hinaso : baguettes, éventails, parapluies et récits d'atelier."
+    "Recherchez parmi les produits et les articles Hinaso : baguettes, éventails, ombrelles et récits d'atelier."
 
   return {
     title: q ? `Recherche : ${q}` : "Recherche",
