@@ -1,4 +1,4 @@
-import Link from "next/link"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import BlockRenderer from "@modules/blog/components/blocks/BlockRenderer"
 import type { BlogPost } from "@lib/blog/types"
 
@@ -10,9 +10,25 @@ import type { BlogPost } from "@lib/blog/types"
  * options de l'article, ne gardant que le corps.
  */
 export default function ArticleTemplate({ post }: { post: BlogPost }) {
-  const hasBanner    = post.blocks[0]?.type === "banner"
+  const firstBlock   = post.blocks[0]
+  const hasBanner    = firstBlock?.type === "banner"
   const bannerBlocks = hasBanner ? post.blocks.slice(0, 1) : []
   const bodyBlocks   = hasBanner ? post.blocks.slice(1)   : post.blocks
+
+  /**
+   * Le H1 de la page vient de la bannière quand elle porte un titre — sinon il
+   * est rendu ici à partir de `post.title`.
+   *
+   * Sans ce repli, un article sans bannière (ou dont la bannière n'a pas de
+   * titre saisi) ne contenait AUCUN <h1> : c'était le cas des trois articles
+   * en ligne. Un moteur n'avait alors rien pour identifier le sujet de la page
+   * en dehors de la balise <title>.
+   *
+   * Combiné à TitleBlock, qui ne rend plus jamais de <h1>, cela garantit
+   * exactement un H1 par page, quel que soit le contenu saisi en backoffice.
+   */
+  const bannerProvidesH1 =
+    hasBanner && firstBlock.type === "banner" && Boolean(firstBlock.title)
 
   return (
     <div className="bg-ui-bg-base min-h-screen">
@@ -23,9 +39,9 @@ export default function ArticleTemplate({ post }: { post: BlogPost }) {
       {!post.hide_breadcrumb && (
         <nav className="bg-ui-bg-base/90 backdrop-blur-sm border-b border-ui-border-base">
           <div className="content-container py-3 flex items-center justify-between">
-            <Link href="/blog" className="text-xs tracking-widest uppercase text-ui-fg-muted hover:text-ui-fg-interactive transition-colors">
+            <LocalizedClientLink href="/blog" className="text-xs tracking-widest uppercase text-ui-fg-muted hover:text-ui-fg-interactive transition-colors">
               ← Blog
-            </Link>
+            </LocalizedClientLink>
             <span className="text-[10px] tracking-[0.3em] uppercase text-ui-fg-muted">
               {post.category}
             </span>
@@ -35,6 +51,15 @@ export default function ArticleTemplate({ post }: { post: BlogPost }) {
 
       {/* ── Banner ───────────────────────────────────────────────────── */}
       {bannerBlocks.length > 0 && <BlockRenderer blocks={bannerBlocks} />}
+
+      {/* ── H1 de repli ──────────────────────────────────────────────── */}
+      {!bannerProvidesH1 && (
+        <div className="content-container max-w-5xl pt-10 pb-2">
+          <h1 className="text-3xl md:text-4xl text-ui-fg-base font-normal leading-tight">
+            {post.title}
+          </h1>
+        </div>
+      )}
 
       {/* ── Méta ─────────────────────────────────────────────────────── */}
       {!post.hide_meta && (
@@ -71,9 +96,9 @@ export default function ArticleTemplate({ post }: { post: BlogPost }) {
               <p className="text-xs text-ui-fg-muted uppercase tracking-widest mb-1">Écrit par</p>
               <p className="text-ui-fg-base">{post.author}</p>
             </div>
-            <Link href="/blog" className="text-sm text-ui-fg-interactive hover:text-ui-fg-interactive-hover transition-colors">
+            <LocalizedClientLink href="/blog" className="text-sm text-ui-fg-interactive hover:text-ui-fg-interactive-hover transition-colors">
               ← Retour au blog
-            </Link>
+            </LocalizedClientLink>
           </div>
         </div>
       )}

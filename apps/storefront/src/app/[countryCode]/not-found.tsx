@@ -1,7 +1,7 @@
 import { ArrowUpRightMini } from "@medusajs/icons"
 import { Text } from "@modules/common/components/ui"
 import { Metadata } from "next"
-import Link from "next/link"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 /**
  * 404 d'un pays (mauvais handle produit, région inconnue, URL /xx/… inexistante).
@@ -23,13 +23,13 @@ export default function NotFound() {
       <p className="text-small-regular text-ui-fg-base">
         La page que vous avez tenté d'ouvrir n'existe pas.
       </p>
-      <Link className="flex gap-x-1 items-center group" href="/">
+      <LocalizedClientLink className="flex gap-x-1 items-center group" href="/">
         <Text className="text-ui-fg-interactive">Retour à l'accueil</Text>
         <ArrowUpRightMini
           className="group-hover:rotate-45 ease-in-out duration-150"
           color="var(--fg-interactive)"
         />
-      </Link>
+      </LocalizedClientLink>
     </div>
   )
 }

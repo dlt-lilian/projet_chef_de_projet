@@ -27,15 +27,15 @@ function headers() {
  */
 export const FALLBACK_SLIDES: SlideData[] = [
   {
-    title: "Nouvelle collection Printemps",
-    text: "Découvrez nos pièces exclusives pour la saison.",
-    link: "/collections/printemps",
+    title: "Configurez votre pièce en 3D",
+    text: "Essence, couleur, motif, finitions : vous choisissez, vous voyez le rendu avant de commander.",
+    link: "/store",
     img: "https://picsum.photos/1920/1080",
   },
   {
-    title: "Soldes — jusqu'à -30%",
-    text: "Profitez de nos offres sur une sélection de produits.",
-    link: "/collections/soldes",
+    title: "Ombrelle japonaise sur-mesure",
+    text: "Couleur et toile au choix, gravure du manche en option. Conçue et fabriquée en France.",
+    link: "/products/ombrelle",
     img: "https://picsum.photos/1920/1080",
   },
 ]

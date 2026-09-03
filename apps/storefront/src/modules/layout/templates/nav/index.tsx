@@ -69,11 +69,11 @@ export default async function Nav() {
             </LocalizedClientLink>
 
             <LocalizedClientLink
-              href="/products/parapluie"
+              href="/products/ombrelle"
               className="flex items-center gap-1.5 hover:text-primary transition-colors"
             >
               <Icon name="umbrella" size={18} />
-              Parapluie
+              Ombrelle
             </LocalizedClientLink>
 
             <LocalizedClientLink

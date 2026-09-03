@@ -9,23 +9,62 @@ import { getBaseURL } from "@lib/util/env"
  * le jour de la bascule, seule cette variable change, jamais le code.
  */
 
+/**
+ * ⚠️ RÈGLE D'ÉCRITURE — à respecter dans TOUT texte public du site.
+ *
+ * 1. ORIGINE. Les produits sont de STYLE japonais mais sont CONÇUS ET FABRIQUÉS
+ *    EN FRANCE. Aucune formulation ne doit suggérer une origine, une matière ou
+ *    un savoir-faire japonais : « artisanat japonais », « authentique »,
+ *    « matériaux sélectionnés au Japon », « tradition Kōgei »… sont des
+ *    allégations d'origine fausses (exposition juridique) et détruisent
+ *    l'argument différenciant. « japonais » reste légitime comme DESCRIPTEUR DE
+ *    PRODUIT (« baguettes japonaises ») : c'est ce que cherchent les visiteurs.
+ *    Il devient faux dès qu'il qualifie la fabrication ou la matière.
+ *
+ * 2. AMBIGUÏTÉ. « personnalisé » seul désigne le plus souvent, dans cette
+ *    niche, un motif imprimé : toujours l'accompagner d'un mot qui tranche —
+ *    « sur-mesure », « que vous configurez », « à configurer en 3D ».
+ *    « configurer » plutôt que « composer » : c'est le verbe que les acheteurs
+ *    français associent déjà à ce mécanisme (configurateur auto, de cuisine).
+ *    Et jamais « créer de zéro » : le configurateur offre 5 teintes, 5 couleurs,
+ *    3 motifs, 4 finitions — c'est un choix dans un catalogue. Promettre la
+ *    création ex nihilo serait démenti dès l'ouverture de la fiche produit.
+ *
+ * 3. HIÉRARCHIE. La promesse centrale est le CONFIGURATEUR : couleur, teinte,
+ *    toile, papier, motif, finitions, vus en 3D. La gravure n'est QU'UNE option
+ *    parmi trois à cinq, facturée en supplément et placée en dernier dans
+ *    chaque produit — ne jamais l'installer en tête d'un titre ni d'un H1.
+ */
 export const SITE_NAME = "Hinaso"
-export const SITE_TAGLINE = "Artisanat japonais"
+export const SITE_TAGLINE = "Accessoires japonais à configurer en 3D"
 
-/** Titre par défaut (accueil / pages sans titre propre). Ne reçoit PAS le suffixe. */
+/**
+ * Titre par défaut (accueil / pages sans titre propre). Ne reçoit PAS le suffixe.
+ * 59 caractères ; « sur-mesure » démarre au 30e — donc encore visible sur mobile,
+ * où l'affichage est tronqué autour du 40e.
+ *
+ * L'accueil ne porte aucun mot-clé du corpus (aucun ne lui est assigné) : il
+ * vend la marque et le mécanisme, pas une requête. Y empiler « baguettes
+ * japonaises » et consorts cannibaliserait les fiches produit.
+ */
 export const SITE_DEFAULT_TITLE =
-  "Hinaso — Artisanat japonais authentique fait main"
+  "Hinaso — accessoires japonais sur-mesure à configurer en 3D"
 
 /** Gabarit appliqué aux titres de page : « Ma page » → « Ma page | Hinaso ». */
 export const SITE_TITLE_TEMPLATE = "%s | Hinaso"
 
+/** 152 caractères. Ouvre sur ce que le visiteur FAIT, pas sur ce que le site est. */
 export const SITE_DEFAULT_DESCRIPTION =
-  "Hinaso façonne des pièces d'artisanat japonais — baguettes, éventails et parapluies faits main. Matériaux nobles, personnalisation et livraison soignée."
+  "Choisissez l'essence, la couleur, le motif et voyez la pièce en 3D avant de commander. Baguettes, éventails et ombrelles japonaises fabriqués en France."
 
 /** Locale OpenGraph (le contenu du site est actuellement en français). */
 export const OG_LOCALE = "fr_FR"
 
-/** Marché prioritaire — sert de repère pour le futur x-default hreflang. */
+/**
+ * Marché prioritaire. Source unique pour DEUX choses qui doivent coïncider :
+ * le `x-default` du cluster hreflang (plus bas) et le pays servi par défaut
+ * par le middleware quand l'URL n'en porte aucun.
+ */
 export const PRIMARY_COUNTRY = "fr"
 
 /** Base sans slash final, pour composer des URLs absolues (JSON-LD, sameAs…). */
@@ -221,6 +260,10 @@ type ProductJsonLdInput = {
   price?: number | null
   currency?: string | null
   availability: "InStock" | "OutOfStock"
+  /** Matière principale (ex. « Hêtre massif »). Omise tant qu'elle est inconnue. */
+  material?: string | null
+  /** Pays de fabrication, code ISO 3166-1 alpha-2 (ex. « FR »). */
+  countryOfOrigin?: string | null
 }
 
 /** Product + Offer — rich result e-commerce. */
@@ -247,8 +290,44 @@ export function productJsonLd(input: ProductJsonLdInput): JsonLd {
     image: images.length ? images : undefined,
     sku: input.sku || undefined,
     brand: { "@type": "Brand", name: SITE_NAME },
+    // Omis tant que la donnée réelle n'est pas fournie : une matière fausse dans
+    // le JSON-LD est pire que son absence — Google compare la donnée structurée
+    // au contenu de la page et dévalide l'ensemble en cas d'écart.
+    material: input.material || undefined,
+    countryOfOrigin: input.countryOfOrigin
+      ? { "@type": "Country", name: input.countryOfOrigin }
+      : undefined,
     url: absoluteUrl(input.path),
     offers,
+    // TODO: `hasMerchantReturnPolicy` et `shippingDetails` — délibérément
+    // absents. Ils exigent des valeurs chiffrées (fenêtre de rétractation,
+    // délai et frais de livraison) dont aucune n'est arrêtée à ce jour.
+    // Point d'attention : l'art. L221-28 3° du Code de la consommation exclut
+    // le droit de rétractation pour les biens confectionnés selon les
+    // spécifications du consommateur — ce qui est exactement le cas des pièces
+    // sorties du configurateur. La politique doit donc être tranchée
+    // juridiquement avant d'être déclarée ici.
+  }
+}
+
+/**
+ * FAQPage — éligible au rich result « questions fréquentes ».
+ *
+ * À n'émettre QUE si les mêmes questions/réponses sont visibles dans le HTML
+ * de la page : Google invalide un FAQPage dont le contenu n'apparaît pas à
+ * l'écran. Ici les deux viennent de `lib/content/products.ts`, source unique.
+ */
+export function faqPageJsonLd(
+  items: { question: string; answer: string }[]
+): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((it) => ({
+      "@type": "Question",
+      name: it.question,
+      acceptedAnswer: { "@type": "Answer", text: it.answer },
+    })),
   }
 }
 

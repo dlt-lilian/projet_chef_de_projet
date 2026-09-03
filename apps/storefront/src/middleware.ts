@@ -1,11 +1,17 @@
 import { HttpTypes } from "@medusajs/types"
 import { NextRequest, NextResponse } from "next/server"
+import { PRIMARY_COUNTRY } from "@lib/util/seo"
 
 // `.replace` retire un éventuel slash final : `${BACKEND_URL}/store/regions` deviendrait
 // sinon `…app//store/regions` → 404 → aucune région chargée (repli silencieux sur la région par défaut).
 const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL?.replace(/\/+$/, "")
 const PUBLISHABLE_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
-const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "dk"
+// Repli aligné sur PRIMARY_COUNTRY (seo.ts) : le pays servi par défaut et le
+// `x-default` du cluster hreflang DOIVENT désigner le même marché. Avec l'ancien
+// repli « dk », un crawler sans signal géo atterrissait sur /dk pendant que le
+// x-default annonçait /fr — deux façons contradictoires de désigner le marché
+// prioritaire. Une seule source de vérité, désormais.
+const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || PRIMARY_COUNTRY
 
 const regionMapCache = {
   regionMap: new Map<string, HttpTypes.StoreRegion>(),
@@ -63,17 +69,25 @@ async function getRegionMap(cacheId: string) {
   return regionMapCache.regionMap
 }
 
-/**
- * Fetches regions from Medusa and sets the region cookie.
- * @param request
- * @param response
- */
-async function getCountryCode(
-  request: NextRequest,
-  regionMap: Map<string, HttpTypes.StoreRegion | number>
-) {
-  let countryCode
+type CountryResolution = {
+  countryCode?: string
+  /**
+   * `true` quand le pays vient d'un signal PROPRE AU VISITEUR (géo-IP de la
+   * plateforme). Pilote le code de redirection — cf. `middleware` plus bas.
+   */
+  fromVisitorSignal: boolean
+}
 
+/**
+ * Résout le pays d'une requête ET indique d'où vient la réponse.
+ *
+ * La provenance importe autant que la valeur : une destination dérivée du
+ * visiteur ne peut pas être redirigée en permanent (voir `middleware`).
+ */
+function getCountryCode(
+  request: NextRequest,
+  regionMap: Map<string, HttpTypes.StoreRegion>
+): CountryResolution {
   const urlCountryCode = request.nextUrl.pathname.split("/")[1]?.toLowerCase()
 
   // Cloudflare Workers provides country via request.cf.country
@@ -85,18 +99,21 @@ async function getCountryCode(
     ?.toLowerCase()
 
   if (urlCountryCode && regionMap.has(urlCountryCode)) {
-    countryCode = urlCountryCode
-  } else if (cloudflareCountryCode && regionMap.has(cloudflareCountryCode)) {
-    countryCode = cloudflareCountryCode
-  } else if (vercelCountryCode && regionMap.has(vercelCountryCode)) {
-    countryCode = vercelCountryCode
-  } else if (regionMap.has(DEFAULT_REGION)) {
-    countryCode = DEFAULT_REGION
-  } else if (regionMap.keys().next().value) {
-    countryCode = regionMap.keys().next().value
+    return { countryCode: urlCountryCode, fromVisitorSignal: false }
   }
-
-  return countryCode
+  if (cloudflareCountryCode && regionMap.has(cloudflareCountryCode)) {
+    return { countryCode: cloudflareCountryCode, fromVisitorSignal: true }
+  }
+  if (vercelCountryCode && regionMap.has(vercelCountryCode)) {
+    return { countryCode: vercelCountryCode, fromVisitorSignal: true }
+  }
+  if (regionMap.has(DEFAULT_REGION)) {
+    return { countryCode: DEFAULT_REGION, fromVisitorSignal: false }
+  }
+  return {
+    countryCode: regionMap.keys().next().value,
+    fromVisitorSignal: false,
+  }
 }
 
 /**
@@ -116,7 +133,7 @@ export async function middleware(request: NextRequest) {
   } catch {
     regionMap = new Map()
   }
-  const countryCode = await getCountryCode(request, regionMap)
+  const { countryCode, fromVisitorSignal } = getCountryCode(request, regionMap)
 
   // if the country code is available, use it, otherwise use the default region
   const country = countryCode || DEFAULT_REGION
@@ -140,7 +157,14 @@ export async function middleware(request: NextRequest) {
   const queryString = request.nextUrl.search || ""
   const redirectUrl = `${request.nextUrl.origin}/${country}${redirectPath}${queryString}`
 
-  return NextResponse.redirect(redirectUrl, 307)
+  // 308 (PERMANENT) quand la destination ne dépend d'AUCUN signal visiteur :
+  // c'est le cas sur Railway, où ni `cf.country` ni l'en-tête Vercel n'existent.
+  // Google consolide alors /blog vers /fr/blog au lieu de conserver les deux URL
+  // — un 307 laissait l'URL sans pays indexable indéfiniment.
+  // 307 (TEMPORAIRE) dès qu'un signal géo est utilisé : la destination varie
+  // d'un visiteur à l'autre, et un 308 mis en cache par le navigateur figerait
+  // le premier pays rencontré (un visiteur en déplacement resterait bloqué).
+  return NextResponse.redirect(redirectUrl, fromVisitorSignal ? 307 : 308)
 }
 
 export const config = {

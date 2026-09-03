@@ -7,6 +7,11 @@ const requiredEnvs = [
     description:
       "Learn how to create a publishable key: https://docs.medusajs.com/v2/resources/storefront-development/publishable-api-keys",
   },
+  {
+    key: "NEXT_PUBLIC_BASE_URL",
+    description:
+      "Domaine public du site (ex. https://hinaso.fr). Pilote metadataBase, les canonical, le hreflang, le JSON-LD et le sitemap. Sans elle, le repli est https://localhost:8000 : le site se construit SANS ERREUR mais publie des URL canoniques inexploitables — un échec silencieux que ce garde-fou rend bruyant.",
+  },
 ];
 
 function checkEnvVariables() {

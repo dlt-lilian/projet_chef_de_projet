@@ -1,5 +1,5 @@
 import { Metadata } from "next"
-import Link from "next/link"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import ContactForm from "@modules/contact/components/ContactForm"
 
 export const metadata: Metadata = {
@@ -27,12 +27,12 @@ export default function ContactPage() {
             Avant de nous écrire, vous trouverez peut-être votre réponse parmi
             nos articles d'aide : livraison, retours, personnalisation.
           </p>
-          <Link
+          <LocalizedClientLink
             href="/blog"
             className="text-sm font-medium text-primary hover:underline"
           >
             Articles aide →
-          </Link>
+          </LocalizedClientLink>
         </aside>
       </div>
     </div>

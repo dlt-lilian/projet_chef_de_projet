@@ -26,14 +26,14 @@ const AccountLayout: React.FC<AccountLayoutProps> = ({
             <div>
               <h3 className="text-xl-semi mb-4">Des questions ?</h3>
               <span className="txt-medium">
-                Vous trouverez les questions fréquentes et leurs réponses sur
-                notre page service client.
+                Une question sur une commande ou une personnalisation ?
+                Écrivez-nous, nous vous répondons directement.
               </span>
             </div>
             <div>
-              <UnderlineLink href="/customer-service">
-                Service client
-              </UnderlineLink>
+              {/* /customer-service n'existe pas : la page contact est la seule
+                  destination réelle pour une demande d'assistance. */}
+              <UnderlineLink href="/contact">Nous contacter</UnderlineLink>
             </div>
           </div>
         )}

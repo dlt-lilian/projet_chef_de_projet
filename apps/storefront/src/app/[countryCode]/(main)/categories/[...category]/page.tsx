@@ -10,9 +10,12 @@ import JsonLd from "@modules/common/components/json-ld"
 import {
   breadcrumbJsonLd,
   canonicalPath,
+  faqPageJsonLd,
   hreflangAlternates,
   itemListJsonLd,
 } from "@lib/util/seo"
+import { getCategoryEditorial } from "@lib/content/categories"
+import EditorialSection from "@modules/common/components/editorial"
 
 type Props = {
   params: Promise<{ category: string[]; countryCode: string }>
@@ -68,21 +71,39 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
     const subPath = `/categories/${params.category.join("/")}`
     const canonical = canonicalPath(params.countryCode, subPath)
-    const description = (
-      productCategory.description ||
-      `Découvrez notre sélection ${productCategory.name} — artisanat japonais fait main par Hinaso.`
-    ).slice(0, 160)
+
+    // Le nom de catégorie fait un H1 correct mais un mauvais title SEO
+    // (« Baguettes japonaises | Hinaso » laisse la moitié de la place en SERP).
+    // Quand la catégorie a un contenu éditorial, ses valeurs calibrées priment.
+    const editorial = getCategoryEditorial(
+      params.category[params.category.length - 1]
+    )
+
+    const description =
+      editorial?.seoDescription ??
+      (
+        productCategory.description ||
+        `${productCategory.name} : essence, couleur, motif et finitions au choix, à configurer en 3D. Conçus et fabriqués en France par Hinaso.`
+      ).slice(0, 160)
+    const title = editorial?.seoTitle ?? productCategory.name
 
     return {
       // Le gabarit du layout racine ajoute « | Hinaso » (plus de double suffixe).
-      title: productCategory.name,
+      title,
       description,
       alternates: { canonical, languages: hreflangAlternates(subPath) },
       openGraph: {
-        title: `${productCategory.name} | Hinaso`,
+        title: `${title} | Hinaso`,
         description,
         url: canonical,
       },
+      // `noindex, follow` sur une catégorie sans mot-clé assigné dont le contenu
+      // recouperait celui d'une fiche à fort enjeu — cf. `content/categories.ts`.
+      // Le `follow` laisse circuler le maillage : la page ne se positionne pas,
+      // mais transmet toujours vers la fiche.
+      ...(editorial?.noindex
+        ? { robots: { index: false, follow: true } }
+        : {}),
     }
   } catch {
     notFound()
@@ -123,6 +144,17 @@ export default async function CategoryPage(props: Props) {
     )
   }
 
+  const editorial = getCategoryEditorial(
+    params.category[params.category.length - 1]
+  )
+
+  // FAQPage seulement si les questions sont réellement rendues plus bas, et
+  // jamais sur une page en noindex — un rich result sur une page hors index
+  // n'a aucun effet.
+  if (editorial?.faq.length && !editorial.noindex) {
+    jsonLd.push(faqPageJsonLd(editorial.faq))
+  }
+
   return (
     <>
       <JsonLd data={jsonLd} />
@@ -132,6 +164,10 @@ export default async function CategoryPage(props: Props) {
         page={page}
         countryCode={params.countryCode}
       />
+      {/* Sous la grille : les produits restent au-dessus de la ligne de
+          flottaison, le contenu long répond à l'intention comparative de la
+          requête large que cible cette page. */}
+      {editorial && <EditorialSection editorial={editorial} />}
     </>
   )
 }

@@ -21,7 +21,7 @@ export async function generateMetadata(props: {
   const { countryCode } = await props.params
   const canonical = canonicalPath(countryCode, "/store")
   const description =
-    "Toute la boutique Hinaso : baguettes, éventails et parapluies japonais faits main. Matériaux nobles et livraison soignée."
+    "Baguettes, éventails et ombrelles japonaises à configurer en 3D : essence, couleur, motif, finitions. Conçus et fabriqués en France, gravure en option."
 
   return {
     title: "Toute la boutique",
