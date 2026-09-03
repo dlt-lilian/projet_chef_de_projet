@@ -17,6 +17,13 @@ module.exports = defineConfig({
   admin: {
     disable: process.env.DISABLE_MEDUSA_ADMIN === "true",
   },
+  featureFlags: {
+    // Ajoute le sélecteur de colonnes aux tableaux Commandes et Produits.
+    // Nécessaire pour masquer « Livraison » et afficher le statut de
+    // fabrication à la place. Fonctionnalité marquée expérimentale par Medusa
+    // depuis la 2.10.3.
+    view_configurations: true,
+  },
   modules: [
     {
       resolve: "./src/modules/blog",
@@ -29,6 +36,9 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/gallery",
+    },
+    {
+      resolve: "./src/modules/production",
     },
     ...(process.env.S3_BUCKET
       ? [

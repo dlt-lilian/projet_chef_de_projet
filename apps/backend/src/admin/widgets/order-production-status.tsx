@@ -1,7 +1,14 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import { DetailWidgetProps, AdminOrder } from "@medusajs/types"
 import { Badge, Button, Container, Heading, Text, toast } from "@medusajs/ui"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import {
+  DEFAULT_STAGE,
+  STAGES,
+  isStage,
+  labelOf,
+  type Stage,
+} from "../../modules/production/stages"
 
 /**
  * Suivi de fabrication : étape d'avancement propre à l'atelier, choisie en un
@@ -11,82 +18,68 @@ import { useState } from "react"
  * découle des expéditions réellement créées) : on ne veut pas qu'un clic ici
  * déclenche un vrai fulfillment. Les deux cohabitent, celui-ci est informatif.
  *
- * Stocké dans `order.metadata`, donc lisible côté storefront si on veut un jour
- * l'afficher au client.
+ * L'étape vit dans le module `production`, lié à Order — et non dans le
+ * metadata de la commande — pour pouvoir remonter comme colonne du tableau
+ * /app/orders.
  */
-const META_KEY = "production_status"
-
-const STAGES = [
-  { value: "ordered", label: "Commandé" },
-  { value: "in_production", label: "En cours de fabrication" },
-  { value: "shipping", label: "En cours d'expédition" },
-  { value: "shipped", label: "Expédié" },
-  { value: "delivered", label: "Livré" },
-] as const
-
-type Stage = (typeof STAGES)[number]["value"]
-
-type Metadata = Record<string, unknown>
-
-function labelOf(stage: Stage): string {
-  return STAGES.find((s) => s.value === stage)!.label
-}
-
-/** Relit l'étape depuis le metadata en ignorant toute valeur inconnue. */
-function readStage(metadata: Metadata): Stage | null {
-  const raw = metadata[META_KEY]
-  return STAGES.some((s) => s.value === raw) ? (raw as Stage) : null
-}
-
 async function errorMessage(res: Response, fallback: string): Promise<string> {
   const body = await res.json().catch(() => null)
   return (body?.message as string) || fallback
 }
 
 const OrderProductionStatusWidget = ({ data }: DetailWidgetProps<AdminOrder>) => {
-  // On suit le metadata complet, pas seulement l'étape : c'est lui qu'on
-  // renvoie à chaque enregistrement, et il doit rester à jour entre deux clics.
-  const [metadata, setMetadata] = useState<Metadata>(
-    (data.metadata as Metadata | null) ?? {}
-  )
+  const [stage, setStage] = useState<Stage | null>(null)
   const [pending, setPending] = useState<Stage | null>(null)
 
-  const current = readStage(metadata)
-  const currentIndex = STAGES.findIndex((s) => s.value === current)
+  useEffect(() => {
+    let active = true
+
+    fetch(`/admin/production/${data.id}`, { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (!active) return
+        setStage(isStage(body?.stage) ? body.stage : DEFAULT_STAGE)
+      })
+      .catch(() => {
+        // Statut illisible : on retombe sur l'étape de départ plutôt que de
+        // laisser la carte vide, le prochain clic réécrira la valeur.
+        if (active) setStage(DEFAULT_STAGE)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [data.id])
 
   const select = async (next: Stage) => {
-    if (pending || next === current) {
+    if (pending || next === stage) {
       return
     }
 
-    const previous = metadata
-    // `POST /admin/orders/:id` réécrit `metadata` en entier : on repart de
-    // l'existant pour ne pas effacer les autres clés de la commande.
-    const optimistic = { ...metadata, [META_KEY]: next }
-
-    setMetadata(optimistic)
+    const previous = stage
+    setStage(next)
     setPending(next)
 
     try {
-      const res = await fetch(`/admin/orders/${data.id}`, {
+      const res = await fetch(`/admin/production/${data.id}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ metadata: optimistic }),
+        body: JSON.stringify({ stage: next }),
       })
       if (!res.ok) {
         throw new Error(await errorMessage(res, "Échec de l'enregistrement"))
       }
       toast.success(`Statut : ${labelOf(next)}`)
     } catch (e) {
-      setMetadata(previous)
-      toast.error(
-        e instanceof Error ? e.message : "Échec de l'enregistrement"
-      )
+      setStage(previous)
+      toast.error(e instanceof Error ? e.message : "Échec de l'enregistrement")
     } finally {
       setPending(null)
     }
   }
+
+  const currentIndex = STAGES.findIndex((s) => s.value === stage)
 
   return (
     <Container className="divide-y divide-ui-border-base p-0">
@@ -98,37 +91,42 @@ const OrderProductionStatusWidget = ({ data }: DetailWidgetProps<AdminOrder>) =>
             d'expédition Medusa.
           </Text>
         </div>
-        {current ? (
-          <Badge size="2xsmall" color="green">
-            {labelOf(current)}
-          </Badge>
-        ) : (
-          <Badge size="2xsmall" color="grey">
-            Non défini
+        {stage && (
+          <Badge
+            size="2xsmall"
+            color={stage === "delivered" ? "green" : "orange"}
+          >
+            {labelOf(stage)}
           </Badge>
         )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2 px-6 py-4">
-        {STAGES.map((stage, i) => {
-          const isCurrent = stage.value === current
-          // Étapes déjà franchies : atténuées, pour lire l'avancement d'un
-          // coup d'œil sans empêcher de revenir en arrière.
-          const isDone = currentIndex > -1 && i < currentIndex
-          return (
-            <Button
-              key={stage.value}
-              size="small"
-              variant={isCurrent ? "primary" : "secondary"}
-              onClick={() => select(stage.value)}
-              isLoading={pending === stage.value}
-              disabled={pending !== null}
-              className={isDone ? "text-ui-fg-muted" : undefined}
-            >
-              {stage.label}
-            </Button>
-          )
-        })}
+        {stage === null ? (
+          <Text size="small" className="text-ui-fg-muted">
+            Chargement…
+          </Text>
+        ) : (
+          STAGES.map((s, i) => {
+            const isCurrent = s.value === stage
+            // Étapes déjà franchies : atténuées, pour lire l'avancement d'un
+            // coup d'œil sans empêcher de revenir en arrière.
+            const isDone = i < currentIndex
+            return (
+              <Button
+                key={s.value}
+                size="small"
+                variant={isCurrent ? "primary" : "secondary"}
+                onClick={() => select(s.value)}
+                isLoading={pending === s.value}
+                disabled={pending !== null}
+                className={isDone ? "text-ui-fg-muted" : undefined}
+              >
+                {s.label}
+              </Button>
+            )
+          })
+        )}
       </div>
     </Container>
   )
