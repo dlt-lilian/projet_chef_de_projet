@@ -337,8 +337,32 @@ function getMaterialName(mesh: Mesh): string | undefined {
 }
 
 /**
- * Retourne tous les meshes de la hiérarchie dont le nom OU le nom de matériau
- * matche `meshName`. `meshName` peut être un nom unique ou une liste de noms
+ * Vrai si `name` désigne ce mesh. L'admin propose comme cibles les noms lus
+ * dans le .glb (`json.nodes`, `json.meshes`, `json.materials`) ; côté Three.js
+ * ces noms n'atterrissent pas tous sur l'objet `Mesh` lui-même, d'où les quatre
+ * formes acceptées :
+ *  - le nom du mesh (cas courant : un node glTF à une seule primitive) ;
+ *  - le nom du matériau (ex. `Material_0` sur un export mono-matériau) ;
+ *  - le nom d'un ancêtre : un node à plusieurs primitives devient un `Group`
+ *    portant le nom du node, dont les enfants sont les vrais meshes ;
+ *  - ce même nom suffixé par l'index de primitive (`Toile_0`, `Toile_1`), que
+ *    GLTFLoader génère pour ces enfants.
+ * Sans ça, une cible pourtant valide côté admin ne matchait rien et retombait
+ * sur le fallback « tous les meshes » — le modèle entier était repeint.
+ */
+function meshMatches(mesh: Mesh, name: string): boolean {
+  if (mesh.name === name) return true
+  if (getMaterialName(mesh) === name) return true
+  if (/^(.*)_\d+$/.exec(mesh.name)?.[1] === name) return true
+  for (let p = mesh.parent; p; p = p.parent) {
+    if (p.name === name) return true
+  }
+  return false
+}
+
+/**
+ * Retourne tous les meshes de la hiérarchie que `meshName` désigne (cf.
+ * `meshMatches`). `meshName` peut être un nom unique ou une liste de noms
  * (ex. les 2 vis ciblées par une même option). Si rien ne matche, log un
  * avertissement et retourne tous les meshes (fallback : applique sur tout le modèle).
  */
@@ -352,16 +376,19 @@ export function findMeshes(
   })
   if (!meshName) return all
   const names = Array.isArray(meshName) ? meshName : [meshName]
-  const matched = all.filter(
-    (m) => names.includes(m.name) || names.includes(getMaterialName(m) ?? "")
-  )
+  const matched = all.filter((m) => names.some((n) => meshMatches(m, n)))
   if (matched.length > 0) return matched
 
   // eslint-disable-next-line no-console
   console.warn(
     `[configurator] targetMesh "${names.join(", ")}" introuvable. ` +
-      `Fallback sur tous les meshes. Noms disponibles :`,
-    all.map((m) => ({ mesh: m.name, material: getMaterialName(m) }))
+      `Fallback sur TOUS les meshes : le modèle entier va être modifié. ` +
+      `Noms disponibles :`,
+    all.map((m) => ({
+      mesh: m.name,
+      material: getMaterialName(m),
+      parent: m.parent?.name,
+    }))
   )
   return all
 }
@@ -424,13 +451,36 @@ export type MeshLayers = {
   tint?: string | null
 }
 
-type MeshUserData = { layers?: MeshLayers }
+type MeshUserData = {
+  layers?: MeshLayers
+  ownsMaterial?: boolean
+  /** Matériau d'origine du GLB, remplacé par le clone — conservé pour `dispose`. */
+  originalMaterial?: Material | Material[]
+}
 
-function ensureStandardMaterial(mesh: Mesh): MeshStandardMaterial {
-  if (mesh.material instanceof MeshStandardMaterial) return mesh.material
-  const mat = new MeshStandardMaterial()
-  mesh.material = mat
-  return mat
+/**
+ * Matériau dédié à ce mesh, cloné à la première modification.
+ *
+ * GLTFLoader partage une même instance de `Material` entre tous les meshes qui
+ * référencent le même matériau glTF. Muter cette instance repeindrait donc les
+ * autres parties du modèle : sur l'ombrelle, changer la toile changeait aussi
+ * le manche. Le clone (une seule fois par mesh, d'où le drapeau `ownsMaterial`)
+ * rend chaque partie réellement indépendante, tout en conservant les réglages
+ * PBR d'origine (normal map, roughness…) que recréer un matériau vierge
+ * perdrait.
+ */
+function ensureOwnMaterial(mesh: Mesh): MeshStandardMaterial {
+  const data = mesh.userData as MeshUserData
+  if (!data.ownsMaterial) {
+    const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material
+    data.originalMaterial = mesh.material
+    mesh.material =
+      source instanceof MeshStandardMaterial
+        ? source.clone()
+        : new MeshStandardMaterial()
+    data.ownsMaterial = true
+  }
+  return mesh.material as MeshStandardMaterial
 }
 
 /**
@@ -472,7 +522,7 @@ async function rebuildMeshMaterial(
   mesh: Mesh,
   layers: MeshLayers
 ): Promise<void> {
-  const mat = ensureStandardMaterial(mesh)
+  const mat = ensureOwnMaterial(mesh)
   if (layers.motifPath) {
     // Base (couleur ou tissu) + motif composés en une seule texture.
     const tex = await compositeLayers(layers).catch(() => null)
