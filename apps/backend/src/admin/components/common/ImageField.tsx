@@ -19,7 +19,7 @@ export function useR2Upload() {
       })
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        throw new Error((body?.message as string) || "Échec de l'upload")
+        throw new Error((body?.message as string) || "Échec de l'import")
       }
       const data = await res.json()
       const url = data?.url as string | undefined
@@ -27,7 +27,7 @@ export function useR2Upload() {
       toast.success("Fichier envoyé")
       return url
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Échec de l'upload")
+      toast.error(e instanceof Error ? e.message : "Échec de l'import")
       return null
     } finally {
       setUploading(false)
@@ -122,7 +122,7 @@ export function ImageField({
           onClick={() => inputRef.current?.click()}
           isLoading={uploading}
         >
-          Upload
+          Importer
         </Button>
       </div>
     </div>

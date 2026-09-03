@@ -194,7 +194,7 @@ function DoubleImgEditor({ block, onChange, folders }: { block: Extract<Block, {
             />
           </div>
           <div>
-            <Label size="xsmall">Alt *</Label>
+            <Label size="xsmall">Texte alternatif *</Label>
             <Input size="small" value={block.images[idx as 0|1].alt}     onChange={e => update(idx as 0|1, "alt",     e.target.value)} placeholder="Description" />
           </div>
           <div>

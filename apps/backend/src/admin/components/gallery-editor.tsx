@@ -3,8 +3,9 @@ import { Button, Heading, Text, Input, Label, Switch, Badge, toast } from "@medu
 import { ArrowUpMini, ArrowDownMini, Trash } from "@medusajs/icons"
 import { ImageField } from "./common/ImageField"
 
-// Dossier R2 dédié aux images de la galerie.
-const GALLERY_FOLDERS = [{ value: "Gallery", label: "Gallery" }]
+// Dossier R2 dédié aux images de la galerie. `value` = nom réel du dossier sur
+// R2 (validé par la whitelist de /admin/media/upload) : seul le libellé est traduit.
+const GALLERY_FOLDERS = [{ value: "Gallery", label: "Galerie" }]
 const JSON_HEADERS = { "Content-Type": "application/json" }
 
 export type GalleryImage = {

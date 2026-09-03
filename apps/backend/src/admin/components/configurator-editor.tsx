@@ -17,6 +17,13 @@ export type Choice = {
   is_default: boolean
 }
 export type OptionType = "color" | "texture" | "motif" | "engraving"
+/** Libellés affichés ; la valeur stockée en base reste la clé anglaise. */
+const OPTION_TYPE_LABELS: Record<OptionType, string> = {
+  color: "Couleur",
+  texture: "Texture",
+  motif: "Motif",
+  engraving: "Gravure",
+}
 export type Option = {
   id: string
   option_key: string
@@ -88,6 +95,32 @@ function PriceField({
         onChange={(e) => onChange(e.target.value)}
         title={hint ?? "Ajouté au prix du produit quand ce choix est retenu"}
       />
+    </div>
+  )
+}
+
+/** Menu du type d'option, partagé par l'édition et l'ajout. */
+function OptionTypeSelect({
+  value,
+  onChange,
+}: {
+  value: OptionType
+  onChange: (v: OptionType) => void
+}) {
+  return (
+    <div className="w-32">
+      <Label size="xsmall" className="text-ui-fg-muted">Type</Label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as OptionType)}
+        className="txt-compact-small w-full rounded-md border border-ui-border-base bg-ui-bg-field px-2 py-1.5"
+      >
+        {(Object.keys(OPTION_TYPE_LABELS) as OptionType[]).map((t) => (
+          <option key={t} value={t}>
+            {OPTION_TYPE_LABELS[t]}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }
@@ -165,7 +198,7 @@ function GlbUploadButton({ onUploaded }: { onUploaded: (url: string) => void }) 
         isLoading={uploading}
         onClick={() => inputRef.current?.click()}
       >
-        Upload .glb
+        Importer un .glb
       </Button>
     </>
   )
@@ -422,19 +455,7 @@ function OptionRow({
           className="font-mono text-xs"
         />
       </div>
-      <div className="w-32">
-        <Label size="xsmall" className="text-ui-fg-muted">Type</Label>
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as OptionType)}
-          className="txt-compact-small w-full rounded-md border border-ui-border-base bg-ui-bg-field px-2 py-1.5"
-        >
-          <option value="color">color</option>
-          <option value="texture">texture</option>
-          <option value="motif">motif</option>
-          <option value="engraving">engraving</option>
-        </select>
-      </div>
+      <OptionTypeSelect value={type} onChange={setType} />
       <MeshSelect value={targetMesh} onChange={setTargetMesh} available={meshes} />
       {/* Les autres types se tarifent au choix (cf. PriceField de ChoiceRow) ;
           la gravure n'a pas de choix, d'où ce forfait au niveau de l'option. */}
@@ -535,19 +556,7 @@ function AddOption({
           placeholder="Ex. Couleur du manche"
         />
       </div>
-      <div className="w-32">
-        <Label size="xsmall" className="text-ui-fg-muted">Type</Label>
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as OptionType)}
-          className="txt-compact-small w-full rounded-md border border-ui-border-base bg-ui-bg-field px-2 py-1.5"
-        >
-          <option value="color">color</option>
-          <option value="texture">texture</option>
-          <option value="motif">motif</option>
-          <option value="engraving">engraving</option>
-        </select>
-      </div>
+      <OptionTypeSelect value={type} onChange={setType} />
       <MeshSelect value={targetMesh} onChange={setTargetMesh} available={meshes} />
       {type === "engraving" && (
         <PriceField
@@ -881,7 +890,9 @@ export function ProductConfigBlock({
             className="rounded-lg border border-ui-border-base p-4"
           >
             <div className="mb-2 flex items-center gap-2">
-              <Badge size="2xsmall">{option.type}</Badge>
+              <Badge size="2xsmall">
+                {OPTION_TYPE_LABELS[option.type] ?? option.type}
+              </Badge>
             </div>
 
             <OptionRow

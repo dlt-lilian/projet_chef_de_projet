@@ -3,8 +3,9 @@ import { Button, Heading, Text, Input, Label, Switch, Badge, toast } from "@medu
 import { ArrowUpMini, ArrowDownMini, Trash } from "@medusajs/icons"
 import { ImageField } from "./common/ImageField"
 
-// Dossier R2 dédié aux images du carrousel.
-const SLIDER_FOLDERS = [{ value: "Slider", label: "Slider" }]
+// Dossier R2 dédié aux images du carrousel. `value` = nom réel du dossier sur
+// R2 (validé par la whitelist de /admin/media/upload) : seul le libellé est traduit.
+const SLIDER_FOLDERS = [{ value: "Slider", label: "Carrousel" }]
 const JSON_HEADERS = { "Content-Type": "application/json" }
 
 export type Slide = {
