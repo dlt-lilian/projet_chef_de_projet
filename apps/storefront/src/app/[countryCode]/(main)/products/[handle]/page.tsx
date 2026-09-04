@@ -9,6 +9,7 @@ import {
   getProductConfig,
   isConfigurableProduct,
 } from "@modules/configurator/config/configurableProducts"
+import { parseVariantParam } from "@modules/configurator/config/variantAxes"
 import {
   InitialConfiguration,
   readConfiguratorSelections,
@@ -29,7 +30,8 @@ import EditorialSection from "@modules/common/components/editorial"
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
-  searchParams: Promise<{ v_id?: string; line?: string }>
+  /** `v` : déclinaison choisie en boutique (couleur × motif), cf. `variantAxes`. */
+  searchParams: Promise<{ v_id?: string; line?: string; v?: string }>
 }
 
 export async function generateStaticParams() {
@@ -124,7 +126,22 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       product.subtitle ||
       `${product.title} — à configurer en 3D, conçu et fabriqué en France par Hinaso.`
     ).slice(0, 160)
-  const title = editorial?.seoTitle ?? product.title
+  // Déclinaison ouverte depuis la boutique : le titre la nomme, pour que
+  // l'onglet et les partages ne montrent pas 96 fois le même libellé. Le
+  // canonique, lui, ne bouge pas — il pointe déjà la fiche sans paramètre, ce
+  // qui consolide les déclinaisons sur elle plutôt que de les mettre en
+  // concurrence. Pas de `noindex` : il contredirait ce canonique.
+  const { v } = await props.searchParams
+  const variant = isConfigurableProduct(handle)
+    ? parseVariantParam(
+        handle,
+        (await fetchProductConfig(handle)) ?? getProductConfig(handle),
+        v
+      )
+    : null
+
+  const baseTitle = editorial?.seoTitle ?? product.title
+  const title = variant ? `${baseTitle} — ${variant.label}` : baseTitle
   const images = product.thumbnail ? [product.thumbnail] : []
   const ogTitle = `${title} | Hinaso`
 
@@ -248,6 +265,23 @@ export default async function ProductPage(props: Props) {
       const line = cart?.items?.find((item) => item.id === searchParams.line)
       initialConfiguration =
         readConfiguratorSelections(line?.metadata) ?? undefined
+    }
+
+    // Déclinaison cliquée en boutique : on pré-coche ses deux axes (couleur,
+    // motif), le reste garde ses valeurs par défaut et TOUT reste modifiable —
+    // c'est une position de départ, pas un produit figé.
+    //
+    // Le panier prime : rouvrir une ligne doit restituer SA configuration, pas
+    // celle de la vignette qui traînerait dans l'URL.
+    if (!initialConfiguration) {
+      const variant = parseVariantParam(
+        pricedProduct.handle,
+        config,
+        searchParams.v
+      )
+      if (variant) {
+        initialConfiguration = { selections: variant.selections }
+      }
     }
 
     return (

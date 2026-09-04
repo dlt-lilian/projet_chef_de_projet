@@ -1,10 +1,22 @@
-import { listProductsWithSort } from "@lib/data/products"
+import { listProducts } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
-import ProductPreview from "@modules/products/components/product-preview"
+import { listProductCards } from "@lib/data/variant-cards"
+import { sortProducts } from "@lib/util/sort-products"
+import VariantPreview from "@modules/products/components/variant-preview"
 import { Pagination } from "@modules/store/components/pagination"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 
 const PRODUCT_LIMIT = 12
+
+/**
+ * Plafond de produits rapatriés avant éclatement en déclinaisons.
+ *
+ * La pagination ne peut plus être déléguée au backend : une page de boutique
+ * compte des déclinaisons, pas des produits, et le backend ne les connaît pas.
+ * On récupère donc tout le catalogue (trois produits aujourd'hui, la limite
+ * couvre large) et on pagine sur les cartes obtenues.
+ */
+const CATALOGUE_LIMIT = 100
 
 type PaginatedProductsParams = {
   limit: number
@@ -30,7 +42,7 @@ export default async function PaginatedProducts({
   countryCode: string
 }) {
   const queryParams: PaginatedProductsParams = {
-    limit: 12,
+    limit: CATALOGUE_LIMIT,
   }
 
   if (collectionId) {
@@ -56,15 +68,30 @@ export default async function PaginatedProducts({
   }
 
   const {
-    response: { products, count },
-  } = await listProductsWithSort({
-    page,
+    response: { products },
+  } = await listProducts({
+    pageParam: 1,
     queryParams,
-    sortBy,
     countryCode,
   })
 
-  const totalPages = Math.ceil(count / PRODUCT_LIMIT)
+  const sort = sortBy || "created_at"
+  const cards = await listProductCards(sortProducts(products, sort))
+
+  // Tri final sur les cartes : deux déclinaisons d'un même produit peuvent
+  // avoir des prix différents (un motif est facturé), un tri par prix qui
+  // s'arrêterait au produit les laisserait dans le désordre.
+  if (sort === "price_asc" || sort === "price_desc") {
+    cards.sort((a, b) => {
+      const left = a.amount ?? Infinity
+      const right = b.amount ?? Infinity
+      return sort === "price_asc" ? left - right : right - left
+    })
+  }
+
+  const totalPages = Math.ceil(cards.length / PRODUCT_LIMIT)
+  const start = (Math.max(page, 1) - 1) * PRODUCT_LIMIT
+  const pageCards = cards.slice(start, start + PRODUCT_LIMIT)
 
   return (
     <>
@@ -72,13 +99,11 @@ export default async function PaginatedProducts({
         className="grid grid-cols-2 w-full small:grid-cols-3 medium:grid-cols-4 gap-x-6 gap-y-8"
         data-testid="products-list"
       >
-        {products.map((p) => {
-          return (
-            <li key={p.id}>
-              <ProductPreview product={p} region={region} />
-            </li>
-          )
-        })}
+        {pageCards.map((card) => (
+          <li key={card.key}>
+            <VariantPreview card={card} />
+          </li>
+        ))}
       </ul>
       {totalPages > 1 && (
         <Pagination
