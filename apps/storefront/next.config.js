@@ -1,4 +1,5 @@
 const checkEnvVariables = require("./check-env-variables")
+const { IMAGE_HOSTS } = require("./src/lib/util/image-hosts")
 
 checkEnvVariables()
 
@@ -27,28 +28,20 @@ const nextConfig = {
   images: {
     // Optimisation activée (AVIF/WebP + redimensionnement responsive). Les images
     // produit sont servies depuis R2 (public) → optimisées côté serveur Railway.
-    // NB : les images de BLOG (contenu éditorial, hôtes potentiellement arbitraires)
-    // portent la prop `unoptimized` sur leur <Image> — sinon un hôte non listé ici
-    // ferait *planter* la page (next/image lève une erreur, pas juste une image cassée).
+    //
+    // La liste d'hôtes vit dans `src/lib/util/image-hosts.js` et NON ici, parce
+    // que le rendu a besoin de la même information : un `src` dont l'hôte est
+    // absent de `remotePatterns` fait *planter* la page (next/image lève une
+    // erreur, pas juste une image cassée). Les composants interrogent donc
+    // `isOptimizable()` — adossé à cette même liste — pour retomber sur
+    // `unoptimized` au lieu de casser. Voir @lib/util/images.
     formats: ["image/avif", "image/webp"],
+    // Les visuels éditoriaux changent rarement mais sont lourds à réencoder :
+    // 30 jours de cache évitent de refaire le travail à chaque déploiement et
+    // à chaque expiration (le défaut de Next est de 60 secondes).
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
-      {
-        protocol: "http",
-        hostname: "localhost",
-      },
-      {
-        // Cloudflare R2 public (pub-<hash>.r2.dev) — images produit & assets.
-        protocol: "https",
-        hostname: "**.r2.dev",
-      },
-      {
-        protocol: "https",
-        hostname: "*.s3.*.amazonaws.com",
-      },
-      {
-        protocol: "https",
-        hostname: "*.s3.amazonaws.com",
-      },
+      ...IMAGE_HOSTS,
       ...(S3_HOSTNAME && S3_PATHNAME
         ? [
             {

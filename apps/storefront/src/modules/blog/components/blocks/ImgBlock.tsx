@@ -1,4 +1,5 @@
 import Image from "next/image"
+import { isOptimizable } from "@lib/util/images"
 import type { ImgBlock as TImgBlock } from "@lib/blog/types"
 
 export default function ImgBlock({ src, alt, caption, fullWidth }: TImgBlock) {
@@ -10,7 +11,7 @@ export default function ImgBlock({ src, alt, caption, fullWidth }: TImgBlock) {
           alt={alt}
           width={1600}
           height={900}
-          unoptimized
+          unoptimized={!isOptimizable(src)}
           sizes={fullWidth ? "100vw" : "(max-width: 768px) 100vw, 800px"}
           className="w-full h-auto object-cover transition-transform duration-700 rounded-lg aspect-[16/9]"
         />

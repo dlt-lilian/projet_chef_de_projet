@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react"
 import clsx from "clsx"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Image from "next/image"
+import { isOptimizable } from "@lib/util/images"
 import { Icon } from "@modules/common/components/my_ui"
 
 export type SlideData = {
@@ -22,21 +23,10 @@ type SliderProps = {
   showArrows?: boolean
 }
 
-// next/image lève une erreur (page cassée) si le host de `src` n'est pas dans
-// remotePatterns. Les images de slider viennent du back (hosts imprévisibles :
-// R2 en prod, mais parfois placeholders externes) → on optimise les hosts sûrs
-// (R2 / local) et on sert les autres tels quels (`unoptimized`) pour ne jamais
-// casser la page. Dans les deux cas, `priority` sur le 1er slide précharge
-// l'image (gain LCP), qu'elle soit optimisée ou non.
-function isOptimizable(src: string): boolean {
-  if (!src) return false
-  if (src.startsWith("/") || src.startsWith("data:")) return true
-  try {
-    return new URL(src).hostname.endsWith(".r2.dev")
-  } catch {
-    return true
-  }
-}
+// `isOptimizable` vit désormais dans @lib/util/images : la même décision se
+// prend pour la galerie et les visuels d'articles, et elle doit rester alignée
+// sur les `remotePatterns` de next.config (sinon page cassée). `priority` sur
+// le 1er slide précharge l'image (gain LCP), qu'elle soit optimisée ou non.
 
 function SlideItem({
   slide,

@@ -1,4 +1,5 @@
 import Image from "next/image"
+import { isOptimizable } from "@lib/util/images"
 import type { DoubleImgBlock as TDoubleImgBlock } from "@lib/blog/types"
 
 export default function DoubleImgBlock({ images }: TDoubleImgBlock) {
@@ -15,7 +16,7 @@ export default function DoubleImgBlock({ images }: TDoubleImgBlock) {
               alt={img.alt}
               width={800}
               height={600}
-              unoptimized
+              unoptimized={!isOptimizable(img.src)}
               sizes="(max-width: 768px) 100vw, 50vw"
               className="w-full aspect-[4/3] object-cover transition-transform duration-700 rounded-lg"
             />

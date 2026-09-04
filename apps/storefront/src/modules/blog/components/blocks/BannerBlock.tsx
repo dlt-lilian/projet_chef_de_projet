@@ -1,4 +1,5 @@
 import Image from "next/image"
+import { isOptimizable } from "@lib/util/images"
 import type { BannerBlock as TBannerBlock } from "@lib/blog/types"
 
 export default function BannerBlock({ img, alt, title, subtitle }: TBannerBlock) {
@@ -10,7 +11,7 @@ export default function BannerBlock({ img, alt, title, subtitle }: TBannerBlock)
           alt={alt || ""}
           fill
           priority
-          unoptimized
+          unoptimized={!isOptimizable(img)}
           sizes="100vw"
           className="object-cover"
         />
