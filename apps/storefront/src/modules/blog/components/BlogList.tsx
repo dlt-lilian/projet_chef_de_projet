@@ -26,6 +26,17 @@ export default function BlogList({ articles, categories }: BlogListProps) {
         onChange={setActiveCategory}
       />
 
+      {/* Le titre de la page est un h1 et les cartes d'article des h3 : sans ce
+          niveau intermédiaire, la hiérarchie saute de h1 à h3. Il est masqué
+          visuellement (les filtres juste au-dessus rendent la section évidente
+          à l'œil) mais annonce la liste, et son changement au filtrage signale
+          le nouveau contenu aux lecteurs d'écran. */}
+      <h2 className="sr-only">
+        {activeCategory === ALL_CATEGORY
+          ? "Tous les articles"
+          : `Articles de la catégorie ${activeCategory}`}
+      </h2>
+
       {filtered.length === 0 ? (
         <p className="text-center text-gray-500 py-20 text-sm">
           Aucun article dans cette catégorie.

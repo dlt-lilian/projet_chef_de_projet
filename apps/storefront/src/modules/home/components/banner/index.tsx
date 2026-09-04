@@ -38,7 +38,7 @@ const Banner = () => {
             className="flex flex-col items-center text-center gap-2"
           >
             <Icon name={f.icon} size={28} />
-            <h4 className="text-lg font-semibold mt-2">{f.title}</h4>
+            <h3 className="text-lg font-semibold mt-2">{f.title}</h3>
             <p className="text-sm text-gray-600 max-w-[260px]">
               {f.description}
             </p>

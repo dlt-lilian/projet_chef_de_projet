@@ -147,6 +147,11 @@ export default function ConfiguratorSidebar({
           Chaque option est un menu déroulant (icône + chevron) ; le bouton
           d'ajout au panier reste toujours visible sous la liste. */}
       <div className="md:hidden flex min-h-0 max-h-[60%] flex-none flex-col border-t border-stone-200 bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+        {/* `AccordionPrimitive.Header` de Radix rend un h3, et le titre du
+            produit est un h1 : sans ce niveau intermédiaire la hiérarchie saute
+            de h1 à h3. Masqué visuellement — le panneau est explicite à l'écran —
+            mais il nomme la section pour les lecteurs d'écran. */}
+        <h2 className="sr-only">Configuration du produit</h2>
         <AccordionPrimitive.Root
           type="single"
           collapsible

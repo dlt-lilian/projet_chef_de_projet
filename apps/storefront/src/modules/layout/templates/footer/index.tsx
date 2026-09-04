@@ -103,9 +103,9 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-grey-90 mb-4">
+            <h2 className="text-sm font-semibold text-grey-90 mb-4">
               Boutique
-            </h4>
+            </h2>
             <ul className="flex flex-col gap-2 text-sm text-gray-600">
               {shopLinks.map((l) => (
                 <li key={l.href}>
@@ -121,9 +121,9 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-grey-90 mb-4">
+            <h2 className="text-sm font-semibold text-grey-90 mb-4">
               À propos
-            </h4>
+            </h2>
             <ul className="flex flex-col gap-2 text-sm text-gray-600">
               {aboutLinks.map((l) => (
                 <li key={l.href}>
@@ -139,7 +139,7 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-grey-90 mb-4">Aide</h4>
+            <h2 className="text-sm font-semibold text-grey-90 mb-4">Aide</h2>
             <ul className="flex flex-col gap-2 text-sm text-gray-600">
               {helpLinks.map((l) => (
                 <li key={l.href}>
