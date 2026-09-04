@@ -1,6 +1,7 @@
 /**
- * Configure la vue par défaut du tableau /app/orders : masque « Livraison »
- * (fulfillment) et affiche à la place le statut de fabrication.
+ * Configure le tableau /app/orders :
+ *   1. francise les en-têtes de colonnes ;
+ *   2. met le statut de fabrication à la place de « Livraison ».
  *
  * Usage (depuis apps/backend) :
  *   npx medusa exec src/scripts/setup-orders-view.ts
@@ -10,13 +11,26 @@
  * portant une étape (cf. backfill-production-status.ts) pour que la colonne
  * soit générée.
  *
+ * Pourquoi des libellés en base : avec le flag `view_configurations`, le tableau
+ * n'est plus la table écrite à la main du dashboard (traduite, avec ses
+ * renderers) mais une table générée depuis le module graph. Ses en-têtes sont
+ * calculés côté serveur — `display_id` donne « Display Id » — sans passer par
+ * i18n. Le seul point d'entrée est le modèle `property_label` du module
+ * settings, que le générateur consulte avant de fabriquer un nom :
+ * `label ?? formatFieldName(champ)`. D'où la table de correspondance ci-dessous.
+ *
+ * Ces libellés ne portent que sur les EN-TÊTES. Les cellules affichent toujours
+ * la valeur brute de la base (« authorized » pour le paiement) : c'est pour ça
+ * que le modèle production_status stocke un `label` déjà traduit.
+ *
  * Le script DÉCOUVRE les colonnes réelles au lieu de les supposer : la
  * génération de colonnes est une fonctionnalité expérimentale, et le nom exact
  * du champ lié dépend de la façon dont Medusa traverse le module graph. Il
  * affiche toujours la liste obtenue — c'est aussi l'outil de diagnostic si le
  * résultat n'est pas celui attendu.
  *
- * Idempotent : une vue système existante est mise à jour, pas dupliquée.
+ * Idempotent : un libellé déjà correct n'est pas réécrit, une vue système
+ * existante est mise à jour et non dupliquée.
  */
 
 import type { ExecArgs } from "@medusajs/framework/types"
@@ -30,12 +44,23 @@ type GeneratedColumn = {
 
 type DiscoverableEntity = { name: string; pluralName?: string }
 
+type PropertyLabel = {
+  id: string
+  entity: string
+  property: string
+  label: string
+}
+
 type SettingsService = {
   listDiscoverableEntities: () => DiscoverableEntity[] | Promise<DiscoverableEntity[]>
   generateEntityColumns: (entityKey: string) => Promise<GeneratedColumn[] | null>
   getSystemDefaultViewConfiguration: (entity: string) => Promise<{ id: string } | null>
   createViewConfigurations: (data: unknown) => Promise<unknown>
   updateViewConfigurations: (id: string, data: unknown) => Promise<unknown>
+  listPropertyLabels: (filters?: Record<string, unknown>) => Promise<PropertyLabel[]>
+  upsertPropertyLabels: (
+    data: Array<Partial<PropertyLabel>>
+  ) => Promise<PropertyLabel[]>
 }
 
 export default async function setupOrdersView({ container }: ExecArgs) {
@@ -115,22 +140,105 @@ export default async function setupOrdersView({ container }: ExecArgs) {
     return
   }
 
-  // ── 4. Composer la vue : défauts, moins Livraison, plus le statut ─────────
-  const visible = columns
-    .filter((c) => c.default_visible)
-    .map((c) => c.field)
-    .filter((field) => field !== fulfillmentColumn?.field)
+  // ── 4. Franciser les en-têtes ─────────────────────────────────────────────
+  // Les libellés sont indexés par chemin complet du champ, exactement comme les
+  // colonnes générées. Table à étendre au fil des colonnes affichées : le
+  // script liste plus bas celles qui n'en ont pas encore.
+  const wanted = new Map<string, string>([
+    ["display_id", "N° commande"],
+    ["created_at", "Date"],
+    ["customer_display", "Client"],
+    ["sales_channel.name", "Canal de vente"],
+    ["payment_status", "Paiement"],
+    ["fulfillment_status", "Livraison"],
+    ["total", "Total"],
+    ["country", "Pays"],
+    [statusColumn.field, "État de la commande"],
+  ])
 
-  if (!visible.includes(statusColumn.field)) {
-    visible.push(statusColumn.field)
+  const generatedFields = new Set(columns.map((c) => c.field))
+  const existingLabels = await settings.listPropertyLabels({
+    entity: orderEntity.name,
+  })
+  const labelByProperty = new Map<string, PropertyLabel>()
+  for (const row of existingLabels) {
+    labelByProperty.set(row.property, row)
+  }
+
+  const toWrite: Array<Partial<PropertyLabel>> = []
+  const unknownFields: string[] = []
+
+  for (const [property, label] of wanted) {
+    if (!generatedFields.has(property)) {
+      // Poser un libellé sur un champ qui n'existe pas laisserait une ligne
+      // morte en base, invisible depuis l'admin.
+      unknownFields.push(property)
+      continue
+    }
+
+    const current = labelByProperty.get(property)
+    if (current?.label === label) {
+      continue
+    }
+
+    toWrite.push({
+      // `upsert` ne reconnaît une ligne existante qu'à son id : sans lui, un
+      // second passage créerait un doublon, et le générateur en prendrait un au
+      // hasard.
+      ...(current ? { id: current.id } : {}),
+      entity: orderEntity.name,
+      property,
+      label,
+    })
+  }
+
+  if (toWrite.length) {
+    await settings.upsertPropertyLabels(toWrite)
+  }
+
+  const untouched = wanted.size - toWrite.length - unknownFields.length
+  console.log(
+    `🏷️  Libellés : ${toWrite.length} écrit(s), ${untouched} déjà à jour.`
+  )
+  if (unknownFields.length) {
+    console.log(`   Champs inconnus, ignorés : ${unknownFields.join(", ")}`)
+  }
+
+  const unlabelled = columns
+    .map((c) => c.field)
+    .filter((field) => !wanted.has(field) && !labelByProperty.has(field))
+  if (unlabelled.length) {
+    console.log(
+      "   Sans libellé FR (en-tête anglais si tu les affiches) :\n" +
+        `   ${unlabelled.join(", ")}`
+    )
+  }
+
+  // ── 5. Composer la vue : le statut prend la PLACE de « Livraison » ────────
+  // Remplacement sur place plutôt qu'ajout en fin de liste : la colonne d'état
+  // doit rester à hauteur d'œil, pas se perdre derrière « Pays ».
+  const ordered: string[] = []
+  for (const column of columns) {
+    if (!column.default_visible || column.field === statusColumn.field) {
+      continue
+    }
+    if (column.field === fulfillmentColumn?.field) {
+      ordered.push(statusColumn.field)
+      continue
+    }
+    ordered.push(column.field)
+  }
+
+  if (!ordered.includes(statusColumn.field)) {
+    ordered.push(statusColumn.field)
   }
 
   const configuration = {
-    visible_columns: visible,
-    column_order: visible,
+    visible_columns: ordered,
+    column_order: ordered,
   }
 
-  // ── 5. Créer ou mettre à jour la vue système ──────────────────────────────
+  // ── 6. Créer ou mettre à jour la vue système ──────────────────────────────
   const existing = await settings
     .getSystemDefaultViewConfiguration(entityKey)
     .catch(() => null)
@@ -147,7 +255,7 @@ export default async function setupOrdersView({ container }: ExecArgs) {
     console.log("✅ Vue système créée.")
   }
 
-  console.log(`   Colonne ajoutée   : ${statusColumn.field}`)
+  console.log(`   Colonnes visibles : ${ordered.join(", ")}`)
   console.log(
     `   Colonne masquée   : ${fulfillmentColumn?.field ?? "aucune (« fulfillment » non trouvée)"}`
   )
