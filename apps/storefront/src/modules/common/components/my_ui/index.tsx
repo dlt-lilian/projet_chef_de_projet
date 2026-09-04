@@ -2,15 +2,14 @@
 
 import { forwardRef } from "react"
 import clsx from "clsx"
-import { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes } from "react"
-import { Icon as Iconify, addCollection } from "@iconify/react"
-import { iconCollections } from "./icons.data"
+import { ButtonHTMLAttributes, InputHTMLAttributes } from "react"
+import { Icon } from "./icon"
 
-// N'enregistre QUE le sous-ensemble d'icônes réellement utilisées (généré par
-// `scripts/generate-icons.mjs`) au lieu des jeux @iconify-json complets (~800 kB
-// embarqués inutilement). Une icône non listée reste affichable via le fallback
-// API d'iconify. Pour en ajouter une : compléter USED dans le script + relancer.
-iconCollections.forEach((collection) => addCollection(collection))
+// `Icon` a quitté ce module (voir ./icon) : il n'a pas besoin d'être client, et
+// le garder ici forçait `@iconify/react` — plus son enregistrement de
+// collections au chargement — dans le bundle de toutes les pages. Button et
+// Input, eux, restent client (refs et interactions) et consomment simplement le
+// composant serveur.
 
 // Button Component
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -59,52 +58,20 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {!isLoading && iconTop && (
-          <Iconify icon={`lucide:${iconTop}`} width={iconSize} height={iconSize} />
+          <Icon name={iconTop} size={iconSize} />
         )}
         {!isLoading && iconLeft && (
-          <Iconify icon={`lucide:${iconLeft}`} width={iconSize} height={iconSize} />
+          <Icon name={iconLeft} size={iconSize} />
         )}
         {isLoading ? "Chargement..." : children}
         {!isLoading && iconRight && (
-          <Iconify icon={`lucide:${iconRight}`} width={iconSize} height={iconSize} />
+          <Icon name={iconRight} size={iconSize} />
         )}
       </button>
     )
   }
 )
 Button.displayName = "Button"
-
-// Icon Component
-type IconLibrary = "lucide" | "hugeicons" | "lucide-lab"
-
-type IconProps = HTMLAttributes<HTMLSpanElement> & {
-  name: string
-  library?: IconLibrary
-  size?: number | string
-  strokeWidth?: number
-  color?: string
-}
-
-export const Icon = forwardRef<HTMLSpanElement, IconProps>(
-  ({ name, library = "lucide", size = 20, strokeWidth, color, className, ...props }, ref) => {
-    return (
-      <span
-        ref={ref}
-        className={clsx("inline-flex items-center justify-center", className)}
-        {...props}
-      >
-        <Iconify
-          icon={`${library}:${name}`}
-          width={size}
-          height={size}
-          color={color}
-          style={strokeWidth ? { "--stroke-width": strokeWidth } as React.CSSProperties : undefined}
-        />
-      </span>
-    )
-  }
-)
-Icon.displayName = "Icon"
 
 // Input Component
 type InputType = "text" | "email" | "password" | "number" | "tel" | "url" | "search" | "date" | "time" | "checkbox" | "radio" | "range" | "file" | "color"
@@ -132,10 +99,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         !isBox && !isRange && !isColor && size === "full" && "w-full",
       )}>
         {variant === "search" && !isBox && (
-          <Iconify
-            icon="lucide:search"
-            width={16}
-            height={16}
+          <Icon
+            name="search"
+            size={16}
             className="absolute right-3 text-gray-400 pointer-events-none"
           />
         )}

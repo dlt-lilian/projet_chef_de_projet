@@ -1,5 +1,5 @@
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import { Icon } from "@modules/common/components/my_ui"
+import { Icon } from "@modules/common/components/my_ui/icon"
 import CookiePreferencesLink from "@modules/layout/components/cookie-consent/preferences-link"
 
 /**

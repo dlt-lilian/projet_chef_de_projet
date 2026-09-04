@@ -1,7 +1,7 @@
 "use client"
 
 import { useConsent } from "@lib/context/consent-context"
-import { Icon } from "@modules/common/components/my_ui"
+import { Icon } from "@modules/common/components/my_ui/icon"
 
 export default function CookiePreferencesButton() {
   const { openPreferences } = useConsent()

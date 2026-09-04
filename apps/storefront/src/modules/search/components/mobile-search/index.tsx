@@ -1,7 +1,7 @@
 "use client"
 
 import { XMark } from "@medusajs/icons"
-import { Icon } from "@modules/common/components/my_ui"
+import { Icon } from "@modules/common/components/my_ui/icon"
 import SearchInput from "@modules/search/components/search-input"
 import { useState } from "react"
 

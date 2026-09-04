@@ -6,7 +6,7 @@ import clsx from "clsx"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Image from "next/image"
 import { isOptimizable } from "@lib/util/images"
-import { Icon } from "@modules/common/components/my_ui"
+import { Icon } from "@modules/common/components/my_ui/icon"
 
 export type SlideData = {
   title: string

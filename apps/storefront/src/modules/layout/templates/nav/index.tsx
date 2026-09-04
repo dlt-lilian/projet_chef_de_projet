@@ -9,7 +9,7 @@ import CartButton from "@modules/layout/components/cart-button"
 import SideMenu from "@modules/layout/components/side-menu"
 import MobileSearch from "@modules/search/components/mobile-search"
 import SearchInput from "@modules/search/components/search-input"
-import { Icon } from "@modules/common/components/my_ui"
+import { Icon } from "@modules/common/components/my_ui/icon"
 import Image from "next/image"
 
 export default async function Nav() {

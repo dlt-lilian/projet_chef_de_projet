@@ -1,4 +1,4 @@
-import { Icon } from "@modules/common/components/my_ui"
+import { Icon } from "@modules/common/components/my_ui/icon"
 
 type Feature = {
   icon: string
