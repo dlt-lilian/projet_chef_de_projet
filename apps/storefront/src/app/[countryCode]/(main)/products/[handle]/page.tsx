@@ -27,6 +27,8 @@ import {
 } from "@lib/util/seo"
 import { getProductEditorial } from "@lib/content/products"
 import EditorialSection from "@modules/common/components/editorial"
+import TrackEvent from "@modules/analytics/components/track-event"
+import { itemFromProduct } from "@lib/util/analytics-events"
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
@@ -248,6 +250,26 @@ export default async function ProductPage(props: Props) {
     jsonLd.push(faqPageJsonLd(editorial.faq))
   }
 
+  // Consultation de fiche — premier maillon de l'entonnoir GA4, celui auquel se
+  // rapportent tous les taux (vue → ajout → achat). Monté ICI, dans la page, et
+  // non dans `ProductTemplate` : les fiches configurables empruntent l'autre
+  // branche de rendu et seraient sinon les seules à ne rien mesurer, alors
+  // qu'elles portent les produits phares.
+  //
+  // Le prix annoncé est celui de la variante la moins chère, comme le JSON-LD
+  // juste au-dessus et comme l'affichage : les trois racontent la même histoire.
+  const viewItem = (
+    <TrackEvent
+      event="view_item"
+      dedupeKey={pricedProduct.id}
+      payload={{
+        currency: cheapestPrice?.currency_code ?? region.currency_code,
+        value: cheapestPrice?.calculated_price_number,
+        items: [itemFromProduct(pricedProduct)],
+      }}
+    />
+  )
+
   if (isConfigurableProduct(pricedProduct.handle)) {
     // Config éditable depuis l'admin (table configurator_*), avec repli sur la
     // config statique si le backend ne répond pas.
@@ -287,6 +309,7 @@ export default async function ProductPage(props: Props) {
     return (
       <>
         <JsonLd data={jsonLd} />
+        {viewItem}
         <ConfiguratorLayout
           product={pricedProduct}
           config={config}
@@ -305,6 +328,7 @@ export default async function ProductPage(props: Props) {
   return (
     <>
       <JsonLd data={jsonLd} />
+      {viewItem}
       <ProductTemplate
         product={pricedProduct}
         region={region}

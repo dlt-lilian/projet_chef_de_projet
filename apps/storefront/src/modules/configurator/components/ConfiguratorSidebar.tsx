@@ -1,6 +1,7 @@
 "use client"
 
 import { addConfiguredToCart } from "@lib/data/cart"
+import { payloadFromProduct, trackEcommerce } from "@lib/util/analytics-events"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 import { Button, clx, Input, Label } from "@modules/common/components/ui"
@@ -99,6 +100,21 @@ export default function ConfiguratorSidebar({
         selections: controller.state.selections,
         engraving: controller.state.engraving,
       })
+      // Mesure d'audience : même événement `add_to_cart` que le bouton d'une
+      // fiche classique, sans quoi les produits configurables — les plus
+      // vendus — seraient absents du milieu de l'entonnoir GA4.
+      //
+      // Le montant inclut les suppléments d'options, comme le total affiché
+      // juste au-dessus du bouton. `computeConfiguratorSurcharge` les compte en
+      // CENTIMES (convention propre aux constantes du configurateur), là où le
+      // prix Medusa est décimal : d'où la division, identique à celle de
+      // l'affichage.
+      const added = payloadFromProduct(product, variant, 1)
+      trackEcommerce("add_to_cart", {
+        ...added,
+        value: (added.value ?? 0) + surchargeCents / 100,
+      })
+
       // Épingle la fiche sur la ligne qu'on vient d'ajouter : la configuration
       // reste affichée (plus de retour au générique) et survit à un rechargement
       // ou à un re-render déclenché par la revalidation du panier.

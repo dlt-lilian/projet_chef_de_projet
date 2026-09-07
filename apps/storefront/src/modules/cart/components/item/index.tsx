@@ -2,6 +2,7 @@
 
 import { Table, Text, clx } from "@modules/common/components/ui"
 import { updateLineItem } from "@lib/data/cart"
+import { trackQuantityChange } from "@lib/util/analytics-events"
 import { HttpTypes } from "@medusajs/types"
 import CartItemSelect from "@modules/cart/components/cart-item-select"
 import ErrorMessage from "@modules/checkout/components/error-message"
@@ -33,6 +34,9 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
       lineId: item.id,
       quantity,
     })
+      .then(() => {
+        trackQuantityChange(item, quantity, currencyCode)
+      })
       .catch((err) => {
         setError(err.message)
       })
@@ -86,7 +90,11 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
       {type === "full" && (
         <Table.Cell>
           <div className="flex gap-2 items-center w-28">
-            <DeleteButton id={item.id} data-testid="product-delete-button" />
+            <DeleteButton
+              item={item}
+              currencyCode={currencyCode}
+              data-testid="product-delete-button"
+            />
             <CartItemSelect
               value={item.quantity}
               onChange={(value) => changeQuantity(parseInt(value.target.value))}

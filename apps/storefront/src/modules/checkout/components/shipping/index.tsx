@@ -2,6 +2,7 @@
 import { Radio, RadioGroup } from "@headlessui/react"
 import { setShippingMethod } from "@lib/data/cart"
 import { calculatePriceForShippingOption } from "@lib/data/fulfillment"
+import { payloadFromCart, trackEcommerce } from "@lib/util/analytics-events"
 import { convertToLocale } from "@lib/util/money"
 import { CheckCircleSolid, Loader } from "@medusajs/icons"
 import { HttpTypes } from "@medusajs/types"
@@ -114,6 +115,21 @@ const Shipping: React.FC<ShippingProps> = ({
   }
 
   const handleSubmit = () => {
+    // Émis à la VALIDATION de l'étape, pas au clic sur une option : le visiteur
+    // compare souvent plusieurs modes avant de trancher, et chaque essai
+    // compterait pour une étape franchie — le tunnel afficherait plus de
+    // livraisons renseignées que d'entrées en commande.
+    //
+    // `shipping_tier` est le champ que GA4 attend pour ventiler l'entonnoir par
+    // mode de livraison : on lui donne le libellé affiché, pas l'identifiant
+    // technique, seul lisible dans les rapports.
+    trackEcommerce("add_shipping_info", {
+      ...payloadFromCart(cart),
+      shipping_tier: availableShippingMethods?.find(
+        (method) => method.id === shippingMethodId
+      )?.name,
+    })
+
     router.push(pathname + "?step=payment", { scroll: false })
   }
 

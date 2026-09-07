@@ -1,5 +1,7 @@
 import { retrieveCart } from "@lib/data/cart"
 import { retrieveCustomer } from "@lib/data/customer"
+import { payloadFromCart } from "@lib/util/analytics-events"
+import TrackEvent from "@modules/analytics/components/track-event"
 import PaymentWrapper from "@modules/checkout/components/payment-wrapper"
 import CheckoutForm from "@modules/checkout/templates/checkout-form"
 import CheckoutSummary from "@modules/checkout/templates/checkout-summary"
@@ -34,6 +36,15 @@ export default async function Checkout(props: {
 
   return (
     <div className="grid grid-cols-1 small:grid-cols-[1fr_416px] content-container gap-x-40 py-12">
+      {/* Entrée dans le tunnel. `dedupeKey` porte l'identifiant du panier et
+          non l'étape : passer de l'adresse au paiement reste la MÊME commande
+          en cours, et ne doit pas rouvrir un second tunnel — ce qui écraserait
+          le taux d'abandon en le divisant sur trois entrées fictives. */}
+      <TrackEvent
+        event="begin_checkout"
+        dedupeKey={cart.id}
+        payload={payloadFromCart(cart)}
+      />
       <PaymentWrapper cart={cart}>
         <CheckoutForm cart={cart} customer={customer} />
       </PaymentWrapper>

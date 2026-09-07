@@ -1,6 +1,7 @@
 import { Heading } from "@modules/common/components/ui"
 import { cookies as nextCookies } from "next/headers"
 
+import TrackPurchase from "@modules/analytics/components/track-purchase"
 import CartTotals from "@modules/common/components/cart-totals"
 import Help from "@modules/order/components/help"
 import Items from "@modules/order/components/items"
@@ -24,6 +25,11 @@ export default async function OrderCompletedTemplate({
   return (
     <div className="py-6 min-h-[calc(100vh-64px)]">
       <div className="content-container flex flex-col justify-center items-center gap-y-10 max-w-4xl h-full w-full">
+        {/* Chiffre d'affaires. Monté dans le gabarit de CONFIRMATION seulement,
+            jamais dans le détail de commande du compte client : les deux
+            affichent la même commande, mais seule celle-ci marque l'instant de
+            l'achat. La relire depuis son historique n'est pas un nouvel achat. */}
+        <TrackPurchase order={order} />
         {isOnboarding && <OnboardingCta orderId={order.id} />}
         <div
           className="flex flex-col gap-4 max-w-4xl h-full bg-white w-full py-10"

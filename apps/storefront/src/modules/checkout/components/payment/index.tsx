@@ -2,6 +2,7 @@
 import { RadioGroup } from "@headlessui/react"
 import { isStripeLike, paymentInfoMap } from "@lib/constants"
 import { initiatePaymentSession } from "@lib/data/cart"
+import { payloadFromCart, trackEcommerce } from "@lib/util/analytics-events"
 import { CheckCircleSolid, CreditCard } from "@medusajs/icons"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import PaymentContainer, {
@@ -93,6 +94,20 @@ const Payment = ({
       }
 
       if (!shouldInputCard) {
+        // Émis seulement sur cette branche : c'est la seule qui fait AVANCER le
+        // tunnel. L'autre (`shouldInputCard`) laisse le visiteur sur place pour
+        // saisir sa carte — l'étape n'est pas franchie, la mesurer ici
+        // compterait deux fois le même paiement renseigné.
+        //
+        // `payment_type` reçoit le libellé affiché plutôt que le `provider_id`
+        // (`pp_stripe_stripe`), illisible dans les rapports GA4.
+        trackEcommerce("add_payment_info", {
+          ...payloadFromCart(cart),
+          payment_type:
+            paymentInfoMap[selectedPaymentMethod]?.title ??
+            selectedPaymentMethod,
+        })
+
         return router.push(
           pathname + "?" + createQueryString("step", "review"),
           {

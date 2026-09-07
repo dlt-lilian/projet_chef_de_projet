@@ -7,6 +7,7 @@ import {
   googleConsentSignals,
   gtagPush,
 } from "@lib/util/analytics"
+import { clearAnalyticsStorage } from "@lib/util/analytics-events"
 import { useEffect } from "react"
 
 /**
@@ -40,6 +41,10 @@ export function useGoogleConsent() {
     // aucun cookie ne correspond.
     if (!analytics) {
       clearAnalyticsCookies()
+      // Les cookies ne sont pas le seul dépôt : le suivi e-commerce garde en
+      // `localStorage` la liste des commandes déjà comptées (anti-doublon du
+      // `purchase`). Même finalité statistique, donc même sort au retrait.
+      clearAnalyticsStorage()
     }
 
     if (!marketing) {

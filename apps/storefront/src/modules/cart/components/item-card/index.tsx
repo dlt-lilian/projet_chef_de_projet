@@ -1,6 +1,11 @@
 "use client"
 
 import { deleteLineItem, updateLineItem } from "@lib/data/cart"
+import {
+  payloadFromLine,
+  trackEcommerce,
+  trackQuantityChange,
+} from "@lib/util/analytics-events"
 import { HttpTypes } from "@medusajs/types"
 import { Spinner, Trash } from "@medusajs/icons"
 import ErrorMessage from "@modules/checkout/components/error-message"
@@ -35,6 +40,9 @@ const ItemCard = ({ item, currencyCode }: ItemCardProps) => {
     setUpdating(true)
 
     await updateLineItem({ lineId: item.id, quantity })
+      .then(() => {
+        trackQuantityChange(item, quantity, currencyCode)
+      })
       .catch((err) => {
         setError(err.message)
       })
@@ -45,9 +53,16 @@ const ItemCard = ({ item, currencyCode }: ItemCardProps) => {
 
   const handleDelete = async () => {
     setDeleting(true)
-    await deleteLineItem(item.id).catch(() => {
-      setDeleting(false)
-    })
+    await deleteLineItem(item.id)
+      .then(() => {
+        trackEcommerce(
+          "remove_from_cart",
+          payloadFromLine(item, item.quantity, currencyCode)
+        )
+      })
+      .catch(() => {
+        setDeleting(false)
+      })
   }
 
   // Article configuré (3D) → le lien rouvre la fiche AVEC sa configuration.

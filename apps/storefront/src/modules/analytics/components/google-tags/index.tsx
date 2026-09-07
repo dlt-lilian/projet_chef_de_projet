@@ -8,7 +8,26 @@ import {
   USE_GTM,
   consentBootstrapScript,
 } from "@lib/util/analytics"
+import { flushAnalyticsQueue } from "@lib/util/analytics-events"
 import Script from "next/script"
+
+/**
+ * Vidage de la file d'événements e-commerce, reporté d'un tour de boucle.
+ *
+ * `next/script` appelle `onReady` AVANT d'insérer le `<script>` dans le document
+ * (dans sa fonction `loadScript`, `afterLoad()` précède `appendChild`). À cet
+ * instant le préambule n'a donc PAS encore tourné : `window.gtag` n'existe pas,
+ * et un vidage immédiat ne trouverait aucune balise à qui parler. Le report
+ * suffit — l'insertion, et l'exécution synchrone du script inline qu'elle
+ * déclenche, se terminent dans la tâche courante.
+ *
+ * Il reste une optimisation de timing, pas une condition de survie : la file est
+ * conservée tant qu'elle ne peut pas partir (cf. `flushAnalyticsQueue`), un
+ * appel trop tôt ne perd donc rien.
+ */
+const releaseQueuedEvents = () => {
+  setTimeout(flushAnalyticsQueue, 0)
+}
 
 /**
  * Balises Google, conditionnées au consentement.
@@ -30,6 +49,12 @@ import Script from "next/script"
  * plus les compterait DEUX fois — et ce doublon subsiste même avec
  * `send_page_view: false`, ce réglage ne désarmant que le hit initial. La
  * mesure automatique doit donc rester activée côté propriété GA4.
+ *
+ * `releaseQueuedEvents` libère les événements e-commerce mis en attente. Ils
+ * sont émis dès l'hydratation des pages, alors que ces balises ne se chargent
+ * qu'ensuite (`afterInteractive`) : sans ce signal, tout le haut de l'entonnoir
+ * partirait dans le vide. Next rappelle `onReady` à chaque remontage du
+ * composant, ce qui couvre aussi l'acceptation du bandeau en cours de visite.
  */
 export default function GoogleTags() {
   // Appelé inconditionnellement (règle des hooks) : il synchronise le Consent
@@ -45,7 +70,11 @@ export default function GoogleTags() {
     }
 
     return (
-      <Script id="gtm-init" strategy="afterInteractive">
+      <Script
+        id="gtm-init"
+        strategy="afterInteractive"
+        onReady={releaseQueuedEvents}
+      >
         {/* Un SEUL script inline : consentement et chargement du conteneur
             partagent la même exécution, l'ordre est donc garanti sans dépendre
             de l'ordre d'injection de deux balises séparées. */}
@@ -65,7 +94,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   return (
     <>
-      <Script id="ga-init" strategy="afterInteractive">
+      <Script
+        id="ga-init"
+        strategy="afterInteractive"
+        onReady={releaseQueuedEvents}
+      >
         {`${consentBootstrapScript(analytics, marketing)}
 gtag('js', new Date());
 gtag('config', ${JSON.stringify(GA_MEASUREMENT_ID)});`}

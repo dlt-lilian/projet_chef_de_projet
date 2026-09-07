@@ -191,7 +191,8 @@ const CartDropdown = ({
                             </div>
                           </div>
                           <DeleteButton
-                            id={item.id}
+                            item={item}
+                            currencyCode={cartState.currency_code}
                             className="mt-1"
                             data-testid="cart-item-remove-button"
                           >

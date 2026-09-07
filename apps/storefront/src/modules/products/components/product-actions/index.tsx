@@ -2,6 +2,7 @@
 
 import { addToCart } from "@lib/data/cart"
 import { useIntersection } from "@lib/hooks/use-in-view"
+import { payloadFromProduct, trackEcommerce } from "@lib/util/analytics-events"
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@modules/common/components/ui"
 import Divider from "@modules/common/components/divider"
@@ -131,6 +132,15 @@ export default function ProductActions({
       quantity: 1,
       countryCode,
     })
+
+    // Émis APRÈS l'ajout, jamais au clic : un `addToCart` qui échoue (rupture
+    // constatée côté serveur, session expirée) lève, et l'événement n'est alors
+    // pas atteint. Mesurer l'intention plutôt que le résultat gonflerait le
+    // milieu de l'entonnoir d'ajouts qui n'ont jamais eu lieu.
+    trackEcommerce(
+      "add_to_cart",
+      payloadFromProduct(product, selectedVariant, 1)
+    )
 
     setIsAdding(false)
   }
