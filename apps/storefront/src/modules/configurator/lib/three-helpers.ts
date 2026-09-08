@@ -6,6 +6,7 @@ import {
   DirectionalLight,
   Group,
   HemisphereLight,
+  Material,
   Mesh,
   MeshStandardMaterial,
   Object3D,
@@ -13,7 +14,6 @@ import {
   Scene,
   SRGBColorSpace,
   Texture,
-  TextureLoader,
   Vector3,
   WebGLRenderer,
 } from "three"
@@ -393,44 +393,79 @@ export function findMeshes(
   return all
 }
 
-const textureCache = new Map<string, Promise<Texture>>()
-
-export function loadTexture(path: string): Promise<Texture> {
-  const cached = textureCache.get(path)
-  if (cached) return cached
-  const loader = new TextureLoader()
-  const promise = new Promise<Texture>((resolve, reject) => {
-    loader.load(
-      path,
-      (texture) => {
-        texture.colorSpace = SRGBColorSpace
-        texture.flipY = false
-        resolve(texture)
-      },
-      undefined,
-      (err: unknown) => reject(err)
-    )
+/** Un `<img>` en mode CORS. Rejette si le chargement échoue. */
+function decodeImage(path: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    // Non négociable : ces images alimentent un canvas qui devient une texture
+    // WebGL, et `texImage2D` refuse un canvas « tainted » par une image chargée
+    // sans CORS. C'est ce qui interdit de résoudre le bug ci-dessous en retirant
+    // simplement cette ligne.
+    img.crossOrigin = "anonymous"
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error(`Image illisible : ${path}`))
+    img.src = path
   })
-  textureCache.set(path, promise)
-  return promise
 }
 
 /**
- * Charge une image brute (pour la composition canvas du motif). Cache partagé.
+ * Charge une image (tissu, bois, motif) destinée à un canvas.
+ *
+ * Le second essai n'est pas une précaution réseau : il corrige un bug propre aux
+ * navigateurs Chromium.
+ *
+ * R2 ne renvoie `Access-Control-Allow-Origin` (ni `Vary: Origin`) QUE si la
+ * requête porte un en-tête `Origin`. Or les pastilles de la sidebar affichent
+ * ces mêmes URL en `background-image` CSS — une requête SANS `Origin` : la
+ * réponse mise en cache est donc dépourvue d'en-tête CORS, et faute de `Vary`
+ * rien ne la distingue d'une réponse CORS. Chromium n'incluant pas le mode CORS
+ * dans la clé de son cache HTTP, il resservait cette entrée au
+ * `<img crossOrigin>` du configurateur → contrôle CORS en échec → `onerror`,
+ * motif absent alors que le choix était bien enregistré côté React. Firefox
+ * n'apparie pas ces deux entrées et refait la requête, d'où un bug qui ne se
+ * voyait que sur Chrome/Edge.
+ *
+ * `cache: "reload"` refait la requête en mode CORS et REMPLACE l'entrée fautive
+ * (qui porte alors `Vary: Origin`) ; le `<img>` repasse ensuite. Le rattrapage
+ * répare donc aussi le cache déjà empoisonné des visiteurs revenants — ce qu'un
+ * simple correctif d'en-têtes côté bucket ne ferait pas.
  */
 const imageCache = new Map<string, Promise<HTMLImageElement>>()
 
 function loadImage(path: string): Promise<HTMLImageElement> {
   const cached = imageCache.get(path)
   if (cached) return cached
-  const promise = new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = "anonymous"
-    img.onload = () => resolve(img)
-    img.onerror = (e) => reject(e)
-    img.src = path
+  const promise = decodeImage(path).catch(async () => {
+    await fetch(path, { mode: "cors", cache: "reload" })
+    return decodeImage(path)
   })
+  // Ne jamais mémoriser un échec : la promesse rejetée resterait en cache et
+  // condamnerait ce motif pour toute la session, y compris aux clics suivants.
+  promise.catch(() => imageCache.delete(path))
   imageCache.set(path, promise)
+  return promise
+}
+
+const textureCache = new Map<string, Promise<Texture>>()
+
+/**
+ * Texture simple (sans motif composé). Passe par `loadImage` plutôt que par
+ * `TextureLoader` : ce dernier pose lui aussi `crossOrigin = "anonymous"` et
+ * butait donc sur le même cache empoisonné — les changements de bois et de toile
+ * étaient muets sur Chromium pour exactement la même raison que les motifs.
+ */
+export function loadTexture(path: string): Promise<Texture> {
+  const cached = textureCache.get(path)
+  if (cached) return cached
+  const promise = loadImage(path).then((img) => {
+    const texture = new Texture(img)
+    texture.colorSpace = SRGBColorSpace
+    texture.flipY = false
+    texture.needsUpdate = true
+    return texture
+  })
+  promise.catch(() => textureCache.delete(path))
+  textureCache.set(path, promise)
   return promise
 }
 
@@ -483,6 +518,10 @@ function ensureOwnMaterial(mesh: Mesh): MeshStandardMaterial {
   return mesh.material as MeshStandardMaterial
 }
 
+/** Bornes de résolution de la texture composée (cf. `compositeLayers`). */
+const COMPOSITE_MIN_PX = 1024
+const COMPOSITE_MAX_PX = 2048
+
 /**
  * Compose la base (texture de soie/bois OU couleur unie) puis dessine le motif
  * transparent par-dessus, sur un canvas, et retourne la texture résultante.
@@ -493,8 +532,19 @@ async function compositeLayers(layers: MeshLayers): Promise<Texture> {
   if (layers.texturePath) {
     baseImg = await loadImage(layers.texturePath).catch(() => null)
   }
-  const w = baseImg?.naturalWidth || motif.naturalWidth || 1024
-  const h = baseImg?.naturalHeight || motif.naturalHeight || 1024
+  // Un SVG sans attributs `width`/`height` (motif_rose.svg n'a qu'un `viewBox`)
+  // n'a pas de taille intrinsèque : Chromium retombe sur les 150×150 par défaut
+  // d'un élément remplacé, là où Firefox lit le `viewBox` (2146). Sans plancher,
+  // le motif était composé en 150 px puis étiré sur toute la toile — illisible,
+  // sur Chrome seulement. Le plafond évite qu'un JPEG de 5000 px (motif_vague)
+  // ne monte une centaine de Mo en VRAM.
+  const srcW = baseImg?.naturalWidth || motif.naturalWidth || COMPOSITE_MIN_PX
+  const srcH = baseImg?.naturalHeight || motif.naturalHeight || COMPOSITE_MIN_PX
+  const longest = Math.max(srcW, srcH)
+  const scale =
+    Math.min(Math.max(longest, COMPOSITE_MIN_PX), COMPOSITE_MAX_PX) / longest
+  const w = Math.max(1, Math.round(srcW * scale))
+  const h = Math.max(1, Math.round(srcH * scale))
   const canvas = document.createElement("canvas")
   canvas.width = w
   canvas.height = h
@@ -525,7 +575,11 @@ async function rebuildMeshMaterial(
   const mat = ensureOwnMaterial(mesh)
   if (layers.motifPath) {
     // Base (couleur ou tissu) + motif composés en une seule texture.
-    const tex = await compositeLayers(layers).catch(() => null)
+    const tex = await compositeLayers(layers).catch((err: unknown) => {
+      // eslint-disable-next-line no-console
+      console.error("[configurator] composition du motif impossible", layers.motifPath, err)
+      return null
+    })
     if (tex) {
       mat.map = tex
       mat.color.set(layers.tint ?? "#ffffff")
@@ -536,7 +590,11 @@ async function rebuildMeshMaterial(
     // base ci-dessous au lieu de laisser une texture obsolète figée.
   }
   if (layers.texturePath) {
-    const tex = await loadTexture(layers.texturePath).catch(() => null)
+    const tex = await loadTexture(layers.texturePath).catch((err: unknown) => {
+      // eslint-disable-next-line no-console
+      console.error("[configurator] texture illisible", layers.texturePath, err)
+      return null
+    })
     if (tex) {
       mat.map = tex
       // Teinte multiplicatrice (assombrissement du bois) ; blanc = texture intacte.
