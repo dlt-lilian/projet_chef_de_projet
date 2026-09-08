@@ -3,31 +3,30 @@ import { Icon } from "@modules/common/components/my_ui/icon"
 import CookiePreferencesLink from "@modules/layout/components/cookie-consent/preferences-link"
 
 /**
- * Le pied de page pointe sur les CATÉGORIES, la navbar sur les fiches.
+ * Le pied de page pointe sur les FICHES, comme la navbar.
  *
- * C'est ce qui donne aux pages de catégorie le maillage dont elles ont besoin
- * pour se positionner sur des requêtes larges, sans allonger le parcours
- * d'achat : la navbar, présente sur chaque page, mène toujours au configurateur
- * en un clic.
+ * IL POINTAIT SUR LES CATÉGORIES jusqu'au 2026-09-08. L'idée était de leur
+ * donner le maillage nécessaire pour se positionner sur des requêtes larges.
+ * Deux raisons l'ont fait abandonner :
  *
- * Ancres volontairement PLUS PRÉCISES que la requête ciblée (« baguettes
- * japonaises à configurer » et non « baguettes japonaises ») : une ancre en
- * correspondance exacte, répétée sur toutes les pages du site, est le signal
- * de sur-optimisation le plus facile à détecter.
+ * 1. Trois ancres quasi exactes répétées sur CHAQUE page du site, c'est le
+ *    signal de sur-optimisation le plus facile à détecter — le commentaire
+ *    précédent s'en méfiait déjà, sans en tirer la conséquence.
+ * 2. Ces liens envoyaient le jus vers des listings d'UNE référence, donc un
+ *    clic de plus que la fiche qu'ils listaient.
+ *
+ * Le contenu qui justifiait ces pages (comparer, expliquer, répondre) est
+ * parti au blog, où il se maille avec les articles existants — cf.
+ * `lib/content/categories.ts`. Les catégories, elles, restent servies en
+ * `noindex, follow` pour le fil d'Ariane des fiches.
+ *
+ * Les ancres restent volontairement PLUS PRÉCISES que la requête ciblée
+ * (« baguettes japonaises à configurer » et non « baguettes japonaises »).
  */
 const shopLinks = [
-  {
-    label: "Baguettes japonaises à configurer",
-    href: "/categories/baguettes-japonaises",
-  },
-  {
-    label: "Éventails japonais sur-mesure",
-    href: "/categories/eventail-japonais",
-  },
-  {
-    label: "Ombrelles japonaises sur-mesure",
-    href: "/categories/ombrelle-japonaise",
-  },
+  { label: "Baguettes japonaises à configurer", href: "/products/baguettes" },
+  { label: "Éventails japonais sur-mesure", href: "/products/eventail" },
+  { label: "Ombrelles japonaises sur-mesure", href: "/products/ombrelle" },
   // Un seul lien vers le hub, et non six vers chaque occasion : lister six
   // landings de plus dans le pied de page diluerait le maillage au lieu de le
   // renforcer. C'est /offrir qui les distribue.

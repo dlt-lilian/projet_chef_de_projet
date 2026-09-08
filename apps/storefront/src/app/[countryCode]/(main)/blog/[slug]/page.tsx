@@ -1,10 +1,16 @@
 import { notFound } from "next/navigation"
 import { getAllSlugs, getArticleBySlug } from "@lib/blog"
+import { extractFaqFromBlocks } from "@lib/blog/faq"
 import { listRegions } from "@lib/data/regions"
 import ArticleTemplate from "@modules/blog/templates/article"
 import type { Metadata } from "next"
 import JsonLd from "@modules/common/components/json-ld"
-import { blogPostingJsonLd, canonicalPath, hreflangAlternates } from "@lib/util/seo"
+import {
+  blogPostingJsonLd,
+  canonicalPath,
+  faqPageJsonLd,
+  hreflangAlternates,
+} from "@lib/util/seo"
 
 // Next.js 15 : params est une Promise
 type Props = { params: Promise<{ slug: string; countryCode: string }> }
@@ -71,18 +77,29 @@ export default async function BlogArticlePage({ params }: Props) {
   const post = await getArticleBySlug(slug)
   if (!post) notFound()
 
+  const jsonLd: Record<string, unknown>[] = [
+    blogPostingJsonLd({
+      title: post.title,
+      description: post.excerpt,
+      image: post.cover,
+      path: canonicalPath(countryCode, `/blog/${slug}`),
+      author: post.author,
+      datePublished: post.date_iso,
+    }),
+  ]
+
+  // FAQPage quand l'article porte une section « Questions fréquentes ».
+  // Les questions viennent des blocs réellement rendus (cf. `lib/blog/faq.ts`),
+  // jamais d'une source parallèle : un FAQPage dont les réponses ne sont pas
+  // visibles sur la page est invalidé par Google.
+  const faq = extractFaqFromBlocks(post.blocks)
+  if (faq.length) {
+    jsonLd.push(faqPageJsonLd(faq))
+  }
+
   return (
     <>
-      <JsonLd
-        data={blogPostingJsonLd({
-          title: post.title,
-          description: post.excerpt,
-          image: post.cover,
-          path: canonicalPath(countryCode, `/blog/${slug}`),
-          author: post.author,
-          datePublished: post.date_iso,
-        })}
-      />
+      <JsonLd data={jsonLd} />
       <ArticleTemplate post={post} />
     </>
   )

@@ -3,6 +3,7 @@ import { HttpTypes } from "@medusajs/types"
 import { absoluteUrl } from "@lib/util/seo"
 import { getAllArticles, getAllPages } from "@lib/blog"
 import { OCCASION_LANDINGS } from "@lib/content/occasions"
+import { NOINDEX_CATEGORY_HANDLES } from "@lib/content/categories"
 
 /**
  * sitemap.xml natif (Next Metadata route) → servi sur /sitemap.xml.
@@ -154,8 +155,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })
     }
 
+    // Les catégories servies en `noindex, follow` (cf. `content/categories.ts`)
+    // sont exclues : lister au sitemap une URL qu'on demande par ailleurs de ne
+    // pas indexer envoie deux consignes contradictoires au crawl.
     for (const c of categories) {
       if (!c.handle) continue
+      if (NOINDEX_CATEGORY_HANDLES.has(c.handle)) continue
       entries.push({
         url: absoluteUrl(`/${cc}/categories/${c.handle}`),
         lastModified: toDate(c.updated_at),
