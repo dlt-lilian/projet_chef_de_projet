@@ -1,6 +1,10 @@
 import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { BLOG_MODULE } from "../../../modules/blog"
-import { normalizePagePath, validatePagePath } from "../../../modules/blog/page-path"
+import {
+  normalizePagePath,
+  validatePagePath,
+  validatePlacement,
+} from "../../../modules/blog/page-path"
 import type BlogModuleService from "../../../modules/blog/service"
 
 /**
@@ -65,6 +69,11 @@ export const POST = async (
     }
   }
 
+  // Rubrique « Offrir » : exclusive d'une URL personnalisée
+  const offrir = body.offrir === true
+  const misplaced = validatePlacement(pagePath, offrir)
+  if (misplaced) return res.status(400).json({ message: misplaced })
+
   const post = await blogService.createBlogPosts({
     slug:      body.slug      as string,
     title:     body.title     as string,
@@ -78,6 +87,7 @@ export const POST = async (
     featured:  (body.featured as boolean) ?? false,
     published: (body.published as boolean) ?? false,
     path:      pagePath,
+    offrir,
     hide_breadcrumb: (body.hide_breadcrumb as boolean) ?? false,
     hide_meta:       (body.hide_meta       as boolean) ?? false,
     hide_footer:     (body.hide_footer     as boolean) ?? false,

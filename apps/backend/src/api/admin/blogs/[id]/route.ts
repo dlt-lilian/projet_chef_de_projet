@@ -1,6 +1,10 @@
 import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { BLOG_MODULE } from "../../../../modules/blog"
-import { normalizePagePath, validatePagePath } from "../../../../modules/blog/page-path"
+import {
+  normalizePagePath,
+  validatePagePath,
+  validatePlacement,
+} from "../../../../modules/blog/page-path"
 import type BlogModuleService from "../../../../modules/blog/service"
 
 /**
@@ -65,6 +69,14 @@ export const PUT = async (
     }
   }
 
+  // Rubrique « Offrir », exclusive d'une URL personnalisée. Même règle que
+  // pour `path` : champ absent du body → on conserve la valeur enregistrée.
+  const offrir =
+    typeof body.offrir === "boolean" ? body.offrir : existing.offrir
+
+  const misplaced = validatePlacement(pagePath, offrir)
+  if (misplaced) return res.status(400).json({ message: misplaced })
+
   // MedusaService updateBlogPosts attend : ({ id, ...data })
   // Le champ blocks (JSONB) doit être explicitement inclus
   const updated = await blogService.updateBlogPosts({
@@ -81,6 +93,7 @@ export const PUT = async (
     featured:  body.featured  as boolean,
     published: body.published as boolean,
     path:      pagePath,
+    offrir,
     // Fallback sur l'existant : une mise à jour partielle ne doit pas
     // réinitialiser les options de mise en page.
     hide_breadcrumb: (body.hide_breadcrumb as boolean) ?? existing.hide_breadcrumb,

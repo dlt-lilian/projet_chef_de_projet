@@ -3,8 +3,8 @@ import { BLOG_MODULE } from "../../../../modules/blog"
 import type BlogModuleService from "../../../../modules/blog/service"
 
 /**
- * GET /store/blogs/:slug
- * Retourne un article complet (avec les blocs).
+ * GET /store/offrir/:slug
+ * Article complet (avec les blocs) de la rubrique « Offrir ».
  */
 export const GET = async (
   req: MedusaRequest,
@@ -15,14 +15,9 @@ export const GET = async (
 
   const post = await blogService.getBlogPostBySlug(slug)
 
-  if (!post) {
-    return res.status(404).json({ message: `Article "${slug}" introuvable.` })
-  }
-
-  // Une page autonome n'est servie qu'à son URL personnalisée, un article de
-  // la rubrique « Offrir » qu'à /offrir/:slug : les laisser aussi sur
-  // /blog/:slug créerait un doublon de contenu (mauvais pour le SEO).
-  if (post.path || post.offrir) {
+  // Symétrique de /store/blogs/:slug : un article de blog, ou une page
+  // autonome, n'est pas servi sous /offrir.
+  if (!post || !post.offrir || post.path) {
     return res.status(404).json({ message: `Article "${slug}" introuvable.` })
   }
 

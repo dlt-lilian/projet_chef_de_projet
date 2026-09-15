@@ -5,11 +5,18 @@ import type { BlogPost } from "@lib/blog/types"
 /**
  * Gabarit d'un contenu rédigé dans le backoffice.
  *
- * Partagé par /blog/[slug] et par les pages autonomes (/[pagePath]) : ces
- * dernières masquent en général fil d'ariane, méta et pied de page via les
- * options de l'article, ne gardant que le corps.
+ * Partagé par /blog/[slug], /offrir/[slug] et par les pages autonomes
+ * (/[pagePath]) : ces dernières masquent en général fil d'ariane, méta et pied
+ * de page via les options de l'article, ne gardant que le corps.
  */
 export default function ArticleTemplate({ post }: { post: BlogPost }) {
+  // Fil d'ariane et lien de retour suivent l'adresse de l'article : sous
+  // /offrir/{slug}, le parent est /offrir, même si l'article est aussi listé
+  // sur le blog.
+  const section = post.offrir
+    ? { href: "/offrir", label: "Offrir", back: "← Retour aux idées cadeaux" }
+    : { href: "/blog", label: "Blog", back: "← Retour au blog" }
+
   const firstBlock   = post.blocks[0]
   const hasBanner    = firstBlock?.type === "banner"
   const bannerBlocks = hasBanner ? post.blocks.slice(0, 1) : []
@@ -39,8 +46,8 @@ export default function ArticleTemplate({ post }: { post: BlogPost }) {
       {!post.hide_breadcrumb && (
         <nav className="bg-ui-bg-base/90 backdrop-blur-sm border-b border-ui-border-base">
           <div className="content-container py-3 flex items-center justify-between">
-            <LocalizedClientLink href="/blog" className="text-xs tracking-widest uppercase text-ui-fg-muted hover:text-ui-fg-interactive transition-colors">
-              ← Blog
+            <LocalizedClientLink href={section.href} className="text-xs tracking-widest uppercase text-ui-fg-muted hover:text-ui-fg-interactive transition-colors">
+              ← {section.label}
             </LocalizedClientLink>
             <span className="text-[10px] tracking-[0.3em] uppercase text-ui-fg-muted">
               {post.category}
@@ -96,8 +103,8 @@ export default function ArticleTemplate({ post }: { post: BlogPost }) {
               <p className="text-xs text-ui-fg-muted uppercase tracking-widest mb-1">Écrit par</p>
               <p className="text-ui-fg-base">{post.author}</p>
             </div>
-            <LocalizedClientLink href="/blog" className="text-sm text-ui-fg-interactive hover:text-ui-fg-interactive-hover transition-colors">
-              ← Retour au blog
+            <LocalizedClientLink href={section.href} className="text-sm text-ui-fg-interactive hover:text-ui-fg-interactive-hover transition-colors">
+              {section.back}
             </LocalizedClientLink>
           </div>
         </div>

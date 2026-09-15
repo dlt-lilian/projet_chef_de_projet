@@ -1,41 +1,54 @@
 import { Metadata } from "next"
 
-import { OCCASION_LANDINGS } from "@lib/content/occasions"
+import { getAllOffrirArticles } from "@lib/blog"
 import {
   breadcrumbJsonLd,
   canonicalPath,
   hreflangAlternates,
   itemListJsonLd,
 } from "@lib/util/seo"
+import BlogCard from "@modules/blog/components/BlogCard"
 import JsonLd from "@modules/common/components/json-ld"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 /**
- * Page parente des landings d'occasion.
+ * Page parente de la rubrique « Offrir » : liste les articles cochés
+ * « Offrir » dans le backoffice, servis sous /offrir/{slug}.
+ *
+ * Elle listait jusqu'au 2026-09-15 six landings d'occasion codées en dur
+ * (`lib/content/occasions.ts`, supprimé) ; le contenu cadeau se rédige
+ * désormais en backoffice, comme le reste du blog.
  *
  * Elle existe pour deux raisons : donner un maillon intermédiaire au fil
- * d'Ariane des landings, et concentrer les liens vers les six pages depuis un
- * point unique — un pied de page qui listerait six occasions supplémentaires
- * diluerait le maillage plutôt que de le renforcer.
+ * d'Ariane des articles, et concentrer les liens vers eux depuis un point
+ * unique — c'est elle que lie le pied de page, pas chaque article.
  *
  * ⚠️ Elle ne cible AUCUN mot-clé. « cadeau personnalisé » seul est explicitement
  * hors corpus, et lui faire viser une requête d'occasion la mettrait en
- * concurrence avec la landing correspondante.
+ * concurrence avec l'article correspondant.
+ *
+ * Rubrique VIDE → page toujours servie (le pied de page y mène) mais en
+ * `noindex, follow`, et absente du sitemap : une liste sans article est une
+ * page mince, qu'il ne faut ni indexer ni annoncer.
  */
 
 type Props = { params: Promise<{ countryCode: string }> }
 
 const DESCRIPTION =
-  "Baguettes, éventail et ombrelle à configurer option par option puis à faire graver. Six occasions, une pièce fabriquée en France après commande."
+  "Baguettes, éventail et ombrelle à configurer option par option puis à faire graver : nos idées cadeaux, chaque pièce fabriquée en France après commande."
+
+export const revalidate = 60
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { countryCode } = await props.params
   const canonical = canonicalPath(countryCode, "/offrir")
+  const articles = await getAllOffrirArticles()
 
   return {
     title: "Idées cadeaux à configurer et faire graver",
     description: DESCRIPTION,
     alternates: { canonical, languages: hreflangAlternates("/offrir") },
+    ...(articles.length === 0 && { robots: { index: false, follow: true } }),
     openGraph: {
       title: "Idées cadeaux à configurer et faire graver | Hinaso",
       description: DESCRIPTION,
@@ -46,19 +59,27 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function OffrirPage(props: Props) {
   const { countryCode } = await props.params
+  // Même URL et mêmes options que dans generateMetadata : Next déduplique,
+  // un seul appel au backend.
+  const articles = await getAllOffrirArticles()
 
-  const jsonLd = [
+  const jsonLd: Record<string, unknown>[] = [
     breadcrumbJsonLd([
       { name: "Accueil", path: canonicalPath(countryCode) },
       { name: "Offrir", path: canonicalPath(countryCode, "/offrir") },
     ]),
-    itemListJsonLd(
-      OCCASION_LANDINGS.map((o) => ({
-        name: o.breadcrumbLabel,
-        path: canonicalPath(countryCode, `/offrir/${o.slug}`),
-      }))
-    ),
   ]
+
+  if (articles.length) {
+    jsonLd.push(
+      itemListJsonLd(
+        articles.map((a) => ({
+          name: a.title,
+          path: canonicalPath(countryCode, `/offrir/${a.slug}`),
+        }))
+      )
+    )
+  }
 
   return (
     <>
@@ -83,26 +104,24 @@ export default async function OffrirPage(props: Props) {
           fabrication. Conçu et fabriqué en France.
         </p>
 
-        <ul className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {OCCASION_LANDINGS.map((o) => (
-            <li key={o.slug}>
-              <LocalizedClientLink
-                href={`/offrir/${o.slug}`}
-                className="block rounded-xl border border-stone-200 p-5 transition-colors hover:border-stone-400"
-              >
-                {/* L'ancre reprend le H1 de la cible, plus précis que la requête
-                    visée : une ancre en correspondance exacte répétée sur tout
-                    le site est le premier signal de sur-optimisation. */}
-                <span className="block text-base font-medium text-stone-900">
-                  {o.h1}
-                </span>
-                <span className="mt-1 block text-sm text-stone-600">
-                  {o.breadcrumbLabel}
-                </span>
-              </LocalizedClientLink>
-            </li>
-          ))}
-        </ul>
+        {articles.length === 0 ? (
+          <p className="text-center text-gray-500 py-24 text-sm">
+            Aucune idée cadeau publiée pour l&apos;instant.
+          </p>
+        ) : (
+          <>
+            {/* Entre le h1 de la page et les h3 des cartes, comme sur /blog
+                (cf. BlogList) : la hiérarchie ne doit pas sauter un niveau. */}
+            <h2 className="sr-only">Toutes les idées cadeaux</h2>
+            <ul className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+              {articles.map((a) => (
+                <li key={a.slug}>
+                  <BlogCard slug={a.slug} post={a} />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
     </>
   )

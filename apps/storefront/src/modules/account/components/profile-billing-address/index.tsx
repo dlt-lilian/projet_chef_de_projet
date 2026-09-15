@@ -37,20 +37,19 @@ const ProfileBillingAddress: React.FC<MyInformationProps> = ({
     (addr) => addr.is_default_billing
   )
 
-  const initialState: Record<string, unknown> = {
-    isDefaultBilling: true,
-    isDefaultShipping: false,
-    error: false,
-    success: false,
-  }
-
-  if (billingAddress) {
-    initialState.addressId = billingAddress.id
-  }
-
+  // Les options de l'adresse sont repassées à CHAQUE envoi. Posées dans l'état
+  // initial, elles disparaissaient à la première réponse (qui remplace l'état) :
+  // un second essai après une erreur créait une adresse ordinaire, que cette
+  // section n'affichait jamais comme adresse de facturation.
   const [state, formAction] = useActionState(
-    billingAddress ? updateCustomerAddress : addCustomerAddress,
-    initialState
+    (_state: { success: boolean; error: string | null }, formData: FormData) =>
+      billingAddress
+        ? updateCustomerAddress({ addressId: billingAddress.id }, formData)
+        : addCustomerAddress(
+            { isDefaultBilling: true, isDefaultShipping: false },
+            formData
+          ),
+    { success: false, error: null }
   )
 
   const clearState = () => {
@@ -126,8 +125,8 @@ const ProfileBillingAddress: React.FC<MyInformationProps> = ({
           <Input
             label="Téléphone"
             name="phone"
-            type="phone"
-            autoComplete="phone"
+            type="tel"
+            autoComplete="tel"
             required
             defaultValue={billingAddress?.phone ?? customer?.phone ?? ""}
             data-testid="billing-phone-input"

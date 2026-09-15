@@ -1,8 +1,7 @@
 import { MetadataRoute } from "next"
 import { HttpTypes } from "@medusajs/types"
 import { absoluteUrl } from "@lib/util/seo"
-import { getAllArticles, getAllPages } from "@lib/blog"
-import { OCCASION_LANDINGS } from "@lib/content/occasions"
+import { getAllArticles, getAllOffrirArticles, getAllPages } from "@lib/blog"
 import { NOINDEX_CATEGORY_HANDLES } from "@lib/content/categories"
 
 /**
@@ -69,7 +68,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const regionId = regions[0]?.id
 
-  const [productsData, categoriesData, collectionsData, articles, pages] =
+  const [productsData, categoriesData, collectionsData, articles, offrirArticles, pages] =
     await Promise.all([
       fetchStore<{ products: HttpTypes.StoreProduct[] }>(
         `/store/products?fields=handle,updated_at&limit=1000&region_id=${regionId}`
@@ -81,6 +80,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         `/store/collections?fields=handle,updated_at&limit=1000`
       ),
       getAllArticles().catch(() => []),
+      getAllOffrirArticles().catch(() => []),
       getAllPages().catch(() => []),
     ])
 
@@ -114,12 +114,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.5,
       },
       {
-        url: absoluteUrl(`/${cc}/offrir`),
-        lastModified: now,
-        changeFrequency: "monthly",
-        priority: 0.6,
-      },
-      {
         url: absoluteUrl(`/${cc}/contact`),
         lastModified: now,
         changeFrequency: "yearly",
@@ -133,13 +127,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     )
 
-    // Landings d'occasion : contenu statique (lib/content/occasions.ts), donc
-    // aucun appel backend — elles figurent au sitemap même si le backend est
-    // injoignable, contrairement au catalogue.
-    for (const o of OCCASION_LANDINGS) {
+    // Rubrique « Offrir » : articles cochés « Offrir » dans le backoffice.
+    // La page parente n'est annoncée que si elle liste quelque chose — vide,
+    // elle est servie en `noindex` (cf. offrir/page.tsx), et lister au sitemap
+    // une URL qu'on demande de ne pas indexer serait contradictoire.
+    if (offrirArticles.length) {
       entries.push({
-        url: absoluteUrl(`/${cc}/offrir/${o.slug}`),
+        url: absoluteUrl(`/${cc}/offrir`),
         lastModified: now,
+        changeFrequency: "monthly",
+        priority: 0.6,
+      })
+    }
+
+    for (const a of offrirArticles) {
+      if (!a.slug) continue
+      entries.push({
+        url: absoluteUrl(`/${cc}/offrir/${a.slug}`),
+        lastModified: toDate(a.updated_at),
         changeFrequency: "monthly",
         priority: 0.7,
       })
@@ -180,7 +185,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
 
     for (const a of articles) {
-      if (!a.slug) continue
+      // Les articles « Offrir » figurent dans la liste du blog, mais leur URL
+      // est /offrir/{slug}, déjà annoncée plus haut : /blog/{slug} ne ferait
+      // que rediriger.
+      if (!a.slug || a.offrir) continue
       entries.push({
         url: absoluteUrl(`/${cc}/blog/${a.slug}`),
         lastModified: toDate(a.updated_at),

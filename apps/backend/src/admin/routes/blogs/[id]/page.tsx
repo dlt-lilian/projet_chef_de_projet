@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Heading, Text, toast } from "@medusajs/ui"
 import BlogForm, { type BlogFormData } from "../../../components/blog/BlogForm"
+import { publicPath } from "../../../components/blog/public-path"
 
 type BlogPost = BlogFormData & { id: string }
 
@@ -67,7 +68,7 @@ export default function BlogEditPage() {
         </div>
         <Heading>{post.title}</Heading>
         <Text size="small" className="text-ui-fg-muted mt-1 font-mono">
-          /blog/{post.slug}
+          {publicPath(post)}
         </Text>
       </div>
 

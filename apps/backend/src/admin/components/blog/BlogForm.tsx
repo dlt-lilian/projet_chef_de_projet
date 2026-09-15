@@ -30,6 +30,8 @@ export type BlogFormData = {
   published:  boolean
   /** URL personnalisée : renseignée → page autonome, vide → article de blog */
   path:       string
+  /** Rubrique « Offrir » : servi sur /offrir/{slug} au lieu de /blog/{slug}, toujours listé sur le blog */
+  offrir:     boolean
   hide_breadcrumb: boolean
   hide_meta:       boolean
   hide_footer:     boolean
@@ -78,6 +80,7 @@ const EMPTY: BlogFormData = {
   featured:  false,
   published: false,
   path:      "",
+  offrir:    false,
   hide_breadcrumb: false,
   hide_meta:       false,
   hide_footer:     false,
@@ -190,7 +193,7 @@ export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps)
               className="font-mono text-sm"
             />
             <Text size="xsmall" className="text-ui-fg-muted mt-1">
-              URL : /blog/<strong>{data.slug || "..."}</strong>
+              URL : /{data.offrir ? "offrir" : "blog"}/<strong>{data.slug || "..."}</strong>
             </Text>
           </div>
 
@@ -284,6 +287,24 @@ export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps)
               onCheckedChange={v => setData(prev => ({ ...prev, featured: v }))}
             />
           </div>
+          {/* Exclusif d'une URL personnalisée (le backend refuse les deux) :
+              chaque réglage désactive l'autre plutôt que de laisser saisir
+              une combinaison qui échouerait à l'enregistrement. */}
+          <div className="flex items-center justify-between">
+            <div>
+              <Text weight="plus">Offrir</Text>
+              <Text size="small" className="text-ui-fg-muted">
+                {data.path
+                  ? "Indisponible pour une page autonome : vide d'abord l'URL personnalisée."
+                  : "Servi sur /offrir au lieu de /blog et ajouté aux idées cadeaux. Il reste listé sur le blog."}
+              </Text>
+            </div>
+            <Switch
+              checked={data.offrir}
+              disabled={Boolean(data.path)}
+              onCheckedChange={v => setData(prev => ({ ...prev, offrir: v }))}
+            />
+          </div>
         </div>
       </div>
 
@@ -302,11 +323,14 @@ export default function BlogForm({ initialData, onSubmit, mode }: BlogFormProps)
           value={data.path}
           onChange={handlePathChange}
           placeholder="mentions-legales"
+          disabled={data.offrir}
           className="font-mono text-sm"
         />
         <Text size="xsmall" className="text-ui-fg-muted mt-1">
           {data.path ? (
             <>Page servie sur <strong>/{data.path}</strong>, hors liste du blog.</>
+          ) : data.offrir ? (
+            <>Indisponible : l'article est rangé dans Offrir, publié sur <strong>/offrir/{data.slug || "..."}</strong>.</>
           ) : (
             <>Vide : article de blog classique, publié sur <strong>/blog/{data.slug || "..."}</strong>.</>
           )}

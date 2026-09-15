@@ -18,8 +18,10 @@ const RESERVED_PATHS = new Set([
   "collections",
   "contact",
   "cookies",
+  "offrir",
   "order",
   "products",
+  "search",
   "store",
 ])
 
@@ -57,6 +59,26 @@ export function validatePagePath(path: string): string | null {
 
   if (RESERVED_PATHS.has(path)) {
     return `L'URL "/${path}" est réservée par une page existante du site.`
+  }
+
+  return null
+}
+
+/**
+ * Message d'erreur si l'article cumule une URL personnalisée et la rubrique
+ * « Offrir », `null` sinon.
+ *
+ * Les deux changent l'adresse de l'article, vers deux URL différentes
+ * (/{path} et /offrir/{slug}) : servir les deux créerait un doublon de
+ * contenu, et en privilégier une en silence surprendrait la personne qui
+ * rédige. On refuse donc explicitement.
+ */
+export function validatePlacement(
+  path: string | null,
+  offrir: boolean
+): string | null {
+  if (path && offrir) {
+    return `Une page autonome (URL "/${path}") ne peut pas aussi être rangée dans Offrir : vide l'URL personnalisée ou désactive Offrir.`
   }
 
   return null

@@ -14,6 +14,9 @@ const BASE = `${BACKEND_URL}/store/blogs`
 /** Pages autonomes : articles dotés d'une URL personnalisée. */
 const PAGES_BASE = `${BACKEND_URL}/store/pages`
 
+/** Rubrique « Offrir » : articles servis sous /offrir au lieu de /blog. */
+const OFFRIR_BASE = `${BACKEND_URL}/store/offrir`
+
 /** Headers communs (publishable API key Medusa) */
 function headers() {
   return {
@@ -26,8 +29,10 @@ function headers() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Liste tous les articles publiés (sans blocs).
- * Utilisé par la page /blog et l'ArticleGrid.
+ * Liste tous les articles publiés (sans blocs), rubrique « Offrir » comprise :
+ * ceux-ci restent listés sur le blog, mais leur adresse est /offrir/{slug} —
+ * construire les liens avec `articlePath`, jamais en dur.
+ * Utilisé par la page /blog, l'ArticleGrid et la recherche.
  */
 export async function getAllArticles(options?: {
   category?: string
@@ -72,6 +77,54 @@ export async function getArticleBySlug(slug: string): Promise<BlogPost | null> {
     return { ...blog, blocks: normalizeBlocks(blog.blocks) } as BlogPost
   } catch (err) {
     console.error(`[blog] getArticleBySlug("${slug}") a échoué (${BASE}) :`, err)
+    return null
+  }
+}
+
+/**
+ * Liste les articles publiés de la rubrique « Offrir » (sans blocs).
+ * Utilisé par la page /offrir, le sitemap et llms.txt.
+ */
+export async function getAllOffrirArticles(): Promise<BlogPostPreview[]> {
+  const url = new URL(OFFRIR_BASE)
+  url.searchParams.set("fields", "meta")
+
+  try {
+    const res = await fetch(url.toString(), {
+      headers: headers(),
+      next: { revalidate: 60 },
+    })
+
+    if (!res.ok) return []
+    const { blogs } = await res.json()
+    return blogs as BlogPostPreview[]
+  } catch (err) {
+    console.error(`[blog] getAllOffrirArticles a échoué (${OFFRIR_BASE}) :`, err)
+    return []
+  }
+}
+
+/**
+ * Article complet (avec blocs) de la rubrique « Offrir », par slug.
+ * Utilisé par la page /offrir/[slug].
+ */
+export async function getOffrirArticleBySlug(
+  slug: string
+): Promise<BlogPost | null> {
+  try {
+    const res = await fetch(`${OFFRIR_BASE}/${encodeURIComponent(slug)}`, {
+      headers: headers(),
+      next: { revalidate: 60 },
+    })
+
+    if (!res.ok) return null
+
+    const { blog } = await res.json()
+    if (!blog) return null
+
+    return { ...blog, blocks: normalizeBlocks(blog.blocks) } as BlogPost
+  } catch (err) {
+    console.error(`[blog] getOffrirArticleBySlug("${slug}") a échoué (${OFFRIR_BASE}) :`, err)
     return null
   }
 }
@@ -160,11 +213,13 @@ export async function getAllCategories(): Promise<string[]> {
 }
 
 /**
- * Pour generateStaticParams de Next.js.
+ * Pour generateStaticParams de /blog/[slug].
  */
 export async function getAllSlugs(): Promise<{ slug: string }[]> {
   const articles = await getAllArticles()
-  return articles.map((a) => ({ slug: a.slug }))
+  // Les articles « Offrir » ne sont pas servis sous /blog : les prérendre ici
+  // ne produirait que des redirections.
+  return articles.filter((a) => !a.offrir).map((a) => ({ slug: a.slug }))
 }
 
 /**
@@ -179,7 +234,9 @@ function normalizeForSearch(value: string): string {
 }
 
 /**
- * Recherche plein texte dans les articles publiés.
+ * Recherche plein texte dans les articles publiés, rubrique « Offrir »
+ * comprise (même liste que /blog). Les liens se construisent avec
+ * `articlePath`.
  *
  * L'API blog n'expose pas de paramètre de recherche : le corpus est petit et
  * déjà mis en cache 60 s par `getAllArticles`, on filtre donc en mémoire sur le

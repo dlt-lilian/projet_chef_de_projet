@@ -1,6 +1,5 @@
 import { HttpTypes } from "@medusajs/types"
-import { getAllArticles, getAllPages } from "@lib/blog"
-import { OCCASION_LANDINGS } from "@lib/content/occasions"
+import { getAllArticles, getAllOffrirArticles, getAllPages } from "@lib/blog"
 import {
   PRIMARY_COUNTRY,
   SITE_DEFAULT_DESCRIPTION,
@@ -81,11 +80,12 @@ function link(label: string, path: string, notes?: string | null): string {
 export async function GET(): Promise<Response> {
   const cc = PRIMARY_COUNTRY
 
-  const [productsData, articles, pages] = await Promise.all([
+  const [productsData, articles, offrirArticles, pages] = await Promise.all([
     fetchStore<{ products: HttpTypes.StoreProduct[] }>(
       "/store/products?fields=handle,title,subtitle,description&limit=100"
     ),
     getAllArticles().catch(() => []),
+    getAllOffrirArticles().catch(() => []),
     getAllPages().catch(() => []),
   ])
 
@@ -130,13 +130,16 @@ export async function GET(): Promise<Response> {
     [
       "## Parcourir la boutique",
       link("Boutique", `/${cc}/store`, "Tous les produits disponibles"),
-      link("Offrir", `/${cc}/offrir`, "Idées cadeaux par occasion"),
-      // `breadcrumbLabel` est le nom court prévu pour les ancres de maillage —
-      // exactement le registre attendu pour un libellé de lien, là où `h1` et
-      // `seoTitle` sont des phrases complètes.
-      ...OCCASION_LANDINGS.map((o) =>
-        link(o.breadcrumbLabel, `/${cc}/offrir/${o.slug}`, o.seoDescription)
-      ),
+      // Rubrique « Offrir » listée seulement si elle contient des articles :
+      // vide, sa page parente est en noindex (cf. offrir/page.tsx).
+      ...(offrirArticles.length
+        ? [
+            link("Offrir", `/${cc}/offrir`, "Idées cadeaux à configurer et faire graver"),
+            ...offrirArticles
+              .filter((a) => a.slug)
+              .map((a) => link(a.title, `/${cc}/offrir/${a.slug}`, a.excerpt)),
+          ]
+        : []),
     ].join("\n")
   )
 
@@ -146,7 +149,9 @@ export async function GET(): Promise<Response> {
         "## Blog",
         link("Tous les articles", `/${cc}/blog`, "Guides et repères culturels"),
         ...articles
-          .filter((a) => a.slug)
+          // Les articles « Offrir » sont déjà listés avec leur rubrique, plus
+          // haut : une URL n'apparaît qu'une fois dans le fichier.
+          .filter((a) => a.slug && !a.offrir)
           .map((a) => link(a.title, `/${cc}/blog/${a.slug}`, a.excerpt)),
       ].join("\n")
     )

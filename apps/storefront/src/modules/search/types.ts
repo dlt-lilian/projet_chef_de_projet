@@ -15,7 +15,8 @@ export type ProductSuggestion = {
 export type ArticleSuggestion = {
   id: string
   title: string
-  slug: string
+  /** Chemin sans préfixe pays, déjà résolu : /blog/… ou /offrir/… */
+  href: string
   category: string
 }
 

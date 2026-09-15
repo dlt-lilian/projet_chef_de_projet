@@ -1,6 +1,7 @@
 import Image from "next/image"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { isOptimizable } from "@lib/util/images"
+import { articlePath } from "@lib/blog/paths"
 import type { BlogPostPreview } from "@lib/blog/types"
 
 type BlogCardProps = {
@@ -17,10 +18,13 @@ export default function BlogCard({
   horizontal = false,
 }: BlogCardProps) {
   const { title, excerpt, cover, category, date, read_time, author } = post
+  // Un article « Offrir » reste listé sur le blog, en recherche et en page
+  // d'accueil, mais vit à /offrir/{slug} : le lien suit l'article, pas la liste.
+  const href = articlePath({ slug, path: post.path, offrir: post.offrir })
 
   if (featured) {
     return (
-      <LocalizedClientLink href={`/blog/${slug}`} className="group block relative overflow-hidden rounded-2xl">
+      <LocalizedClientLink href={href} className="group block relative overflow-hidden rounded-2xl">
         <div className="relative h-[480px] w-full overflow-hidden">
           {cover && (
             <Image
@@ -60,7 +64,7 @@ export default function BlogCard({
   if (horizontal) {
     return (
       <LocalizedClientLink
-        href={`/blog/${slug}`}
+        href={href}
         className="group flex gap-4 py-4 border-b border-grey-20 hover:border-grey-30 transition-colors last:border-0"
       >
         <div className="relative w-24 h-16 flex-shrink-0 overflow-hidden bg-grey-20 rounded-lg">
@@ -93,7 +97,7 @@ export default function BlogCard({
   }
 
   return (
-    <LocalizedClientLink href={`/blog/${slug}`} className="group flex flex-col">
+    <LocalizedClientLink href={href} className="group flex flex-col">
       <div className="relative aspect-[16/10] overflow-hidden mb-4 bg-grey-20 rounded-2xl">
         {cover && (
           <Image

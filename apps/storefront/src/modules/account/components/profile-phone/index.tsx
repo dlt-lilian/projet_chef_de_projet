@@ -48,7 +48,7 @@ const ProfileEmail: React.FC<MyInformationProps> = ({ customer }) => {
     <form action={formAction} className="w-full">
       <AccountInfo
         label="Téléphone"
-        currentInfo={`${customer.phone}`}
+        currentInfo={customer.phone || "Non renseigné"}
         isSuccess={successState}
         isError={!!state.error}
         errorMessage={state.error || undefined}
@@ -59,8 +59,8 @@ const ProfileEmail: React.FC<MyInformationProps> = ({ customer }) => {
           <Input
             label="Téléphone"
             name="phone"
-            type="phone"
-            autoComplete="phone"
+            type="tel"
+            autoComplete="tel"
             required
             defaultValue={customer.phone ?? ""}
             data-testid="phone-input"

@@ -35,6 +35,12 @@ export type BlogPost = {
    * `null` → article de blog classique.
    */
   path:      string | null
+  /**
+   * Rubrique « Offrir » : `true` → article servi à /offrir/{slug} (jamais à
+   * /blog/{slug}), listé sur /offrir ET toujours sur /blog. Jamais cumulé avec
+   * `path`. Liens à construire avec `articlePath`.
+   */
+  offrir:    boolean
   /** Masquage des habillages du template (pages statiques : mentions légales, CGV…) */
   hide_breadcrumb: boolean
   hide_meta:       boolean

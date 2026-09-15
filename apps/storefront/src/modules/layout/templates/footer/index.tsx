@@ -27,9 +27,9 @@ const shopLinks = [
   { label: "Baguettes japonaises à configurer", href: "/products/baguettes" },
   { label: "Éventails japonais sur-mesure", href: "/products/eventail" },
   { label: "Ombrelles japonaises sur-mesure", href: "/products/ombrelle" },
-  // Un seul lien vers le hub, et non six vers chaque occasion : lister six
-  // landings de plus dans le pied de page diluerait le maillage au lieu de le
-  // renforcer. C'est /offrir qui les distribue.
+  // Un seul lien vers la rubrique, et non un par article cadeau : les lister
+  // dans le pied de page diluerait le maillage au lieu de le renforcer. C'est
+  // /offrir qui les distribue (articles cochés « Offrir » dans le backoffice).
   { label: "Idées cadeaux à faire graver", href: "/offrir" },
   { label: "Toute la boutique", href: "/store" },
 ]

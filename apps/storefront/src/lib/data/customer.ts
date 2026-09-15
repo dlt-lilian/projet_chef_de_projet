@@ -60,6 +60,46 @@ export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
   return updateRes
 }
 
+/**
+ * Change l'adresse e-mail du client connecté (action de formulaire).
+ *
+ * Passe par la route dédiée `/store/customers/me/email` et non par
+ * `updateCustomer` : l'adresse est aussi l'identifiant de connexion, que la
+ * route standard ne modifie pas. Le backend exige le mot de passe actuel et
+ * renvoie des messages rédigés pour être affichés tels quels.
+ */
+export async function updateCustomerEmail(
+  _currentState: unknown,
+  formData: FormData
+): Promise<{ success: boolean; error: string | null }> {
+  const email = String(formData.get("email") ?? "").trim()
+  const password = String(formData.get("password") ?? "")
+
+  if (!email || !password) {
+    return {
+      success: false,
+      error: "Renseignez la nouvelle adresse et votre mot de passe actuel.",
+    }
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  return sdk.client
+    .fetch(`/store/customers/me/email`, {
+      method: "POST",
+      body: { email, password },
+      headers,
+    })
+    .then(async () => {
+      const customerCacheTag = await getCacheTag("customers")
+      revalidateTag(customerCacheTag)
+      return { success: true, error: null }
+    })
+    .catch((err: Error) => ({ success: false, error: err.message }))
+}
+
 export async function signup(_currentState: unknown, formData: FormData) {
   const password = formData.get("password") as string
   const redirectTo = formData.get("redirect")

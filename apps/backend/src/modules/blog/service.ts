@@ -33,14 +33,22 @@ class BlogModuleService extends MedusaService({ BlogPost }) {
   /**
    * Liste les articles publiés, triés du plus récent au plus ancien.
    * Utilisé par le storefront.
+   *
+   * Le blog liste TOUS les articles, rubrique « Offrir » comprise : ceux-ci
+   * restent visibles sur /blog, seule leur adresse change (/offrir/{slug}).
+   * `offrir: true` restreint la liste à la rubrique, pour la page /offrir.
    */
   async getPublishedPosts(options?: {
     category?: string
     limit?: number
     offset?: number
+    offrir?: boolean
   }) {
     const filters: Record<string, unknown> = { published: true }
     if (options?.category) filters.category = options.category
+    // Filtre SQL fiable, contrairement à `path` plus bas : la colonne est
+    // NOT NULL avec un défaut, aucune ligne ne peut valoir NULL.
+    if (options?.offrir) filters.offrir = true
 
     const all = await this.listBlogPosts(filters, {
       take: options?.limit ?? 100,

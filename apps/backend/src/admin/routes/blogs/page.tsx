@@ -12,6 +12,7 @@ import {
   usePrompt,
 } from "@medusajs/ui"
 import { PlusMini, Trash } from "@medusajs/icons"
+import { publicPath } from "../../components/blog/public-path"
 
 type BlogPost = {
   id: string
@@ -23,6 +24,7 @@ type BlogPost = {
   published: boolean
   featured: boolean
   path: string | null
+  offrir: boolean
 }
 
 async function fetchBlogs(): Promise<BlogPost[]> {
@@ -143,7 +145,7 @@ export default function BlogListPage() {
                   <div>
                     <Text weight="plus" size="small">{post.title}</Text>
                     <Text size="xsmall" className="text-ui-fg-muted font-mono">
-                      {post.path ? `/${post.path}` : `/blog/${post.slug}`}
+                      {publicPath(post)}
                     </Text>
                   </div>
                 </Table.Cell>
@@ -167,9 +169,14 @@ export default function BlogListPage() {
                     {post.path ? (
                       <Badge size="2xsmall" color="orange">Page</Badge>
                     ) : (
-                      post.featured && (
-                        <Badge size="2xsmall" color="blue">À la une</Badge>
-                      )
+                      <>
+                        {post.offrir && (
+                          <Badge size="2xsmall" color="purple">Offrir</Badge>
+                        )}
+                        {post.featured && (
+                          <Badge size="2xsmall" color="blue">À la une</Badge>
+                        )}
+                      </>
                     )}
                   </div>
                 </Table.Cell>

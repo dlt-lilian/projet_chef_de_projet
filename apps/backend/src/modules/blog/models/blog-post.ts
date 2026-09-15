@@ -33,6 +33,13 @@ const BlogPost = model.define("blog_post", {
   // NULL → article de blog classique.
   path: model.text().nullable(),
 
+  // ── Rubrique « Offrir » ────────────────────────────────────────────
+  // `true` → l'article est servi à /offrir/{slug} au lieu de /blog/{slug} et
+  // listé sur /offrir, tout en RESTANT dans la liste du blog (sa carte y mène
+  // à /offrir/{slug}). Incompatible avec `path` : une page autonome a déjà sa
+  // propre URL, l'admin refuse de cumuler les deux.
+  offrir: model.boolean().default(false),
+
   // ── Mise en page (masquage des sections du template) ───────────────
   // Permet de réutiliser le template blog pour des pages statiques
   // (mentions légales, CGV…) sans fil d'ariane, méta ni pied de page.

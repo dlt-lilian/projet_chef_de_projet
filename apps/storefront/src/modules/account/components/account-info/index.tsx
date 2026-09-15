@@ -106,14 +106,26 @@ const AccountInfo = ({
         </Disclosure.Panel>
       </Disclosure>
 
+      {/* Formulaire d'édition. Fermé, il doit être INERTE, pas seulement
+          transparent. Avec `overflow-visible`, ses champs débordaient de sa
+          hauteur nulle, et `opacity-0` crée un contexte d'empilement peint
+          au-dessus du contenu non positionné qui suit : le bouton
+          « Enregistrer » invisible d'une section recouvrait le bouton
+          « Modifier » de la suivante. Seul « Nom », en tête, restait
+          cliquable. Le starter Medusa masquait le défaut parce que ses
+          boutons (@medusajs/ui) étaient positionnés ; ceux du kit local ne
+          le sont pas.
+          Fermé : `overflow-hidden` supprime le débordement et `invisible`
+          retire les champs du clic comme de la tabulation. `visibility` est
+          transitionnée pour que le fondu de fermeture reste visible. */}
       <Disclosure>
         <Disclosure.Panel
           static
           className={clx(
-            "transition-[max-height,opacity] duration-300 ease-in-out overflow-visible",
+            "transition-[max-height,opacity,visibility] duration-300 ease-in-out",
             {
-              "max-h-[1000px] opacity-100": state,
-              "max-h-0 opacity-0": !state,
+              "max-h-[1000px] opacity-100 overflow-visible": state,
+              "max-h-0 opacity-0 overflow-hidden invisible": !state,
             }
           )}
         >

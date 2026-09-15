@@ -1,6 +1,7 @@
 "use server"
 
 import { searchArticles } from "@lib/blog"
+import { articlePath } from "@lib/blog/paths"
 import { listProducts } from "@lib/data/products"
 import { getProductPrice } from "@lib/util/get-product-price"
 
@@ -47,7 +48,7 @@ export async function searchSuggestions(
     articles: articles.slice(0, SUGGESTION_LIMIT).map((article) => ({
       id: article.id,
       title: article.title,
-      slug: article.slug,
+      href: articlePath(article),
       category: article.category,
     })),
   }

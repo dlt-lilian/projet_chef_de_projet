@@ -120,7 +120,7 @@ const SearchInput = ({
     results.articles.forEach((article) =>
       list.push({
         id: `${listboxId}-article-${article.id}`,
-        href: `/blog/${article.slug}`,
+        href: article.href,
       })
     )
     if (results.products.length > 0 || results.articles.length > 0) {
@@ -371,7 +371,7 @@ const SearchInput = ({
                   return (
                     <li key={article.id}>
                       <LocalizedClientLink
-                        href={`/blog/${article.slug}`}
+                        href={article.href}
                         id={`${listboxId}-article-${article.id}`}
                         role="option"
                         aria-selected={index === activeIndex}
