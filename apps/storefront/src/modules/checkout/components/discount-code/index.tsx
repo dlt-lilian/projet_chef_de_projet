@@ -42,10 +42,9 @@ const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
       .map((p) => p.code!)
     codes.push(code.toString())
 
-    try {
-      await applyPromotions(codes)
-    } catch (e) {
-      setErrorMessage(e instanceof Error ? e.message : String(e))
+    const result = await applyPromotions(codes)
+    if (result?.error) {
+      setErrorMessage(result.error)
     }
 
     if (input) {
