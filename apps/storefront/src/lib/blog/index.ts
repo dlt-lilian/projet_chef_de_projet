@@ -1,3 +1,5 @@
+import { normalizeForSearch } from "@lib/util/search"
+
 import type { BlogPost, BlogPostPreview } from "./types"
 
 /**
@@ -220,17 +222,6 @@ export async function getAllSlugs(): Promise<{ slug: string }[]> {
   // Les articles « Offrir » ne sont pas servis sous /blog : les prérendre ici
   // ne produirait que des redirections.
   return articles.filter((a) => !a.offrir).map((a) => ({ slug: a.slug }))
-}
-
-/**
- * Retire casse et accents pour comparer « Éventail » et « eventail ».
- * Plage U+0300–U+036F : diacritiques combinants isolés par la normalisation NFD.
- */
-function normalizeForSearch(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
 }
 
 /**

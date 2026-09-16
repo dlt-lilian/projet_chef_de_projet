@@ -2,7 +2,7 @@
 
 import { searchArticles } from "@lib/blog"
 import { articlePath } from "@lib/blog/paths"
-import { listProducts } from "@lib/data/products"
+import { searchProducts } from "@lib/data/products"
 import { getProductPrice } from "@lib/util/get-product-price"
 
 import type { SearchSuggestions } from "./types"
@@ -27,12 +27,11 @@ export async function searchSuggestions(
   }
 
   const [products, articles] = await Promise.all([
-    listProducts({
+    searchProducts({
+      query: trimmedQuery,
       countryCode,
-      queryParams: { q: trimmedQuery, limit: SUGGESTION_LIMIT },
-    })
-      .then(({ response }) => response.products)
-      .catch(() => []),
+      limit: SUGGESTION_LIMIT,
+    }).catch(() => []),
     searchArticles(trimmedQuery).catch(() => []),
   ])
 

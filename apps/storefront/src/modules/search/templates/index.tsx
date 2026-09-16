@@ -1,5 +1,5 @@
 import { searchArticles } from "@lib/blog"
-import { listProducts } from "@lib/data/products"
+import { searchProducts } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
 import { HttpTypes } from "@medusajs/types"
 import BlogCard from "@modules/blog/components/BlogCard"
@@ -21,10 +21,11 @@ const SearchTemplate = async ({ query, countryCode }: SearchTemplateProps) => {
   // que d'attendre les produits avant de chercher les articles.
   const [products, articles] = await Promise.all([
     trimmedQuery && region
-      ? listProducts({
+      ? searchProducts({
+          query: trimmedQuery,
           countryCode,
-          queryParams: { q: trimmedQuery, limit: RESULT_LIMIT },
-        }).then(({ response }) => response.products)
+          limit: RESULT_LIMIT,
+        })
       : Promise.resolve([] as HttpTypes.StoreProduct[]),
     trimmedQuery ? searchArticles(trimmedQuery) : Promise.resolve([]),
   ])

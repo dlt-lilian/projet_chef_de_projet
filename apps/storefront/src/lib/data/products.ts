@@ -1,6 +1,7 @@
 "use server"
 
 import { sdk } from "@lib/config"
+import { normalizeForSearch } from "@lib/util/search"
 import { sortProducts } from "@lib/util/sort-products"
 import { HttpTypes } from "@medusajs/types"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
@@ -98,6 +99,64 @@ export const listProducts = async ({
         queryParams,
       }
     })
+}
+
+/**
+ * Recherche produits insensible à la casse et aux accents.
+ *
+ * Le paramètre `q` de Medusa fait un `ILIKE` SQL : « eventail » n'y trouve pas
+ * « Éventail ». Le catalogue est petit, on reprend donc le motif des articles
+ * (`searchArticles`) : on charge les 100 premiers produits — même requête, donc
+ * même entrée de cache, que `listProductsWithSort` sur /store — et on filtre en
+ * mémoire. Au-delà de 100 produits, les suivants ne seraient plus cherchés :
+ * il faudra alors passer par une route backend (extension `unaccent`).
+ *
+ * Les correspondances sur le titre passent devant celles trouvées seulement
+ * dans le sous-titre, la description, les tags ou les catégories : le panneau
+ * de suggestions n'en affiche que quatre.
+ */
+export const searchProducts = async ({
+  query,
+  countryCode,
+  limit,
+}: {
+  query: string
+  countryCode: string
+  limit: number
+}): Promise<HttpTypes.StoreProduct[]> => {
+  const needle = normalizeForSearch(query.trim())
+  if (!needle) return []
+
+  const {
+    response: { products },
+  } = await listProducts({
+    pageParam: 0,
+    queryParams: { limit: 100 },
+    countryCode,
+  })
+
+  const matches = (value?: string | null) =>
+    !!value && normalizeForSearch(value).includes(needle)
+
+  const titleMatches: HttpTypes.StoreProduct[] = []
+  const otherMatches: HttpTypes.StoreProduct[] = []
+
+  for (const product of products) {
+    if (matches(product.title)) {
+      titleMatches.push(product)
+    } else if (
+      [
+        product.subtitle,
+        product.description,
+        ...(product.tags ?? []).map((tag) => tag.value),
+        ...(product.categories ?? []).map((category) => category.name),
+      ].some(matches)
+    ) {
+      otherMatches.push(product)
+    }
+  }
+
+  return [...titleMatches, ...otherMatches].slice(0, limit)
 }
 
 /**
