@@ -60,6 +60,10 @@ const helpLinks = [
     label: "Politique de confidentialité",
     href: "/politique-de-confidentialite",
   },
+  {
+    label: "Conditions générales de vente",
+    href: "/cgv",
+  },
   { label: "Cookies", href: "/cookies" },
 ]
 
