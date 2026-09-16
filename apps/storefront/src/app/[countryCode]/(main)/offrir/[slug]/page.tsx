@@ -1,11 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation"
-import {
-  getAllOffrirArticles,
-  getArticleBySlug,
-  getOffrirArticleBySlug,
-} from "@lib/blog"
+import { getArticleBySlug, getOffrirArticleBySlug } from "@lib/blog"
 import { extractFaqFromBlocks } from "@lib/blog/faq"
-import { listRegions } from "@lib/data/regions"
 import ArticleTemplate from "@modules/blog/templates/article"
 import type { Metadata } from "next"
 import JsonLd from "@modules/common/components/json-ld"
@@ -25,42 +20,28 @@ import {
  * listé sur /blog, où sa carte pointe ici ; le backend refuse de le servir
  * sous /blog/{slug}, ce qui évite tout doublon de contenu.
  *
- * Pendant exact de /blog/[slug] (même `revalidate`, même prérendu) : les
- * écarts entre les deux routes doivent rester ceux du fil d'Ariane et des
- * redirections croisées.
+ * ⚠️ `force-dynamic` est OBLIGATOIRE ici, sans `revalidate` ni
+ * `generateStaticParams` (même régime que /[pagePath], voir son en-tête).
+ *
+ * La première version copiait /blog/[slug] et répondait 500 en production.
+ * Au build, aucun article n'était encore coché « Offrir » : la liste de
+ * `generateStaticParams` était vide, aucune page n'a été prérendue, et Next
+ * n'a donc jamais vu le layout (main) lire les cookies. La route est restée
+ * classée statique ; au premier rendu réel, cette lecture de cookies a levé
+ * « Page changed from static to dynamic at runtime ».
+ *
+ * /blog/[slug] et les fiches produit n'y échappent que parce que leur build
+ * trouve des pages à prérendre, qui révèlent les cookies et font basculer la
+ * route en dynamique. Ce prérendu est de toute façon jeté : on n'y perd rien.
+ * La fraîcheur est assurée en amont par le cache de 60 s de
+ * `getOffrirArticleBySlug`, que `force-dynamic` respecte (`next.revalidate`
+ * explicite).
  */
 
 // Next.js 15 : params est une Promise
 type Props = { params: Promise<{ slug: string; countryCode: string }> }
 
-export const revalidate = 60
-
-export async function generateStaticParams() {
-  try {
-    // Deux segments dynamiques, [countryCode] et [slug] : generateStaticParams
-    // doit fournir les deux (cf. blog/[slug]).
-    const countryCodes = await listRegions().then((regions) =>
-      regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
-    )
-
-    if (!countryCodes) return []
-
-    const articles = await getAllOffrirArticles()
-
-    return countryCodes
-      .filter(Boolean)
-      .flatMap((countryCode) =>
-        articles.map(({ slug }) => ({ countryCode: countryCode as string, slug }))
-      )
-  } catch (error) {
-    console.error(
-      `Failed to generate static paths for offrir pages: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }.`
-    )
-    return []
-  }
-}
+export const dynamic = "force-dynamic"
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, countryCode } = await params
