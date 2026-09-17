@@ -1,22 +1,37 @@
 import {
+  BackSide,
   Box3,
+  BufferGeometry,
+  Float32BufferAttribute,
   CanvasTexture,
+  DoubleSide,
   Euler,
+  FrontSide,
   Group,
   Matrix4,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
   Raycaster,
   SRGBColorSpace,
   Vector3,
+  type BufferAttribute,
+  type Intersection,
+  type InterleavedBufferAttribute,
+  type Side,
 } from "three"
 import { DecalGeometry } from "three/examples/jsm/geometries/DecalGeometry.js"
-import type { EngravingPreviewConfig } from "./engraving-preview"
+import type {
+  ElongatedPlacement,
+  EngravingPreviewConfig,
+  PlanarPlacement,
+  RibPlacement,
+} from "./engraving-preview"
 import { findMeshes } from "./three-helpers"
 
 /**
- * Aperçu 3D de la gravure — PROTOTYPE (baguettes uniquement).
+ * Aperçu 3D de la gravure — PROTOTYPE (baguettes, éventail).
  *
  * Pourquoi un décalque projeté et non un calque de plus sur la texture composée
  * (`compositeLayers`) : les UV du GLB des baguettes sont inexploitables pour du
@@ -24,13 +39,13 @@ import { findMeshes } from "./three-helpers"
  * `TEXCOORD_1` (celui des textures d'origine) est répété en mosaïque et n'est
  * pas aligné sur la longueur. Un texte dessiné dans l'une ou l'autre sortirait
  * morcelé. Le décalque projette le texte sur la géométrie elle-même, sans
- * dépendre des UV.
+ * dépendre des UV — et le même moteur sert au papier plissé de l'éventail.
  *
- * Le placement est calculé, pas saisi : pour chaque mesh on trouve l'axe
- * principal (ACP des sommets), le bout épais (le manche), puis on projette le
- * texte sur la face tournée vers la caméra de la vue initiale. Aucune
- * coordonnée propre au modèle n'est donc codée en dur — seuls des ratios
- * (cf. `engraving-preview.ts`).
+ * Le placement est calculé, pas saisi : l'analyse en composantes principales
+ * des sommets donne la forme du mesh (axe d'une pièce allongée, plan d'une
+ * surface), puis le texte est projeté sur la face tournée vers la caméra de la
+ * vue initiale. Aucune coordonnée propre au modèle n'est donc codée en dur —
+ * seuls des ratios (cf. `engraving-preview.ts`).
  */
 export type { EngravingPreviewConfig }
 
@@ -41,19 +56,36 @@ const FONT_WEIGHT = 700
 /** Pose calculée pour un mesh : de quoi projeter et cadrer la gravure. */
 type EngravingPose = {
   mesh: Mesh
-  /** Point de surface au centre du texte. */
+  /**
+   * Géométrie recevant la projection et les rayons : le mesh entier, ou la
+   * seule branche retenue d'une monture — projeter sur les ~30 000 triangles
+   * de toute la monture coûtait l'essentiel du temps de reconstruction.
+   * Sa matière n'est pas lue (elle peut être remplacée après coup) : c'est
+   * celle de `mesh` qui compte.
+   */
+  surface: Mesh
+  /** Point de surface au centre de la zone gravée. */
   center: Vector3
   /** Sens de lecture (unitaire), de gauche à droite à la vue initiale. */
   axis: Vector3
-  /** Direction (unitaire) de la pointe vers le manche. */
-  toHandle: Vector3
+  /**
+   * Vers où recentrer un texte plus court que le maximum (unitaire) : le
+   * manche d'une baguette. Vecteur nul = texte centré.
+   */
+  toStart: Vector3
   /** Direction de projection (unitaire), sortant de la surface. */
   normal: Vector3
   /** Hauteur des lettres et longueur maximale, en unités monde. */
   height: number
   maxLength: number
-  /** Rayon local : sert de profondeur au projecteur. */
-  radius: number
+  /** Profondeur du projecteur, le long de la normale. */
+  depth: number
+  /** Décalage du projecteur le long de la normale, depuis `center`. */
+  projectorShift: number
+  /** Recul, depuis `center`, des rayons qui lisent la surface. */
+  rayDistance: number
+  /** Face du décalque à rendre : suit l'orientation des triangles touchés. */
+  side: Side
 }
 
 export type EngravingResult = {
@@ -63,32 +95,43 @@ export type EngravingResult = {
   normal: Vector3
 }
 
-/**
- * Calcule la pose de la gravure sur un mesh allongé.
- * `viewDir` : direction (unitaire) du modèle vers la caméra de la vue initiale.
- */
-function computePose(
-  mesh: Mesh,
-  config: EngravingPreviewConfig,
-  viewDir: Vector3,
-  cameraRight: Vector3
-): EngravingPose | null {
-  const position = mesh.geometry.attributes.position
-  if (!position || position.count < 3) return null
+/** Repère de la vue initiale, commun à tous les placements. */
+type ViewFrame = {
+  /** Direction (unitaire) du modèle vers la caméra. */
+  viewDir: Vector3
+  /** Droite de l'écran (unitaire). */
+  right: Vector3
+}
 
+/** Sommets du mesh en coordonnées monde. */
+function worldPoints(mesh: Mesh): Vector3[] {
+  const position = mesh.geometry.attributes.position
   const points: Vector3[] = []
+  if (!position) return points
   for (let i = 0; i < position.count; i++) {
     points.push(
       new Vector3().fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld)
     )
   }
+  return points
+}
 
+/**
+ * Centre et axes principaux d'un nuage de points, du plus étendu au moins
+ * étendu : itération de puissance sur la covariance, puis déflation pour le
+ * second axe. Le troisième, produit vectoriel des deux premiers, est la
+ * normale d'une surface à peu près plane.
+ */
+function principalAxes(points: Vector3[]): {
+  mean: Vector3
+  axes: [Vector3, Vector3, Vector3]
+} {
   const mean = new Vector3()
   points.forEach((p) => mean.add(p))
   mean.divideScalar(points.length)
 
-  // Axe principal : itération de puissance sur la matrice de covariance.
-  const c = [0, 0, 0, 0, 0, 0] // xx xy xz yy yz zz
+  // Covariance symétrique : [xx, xy, xz, yy, yz, zz].
+  const c = [0, 0, 0, 0, 0, 0]
   for (const p of points) {
     const x = p.x - mean.x
     const y = p.y - mean.y
@@ -100,16 +143,78 @@ function computePose(
     c[4] += y * z
     c[5] += z * z
   }
-  const axis = new Vector3(1, 0.37, 0.13).normalize()
-  for (let it = 0; it < 50; it++) {
-    axis
-      .set(
-        c[0] * axis.x + c[1] * axis.y + c[2] * axis.z,
-        c[1] * axis.x + c[3] * axis.y + c[4] * axis.z,
-        c[2] * axis.x + c[4] * axis.y + c[5] * axis.z
-      )
-      .normalize()
+  const apply = (v: Vector3) =>
+    new Vector3(
+      c[0] * v.x + c[1] * v.y + c[2] * v.z,
+      c[1] * v.x + c[3] * v.y + c[4] * v.z,
+      c[2] * v.x + c[4] * v.y + c[5] * v.z
+    )
+  const dominant = (start: Vector3) => {
+    const v = start.clone().normalize()
+    for (let it = 0; it < 60; it++) v.copy(apply(v)).normalize()
+    return v
   }
+
+  const e1 = dominant(new Vector3(1, 0.37, 0.13))
+  const l1 = apply(e1).dot(e1)
+  // Déflation : on retire la contribution de e1 à la covariance.
+  c[0] -= l1 * e1.x * e1.x
+  c[1] -= l1 * e1.x * e1.y
+  c[2] -= l1 * e1.x * e1.z
+  c[3] -= l1 * e1.y * e1.y
+  c[4] -= l1 * e1.y * e1.z
+  c[5] -= l1 * e1.z * e1.z
+  // Point de départ non colinéaire à e1.
+  const seed = Math.abs(e1.x) < 0.9 ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0)
+  const e2 = dominant(seed.addScaledVector(e1, -seed.dot(e1)))
+  const e3 = new Vector3().crossVectors(e1, e2).normalize()
+
+  return { mean, axes: [e1, e2, e3] }
+}
+
+/** Étendue des projections de `points` sur `dir`, relativement à `origin`. */
+function extent(points: Vector3[], origin: Vector3, dir: Vector3) {
+  let min = Infinity
+  let max = -Infinity
+  const offset = new Vector3()
+  for (const p of points) {
+    const s = offset.subVectors(p, origin).dot(dir)
+    min = Math.min(min, s)
+    max = Math.max(max, s)
+  }
+  return { min, max }
+}
+
+/**
+ * Face à rendre : celle que les triangles du mesh présentent vers la caméra.
+ * Nécessaire pour une surface simple face (papier) : rendu des deux côtés, le
+ * texte apparaîtrait en miroir au dos.
+ */
+function sideFacing(
+  hit: Intersection | undefined,
+  mesh: Mesh,
+  normal: Vector3
+): Side {
+  if (!hit?.face) return FrontSide
+  const faceNormal = hit.face.normal.clone().transformDirection(mesh.matrixWorld)
+  return faceNormal.dot(normal) >= 0 ? FrontSide : BackSide
+}
+
+/**
+ * Pièce allongée et conique : texte le long de l'axe principal, en partant du
+ * bout épais (le manche).
+ */
+function elongatedPose(
+  mesh: Mesh,
+  config: ElongatedPlacement,
+  view: ViewFrame
+): EngravingPose | null {
+  const points = worldPoints(mesh)
+  if (points.length < 3) return null
+  const {
+    mean,
+    axes: [axis],
+  } = principalAxes(points)
 
   // Abscisse le long de l'axe et distance à l'axe de chaque sommet.
   const offset = new Vector3()
@@ -119,12 +224,7 @@ function computePose(
     const r = offset.addScaledVector(axis, -s).length()
     return { s, r }
   })
-  let sMin = Infinity
-  let sMax = -Infinity
-  for (const { s } of samples) {
-    sMin = Math.min(sMin, s)
-    sMax = Math.max(sMax, s)
-  }
+  const { min: sMin, max: sMax } = extent(points, mean, axis)
   const length = sMax - sMin
   if (length <= 0) return null
 
@@ -153,14 +253,16 @@ function computePose(
   const height = 2 * radiusAt(margin + maxLength) * config.heightRatio
 
   // Direction de projection : vers la caméra, rendue perpendiculaire à l'axe.
-  const normal = viewDir.clone().addScaledVector(axis, -viewDir.dot(axis))
+  const normal = view.viewDir
+    .clone()
+    .addScaledVector(axis, -view.viewDir.dot(axis))
   if (normal.lengthSq() < 1e-6) return null
   normal.normalize()
 
   // Sens de lecture : de gauche à droite à l'écran, quel que soit le bout où se
   // trouve le manche.
   const readingAxis = axis.clone().multiplyScalar(toTip)
-  if (readingAxis.dot(cameraRight) < 0) readingAxis.negate()
+  if (readingAxis.dot(view.right) < 0) readingAxis.negate()
 
   const distanceFromHandle = margin + maxLength / 2
   const onAxis = mean
@@ -169,25 +271,431 @@ function computePose(
   const radius = radiusAt(distanceFromHandle)
 
   // Point de surface exact par lancer de rayon ; repli sur le cône théorique.
-  const raycaster = new Raycaster(
+  const hit = new Raycaster(
     onAxis.clone().addScaledVector(normal, rHandle * 4),
     normal.clone().negate()
-  )
-  const hit = raycaster.intersectObject(mesh, false)[0]
+  ).intersectObject(mesh, false)[0]
   const center = hit
     ? hit.point.clone()
     : onAxis.clone().addScaledVector(normal, radius)
 
   return {
     mesh,
+    surface: mesh,
     center,
     axis: readingAxis,
-    toHandle: axis.clone().multiplyScalar(-toTip),
+    toStart: axis.clone().multiplyScalar(-toTip),
     normal,
     height,
     maxLength,
-    radius,
+    // Profondeur ≈ rayon : couvre la face visible sans atteindre la face
+    // opposée, où le texte apparaîtrait en miroir.
+    depth: radius,
+    projectorShift: 0,
+    rayDistance: rHandle * 4,
+    // Volume fermé : ses faces avant suffisent.
+    side: FrontSide,
   }
+}
+
+/**
+ * Surface à peu près plane (papier plissé) : texte horizontal à la vue
+ * initiale, centré sur un point de la surface.
+ */
+function planarPose(
+  mesh: Mesh,
+  config: PlanarPlacement,
+  view: ViewFrame
+): EngravingPose | null {
+  const points = worldPoints(mesh)
+  if (points.length < 3) return null
+  const {
+    mean,
+    axes: [e1, , plane],
+  } = principalAxes(points)
+
+  // Normale du plan, tournée vers la caméra.
+  const normal = plane.clone()
+  if (normal.dot(view.viewDir) < 0) normal.negate()
+
+  // Sens de lecture : la droite de l'écran, ramenée dans le plan.
+  const axis = view.right.clone().addScaledVector(normal, -view.right.dot(normal))
+  if (axis.lengthSq() < 1e-6) axis.copy(e1)
+  axis.normalize()
+  // Haut des lettres = normale × axe ; on retourne l'axe s'il pointe vers le bas.
+  const up = new Vector3().crossVectors(normal, axis)
+  if (up.y < 0) {
+    axis.negate()
+    up.negate()
+  }
+
+  const width = extent(points, mean, axis)
+  const tall = extent(points, mean, up)
+  const thickness = extent(points, mean, normal)
+  const thick = thickness.max - thickness.min
+
+  const onPlane = mean
+    .clone()
+    .addScaledVector(
+      axis,
+      width.min + config.anchor[0] * (width.max - width.min)
+    )
+    .addScaledVector(up, tall.min + config.anchor[1] * (tall.max - tall.min))
+
+  // Rayons lancés devant tout le relief (plis) pour toucher la face avant.
+  const rayDistance = thick * 2 + (tall.max - tall.min) * 0.01
+  const hit = new Raycaster(
+    onPlane.clone().addScaledVector(normal, rayDistance),
+    normal.clone().negate()
+  ).intersectObject(mesh, false)[0]
+  const center = hit
+    ? hit.point.clone()
+    : onPlane.clone().addScaledVector(normal, thickness.max)
+
+  // Le projecteur englobe toute l'épaisseur des plis : centré à mi-relief et
+  // non sur le point touché, qui est sur un pli avancé.
+  const middle = (thickness.min + thickness.max) / 2
+  const centerDepth = new Vector3().subVectors(center, mean).dot(normal)
+
+  return {
+    mesh,
+    surface: mesh,
+    center,
+    axis,
+    toStart: new Vector3(),
+    normal,
+    height: (tall.max - tall.min) * config.heightRatio,
+    maxLength: (width.max - width.min) * config.maxLengthRatio,
+    depth: thick * 1.2 + (tall.max - tall.min) * 0.01,
+    projectorShift: middle - centerDepth,
+    rayDistance,
+    side: sideFacing(hit, mesh, normal),
+  }
+}
+
+/**
+ * Îles de géométrie d'un mesh (sommets reliés par des triangles), en indices
+ * de sommets. Les sommets confondus sont soudés au préalable : un export sépare
+ * les sommets le long des coutures d'UV, ce qui couperait une branche en
+ * morceaux. Mis en cache : la géométrie ne change pas, et l'analyse (~90 000
+ * sommets pour la monture de l'éventail) serait sinon refaite à chaque frappe.
+ */
+const islandsCache = new WeakMap<BufferGeometry, number[][]>()
+
+function geometryIslands(geometry: BufferGeometry): number[][] {
+  const cached = islandsCache.get(geometry)
+  if (cached) return cached
+
+  const position = geometry.attributes.position
+  geometry.computeBoundingBox()
+  const size = geometry.boundingBox!.getSize(new Vector3()).length() || 1
+  const tolerance = size * 1e-5
+
+  // Soudure : un représentant par position arrondie.
+  const representative = new Map<string, number>()
+  const weld = new Int32Array(position.count)
+  for (let i = 0; i < position.count; i++) {
+    const key = `${Math.round(position.getX(i) / tolerance)},${Math.round(
+      position.getY(i) / tolerance
+    )},${Math.round(position.getZ(i) / tolerance)}`
+    const existing = representative.get(key)
+    weld[i] = existing ?? i
+    if (existing === undefined) representative.set(key, i)
+  }
+
+  // Union-find sur les triangles.
+  const parent = new Int32Array(position.count).map((_, i) => i)
+  const find = (x: number) => {
+    while (parent[x] !== x) {
+      parent[x] = parent[parent[x]]
+      x = parent[x]
+    }
+    return x
+  }
+  const union = (a: number, b: number) => {
+    const ra = find(weld[a])
+    const rb = find(weld[b])
+    if (ra !== rb) parent[ra] = rb
+  }
+  const index = geometry.index
+  const triangleCount = (index ? index.count : position.count) / 3
+  for (let t = 0; t < triangleCount; t++) {
+    const a = index ? index.getX(t * 3) : t * 3
+    const b = index ? index.getX(t * 3 + 1) : t * 3 + 1
+    const c = index ? index.getX(t * 3 + 2) : t * 3 + 2
+    union(a, b)
+    union(a, c)
+  }
+
+  const groups = new Map<number, number[]>()
+  for (let i = 0; i < position.count; i++) {
+    const root = find(weld[i])
+    const group = groups.get(root)
+    if (group) group.push(i)
+    else groups.set(root, [i])
+  }
+  const islands = [...groups.values()]
+  islandsCache.set(geometry, islands)
+  return islands
+}
+
+/**
+ * Mesh réduit à une île de géométrie, placé exactement comme `mesh` (même
+ * matrice monde, hors scène). Seuls les triangles dont les trois sommets
+ * appartiennent à l'île sont repris ; les attributs utiles à la projection et
+ * à la lecture des UV sont copiés.
+ */
+function islandMesh(mesh: Mesh, island: number[]): Mesh {
+  const source = mesh.geometry
+  const inIsland = new Set(island)
+  const index = source.index
+  const triangleCount = (index ? index.count : source.attributes.position.count) / 3
+  const vertices: number[] = []
+  for (let t = 0; t < triangleCount; t++) {
+    const corners = [0, 1, 2].map((k) => (index ? index.getX(t * 3 + k) : t * 3 + k))
+    if (corners.every((v) => inIsland.has(v))) vertices.push(...corners)
+  }
+
+  const geometry = new BufferGeometry()
+  for (const name of ["position", "normal", "uv", "uv1"]) {
+    const attribute = source.attributes[name]
+    if (!attribute) continue
+    const size = attribute.itemSize
+    const out = new Float32Array(vertices.length * size)
+    vertices.forEach((v, i) => {
+      for (let k = 0; k < size; k++) out[i * size + k] = attribute.getComponent(v, k)
+    })
+    geometry.setAttribute(name, new Float32BufferAttribute(out, size))
+  }
+
+  // Le lancer de rayons tient compte de la face rendue : les deux, comme le
+  // mesh d'origine (matières du GLB en double face).
+  const surface = new Mesh(geometry, new MeshBasicMaterial({ side: DoubleSide }))
+  surface.matrixAutoUpdate = false
+  surface.matrix.copy(mesh.matrixWorld)
+  surface.matrixWorld.copy(mesh.matrixWorld)
+  return surface
+}
+
+/**
+ * Branche d'une monture en éventail : texte le long de la branche dont l'angle
+ * à l'écran est le plus proche de `angleDeg`, en partant du pivot.
+ */
+function ribPose(
+  mesh: Mesh,
+  config: RibPlacement,
+  view: ViewFrame
+): EngravingPose | null {
+  const all = worldPoints(mesh)
+  if (all.length < 3) return null
+
+  // Plan de la monture, normale tournée vers la caméra ; repère écran dans ce plan.
+  const {
+    axes: [, , plane],
+  } = principalAxes(all)
+  const normal = plane.clone()
+  if (normal.dot(view.viewDir) < 0) normal.negate()
+  const right = view.right
+    .clone()
+    .addScaledVector(normal, -view.right.dot(normal))
+    .normalize()
+  const up = new Vector3().crossVectors(normal, right)
+
+  const ribs = geometryIslands(mesh.geometry)
+    .filter((island) => island.length >= 3)
+    .map((island) => {
+      const points = island.map((i) => all[i])
+      const { mean, axes } = principalAxes(points)
+      return { island, points, mean, axis: axes[0] }
+    })
+  if (ribs.length === 0) return null
+
+  // Le pivot est du côté où les branches convergent : vers le barycentre de
+  // leurs centres. Chaque axe est orienté du pivot vers le bout.
+  const hub = new Vector3()
+  ribs.forEach((rib) => hub.add(rib.mean))
+  hub.divideScalar(ribs.length)
+  for (const rib of ribs) {
+    const { min, max } = extent(rib.points, rib.mean, rib.axis)
+    const towardHub = new Vector3().subVectors(hub, rib.mean).dot(rib.axis)
+    // Le bout le plus éloigné du pivot est le « bout » de la branche.
+    if (Math.abs(max - towardHub) < Math.abs(min - towardHub)) rib.axis.negate()
+  }
+
+  const target = (config.angleDeg * Math.PI) / 180
+  const screenAngle = (axis: Vector3) => Math.atan2(axis.dot(up), axis.dot(right))
+  const angleGap = (axis: Vector3) => {
+    const d = Math.abs(screenAngle(axis) - target) % (2 * Math.PI)
+    return Math.min(d, 2 * Math.PI - d)
+  }
+  const rib = ribs.reduce((best, r) =>
+    angleGap(r.axis) < angleGap(best.axis) ? r : best
+  )
+
+  const { axis, points, mean } = rib
+  const surface = islandMesh(mesh, rib.island)
+  const along = extent(points, mean, axis)
+  const length = along.max - along.min
+  if (length <= 0) return null
+  const maxLength = length * config.maxLengthRatio
+  const sCenter =
+    along.min + length * config.startRatio + maxLength / 2
+
+  // Largeur de la branche sur la zone gravée : la plus étroite de quelques
+  // tranches, pour que le texte ne déborde nulle part sur le vide.
+  const across = new Vector3().crossVectors(normal, axis)
+  const offset = new Vector3()
+  const sliceHalf = length * 0.02
+  let width = Infinity
+  for (let k = 0; k <= 4; k++) {
+    const s = sCenter - maxLength / 2 + (k / 4) * maxLength
+    let lo = Infinity
+    let hi = -Infinity
+    for (const p of points) {
+      offset.subVectors(p, mean)
+      if (Math.abs(offset.dot(axis) - s) > sliceHalf) continue
+      const w = offset.dot(across)
+      lo = Math.min(lo, w)
+      hi = Math.max(hi, w)
+    }
+    if (hi > lo) width = Math.min(width, hi - lo)
+  }
+  if (!Number.isFinite(width)) return null
+  const thickness = extent(points, mean, normal)
+  const thick = thickness.max - thickness.min
+
+  // Centre de la branche sur la tranche du milieu, puis point de surface.
+  let middleLo = Infinity
+  let middleHi = -Infinity
+  for (const p of points) {
+    offset.subVectors(p, mean)
+    if (Math.abs(offset.dot(axis) - sCenter) > sliceHalf) continue
+    const w = offset.dot(across)
+    middleLo = Math.min(middleLo, w)
+    middleHi = Math.max(middleHi, w)
+  }
+  const onAxis = mean
+    .clone()
+    .addScaledVector(axis, sCenter)
+    .addScaledVector(across, (middleLo + middleHi) / 2)
+  const rayDistance = thick * 4 + length * 0.01
+  const hit = new Raycaster(
+    onAxis.clone().addScaledVector(normal, rayDistance),
+    normal.clone().negate()
+  ).intersectObject(surface, false)[0]
+  const center = hit
+    ? hit.point.clone()
+    : onAxis.clone().addScaledVector(normal, thickness.max)
+
+  // Lecture de gauche à droite ; une branche quasi verticale se lit de bas en
+  // haut, comme le dos d'un livre.
+  const reading = axis.clone()
+  const horizontal = reading.dot(right)
+  if (Math.abs(horizontal) > 0.2 ? horizontal < 0 : reading.dot(up) < 0) {
+    reading.negate()
+  }
+
+  return {
+    mesh,
+    surface,
+    center,
+    axis: reading,
+    toStart: axis.clone().negate(),
+    normal,
+    height: width * config.heightRatio,
+    maxLength,
+    // Moins que l'épaisseur : la face avant seulement, pas les branches
+    // empilées derrière.
+    depth: thick * 0.8,
+    projectorShift: 0,
+    rayDistance,
+    side: sideFacing(hit, mesh, normal),
+  }
+}
+
+/**
+ * Ne garde que les triangles du décalque tournés du même côté que la face
+ * visée (`side`, vue depuis `normal`).
+ *
+ * Le projecteur de l'éventail doit englober toute la profondeur des plis, et
+ * attrape donc aussi la couche arrière du papier : sans ce tri, le texte se
+ * lisait en miroir au dos. Les plis, inclinés de moins de 90°, gardent le même
+ * sens que la face avant.
+ */
+function keepFacingTriangles(
+  geometry: BufferGeometry,
+  normal: Vector3,
+  side: Side
+): BufferGeometry {
+  const position = geometry.attributes.position
+  const uv = geometry.attributes.uv
+  const normals = geometry.attributes.normal
+  const expected = side === BackSide ? -1 : 1
+  const keep: number[] = []
+  const a = new Vector3()
+  const b = new Vector3()
+  const c = new Vector3()
+  for (let i = 0; i + 2 < position.count; i += 3) {
+    a.fromBufferAttribute(position, i)
+    b.fromBufferAttribute(position, i + 1)
+    c.fromBufferAttribute(position, i + 2)
+    const faceNormal = b.sub(a).cross(c.sub(a))
+    if (Math.sign(faceNormal.dot(normal)) === expected) keep.push(i)
+  }
+  if (keep.length * 3 === position.count) return geometry
+
+  const pick = (attribute: BufferAttribute | InterleavedBufferAttribute) => {
+    const size = attribute.itemSize
+    const out = new Float32Array(keep.length * 3 * size)
+    keep.forEach((start, t) => {
+      for (let v = 0; v < 3; v++) {
+        for (let k = 0; k < size; k++) {
+          out[(t * 3 + v) * size + k] = attribute.getComponent(start + v, k)
+        }
+      }
+    })
+    return new Float32BufferAttribute(out, size)
+  }
+  const filtered = new BufferGeometry()
+  filtered.setAttribute("position", pick(position))
+  if (uv) filtered.setAttribute("uv", pick(uv))
+  if (normals) filtered.setAttribute("normal", pick(normals))
+  geometry.dispose()
+  return filtered
+}
+
+/**
+ * Poses déjà calculées. La pose ne dépend que de la géométrie (fixe), des
+ * réglages et de la vue initiale — pas du texte ni des matières : sans cache,
+ * la monture de l'éventail coûtait ~160 ms d'analyse à chaque pause de frappe.
+ */
+const poseCache = new WeakMap<
+  Mesh,
+  { config: EngravingPreviewConfig; viewDir: Vector3; pose: EngravingPose | null }
+>()
+
+function computePose(
+  mesh: Mesh,
+  config: EngravingPreviewConfig,
+  view: ViewFrame
+): EngravingPose | null {
+  const cached = poseCache.get(mesh)
+  if (cached?.config === config && cached.viewDir.equals(view.viewDir)) {
+    return cached.pose
+  }
+  let pose: EngravingPose | null
+  switch (config.placement) {
+    case "planar":
+      pose = planarPose(mesh, config, view)
+      break
+    case "rib":
+      pose = ribPose(mesh, config, view)
+      break
+    default:
+      pose = elongatedPose(mesh, config, view)
+  }
+  poseCache.set(mesh, { config, viewDir: view.viewDir.clone(), pose })
+  return pose
 }
 
 /**
@@ -241,13 +749,17 @@ const luminanceOf = (r: number, g: number, b: number) =>
  * 1 pour celles d'origine du GLB des baguettes).
  */
 function sampleLuminance(
+  /** Porteur de la matière lue. */
   mesh: Mesh,
+  /** Géométrie visée par les rayons (cf. `EngravingPose.surface`). */
+  surface: Mesh,
   center: Vector3,
   axis: Vector3,
   normal: Vector3,
   length: number,
   height: number,
-  radius: number
+  /** Recul des rayons devant la surface. */
+  rayDistance: number
 ): number {
   const material = mesh.material as MeshStandardMaterial
   const tint = material.color.clone().convertLinearToSRGB()
@@ -272,9 +784,9 @@ function sampleLuminance(
         .copy(center)
         .addScaledVector(axis, t * length)
         .addScaledVector(across, s * height)
-        .addScaledVector(normal, radius * 3)
+        .addScaledVector(normal, rayDistance)
       raycaster.set(origin, direction)
-      const hit = raycaster.intersectObject(mesh, false)[0]
+      const hit = raycaster.intersectObject(surface, false)[0]
       const uv = map.channel === 1 ? hit?.uv1 : hit?.uv
       if (!uv) continue
 
@@ -405,34 +917,38 @@ export async function buildEngraving(params: {
 
   root.updateWorldMatrix(true, true)
   const viewDir = new Vector3().subVectors(homePosition, homeTarget).normalize()
-  // Droite de l'écran à la vue initiale (caméra sans roulis : up = +Y).
-  const cameraRight = new Vector3(0, 1, 0).cross(viewDir).normalize()
+  const view: ViewFrame = {
+    viewDir,
+    // Droite de l'écran à la vue initiale (caméra sans roulis : up = +Y).
+    right: new Vector3(0, 1, 0).cross(viewDir).normalize(),
+  }
 
   const box = new Box3()
   let normal: Vector3 | null = null
 
   for (const mesh of findMeshes(root, config.targetMesh)) {
-    const pose = computePose(mesh, config, viewDir, cameraRight)
+    const pose = computePose(mesh, config, view)
     if (!pose) continue
 
     const { length, draw } = layoutText(text, pose.height, pose.maxLength)
 
-    // Le texte part du manche : plus court que le maximum, il est recentré de
-    // la moitié de la place laissée libre, côté manche.
+    // Texte plus court que le maximum : recentré de la moitié de la place
+    // laissée libre, vers son point de départ (le manche d'une baguette).
     const center = pose.center
       .clone()
-      .addScaledVector(pose.toHandle, (pose.maxLength - length) / 2)
+      .addScaledVector(pose.toStart, (pose.maxLength - length) / 2)
 
     const canvas = draw(
       engravingColor(
         sampleLuminance(
           mesh,
+          pose.surface,
           center,
           pose.axis,
           pose.normal,
           length,
           pose.height,
-          pose.radius
+          pose.rayDistance
         )
       )
     )
@@ -446,13 +962,15 @@ export async function buildEngraving(params: {
       new Matrix4().makeBasis(xAxis, yAxis, zAxis)
     )
 
-    const geometry = new DecalGeometry(
-      mesh,
-      center,
-      orientation,
-      // Profondeur ≈ rayon : couvre la face visible sans atteindre la face
-      // opposée, où le texte apparaîtrait en miroir.
-      new Vector3(length, pose.height, pose.radius)
+    const geometry = keepFacingTriangles(
+      new DecalGeometry(
+        pose.surface,
+        center.clone().addScaledVector(pose.normal, pose.projectorShift),
+        orientation,
+        new Vector3(length, pose.height, pose.depth)
+      ),
+      pose.normal,
+      pose.side
     )
 
     const texture = new CanvasTexture(canvas)
@@ -469,6 +987,7 @@ export async function buildEngraving(params: {
         polygonOffsetFactor: -4,
         roughness: 0.85,
         metalness: 0,
+        side: pose.side,
       })
     )
     decal.name = "configurator-engraving-decal"
