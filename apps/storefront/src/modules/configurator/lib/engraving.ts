@@ -101,6 +101,8 @@ type ViewFrame = {
   viewDir: Vector3
   /** Droite de l'écran (unitaire). */
   right: Vector3
+  /** Haut de l'écran (unitaire). */
+  up: Vector3
 }
 
 /** Sommets du mesh en coordonnées monde. */
@@ -228,7 +230,7 @@ function elongatedPose(
   const length = sMax - sMin
   if (length <= 0) return null
 
-  // Rayon aux deux extrémités (10 % de chaque bout) : le plus épais est le manche.
+  // Rayon aux deux extrémités (10 % de chaque bout).
   const radiusNear = (from: number) => {
     let r = 0
     for (const sample of samples) {
@@ -238,19 +240,30 @@ function elongatedPose(
   }
   const rMinEnd = radiusNear(sMin)
   const rMaxEnd = radiusNear(sMax)
-  // Oriente l'axe du manche vers la pointe.
-  const handleAtMax = rMaxEnd >= rMinEnd
-  const sHandle = handleAtMax ? sMax : sMin
-  const toTip = handleAtMax ? -1 : 1
-  const rHandle = Math.max(rMinEnd, rMaxEnd)
-  const rTip = Math.min(rMinEnd, rMaxEnd)
-  // Profil conique : rayon interpolé entre le manche et la pointe.
-  const radiusAt = (distanceFromHandle: number) =>
-    rHandle + (rTip - rHandle) * Math.min(1, distanceFromHandle / length)
+  const rThickest = Math.max(rMinEnd, rMaxEnd)
+
+  // Bout de départ du texte : le plus épais (manche d'une baguette) ou le plus
+  // bas à l'écran (manche d'ombrelle). L'axe est ensuite orienté depuis ce bout.
+  const startAtMax =
+    config.startFrom === "bottom"
+      ? axis.dot(view.up) < 0
+      : rMaxEnd >= rMinEnd
+  const sStart = startAtMax ? sMax : sMin
+  const away = startAtMax ? -1 : 1
+  const rStart = startAtMax ? rMaxEnd : rMinEnd
+  const rEnd = startAtMax ? rMinEnd : rMaxEnd
+  // Profil conique : rayon interpolé entre les deux bouts.
+  const radiusAt = (distanceFromStart: number) =>
+    rStart + (rEnd - rStart) * Math.min(1, distanceFromStart / length)
 
   const margin = length * config.marginRatio
   const maxLength = length * config.maxLengthRatio
-  const height = 2 * radiusAt(margin + maxLength) * config.heightRatio
+  // Lettres réglées sur le point le plus fin de la zone gravée, quel que soit
+  // le sens de la conicité.
+  const height =
+    2 *
+    Math.min(radiusAt(margin), radiusAt(margin + maxLength)) *
+    config.heightRatio
 
   // Direction de projection : vers la caméra, rendue perpendiculaire à l'axe.
   const normal = view.viewDir
@@ -259,20 +272,23 @@ function elongatedPose(
   if (normal.lengthSq() < 1e-6) return null
   normal.normalize()
 
-  // Sens de lecture : de gauche à droite à l'écran, quel que soit le bout où se
-  // trouve le manche.
-  const readingAxis = axis.clone().multiplyScalar(toTip)
-  if (readingAxis.dot(view.right) < 0) readingAxis.negate()
+  // Sens de lecture : de gauche à droite à l'écran ; une pièce quasi verticale
+  // se lit de bas en haut, comme le dos d'un livre.
+  const readingAxis = axis.clone()
+  const horizontal = readingAxis.dot(view.right)
+  if (Math.abs(horizontal) > 0.2 ? horizontal < 0 : readingAxis.dot(view.up) < 0) {
+    readingAxis.negate()
+  }
 
-  const distanceFromHandle = margin + maxLength / 2
+  const distanceFromStart = margin + maxLength / 2
   const onAxis = mean
     .clone()
-    .addScaledVector(axis, sHandle + toTip * distanceFromHandle)
-  const radius = radiusAt(distanceFromHandle)
+    .addScaledVector(axis, sStart + away * distanceFromStart)
+  const radius = radiusAt(distanceFromStart)
 
   // Point de surface exact par lancer de rayon ; repli sur le cône théorique.
   const hit = new Raycaster(
-    onAxis.clone().addScaledVector(normal, rHandle * 4),
+    onAxis.clone().addScaledVector(normal, rThickest * 4),
     normal.clone().negate()
   ).intersectObject(mesh, false)[0]
   const center = hit
@@ -284,7 +300,7 @@ function elongatedPose(
     surface: mesh,
     center,
     axis: readingAxis,
-    toStart: axis.clone().multiplyScalar(-toTip),
+    toStart: axis.clone().multiplyScalar(-away),
     normal,
     height,
     maxLength,
@@ -292,7 +308,7 @@ function elongatedPose(
     // opposée, où le texte apparaîtrait en miroir.
     depth: radius,
     projectorShift: 0,
-    rayDistance: rHandle * 4,
+    rayDistance: rThickest * 4,
     // Volume fermé : ses faces avant suffisent.
     side: FrontSide,
   }
@@ -917,10 +933,12 @@ export async function buildEngraving(params: {
 
   root.updateWorldMatrix(true, true)
   const viewDir = new Vector3().subVectors(homePosition, homeTarget).normalize()
+  // Repère écran à la vue initiale (caméra sans roulis : haut du monde = +Y).
+  const right = new Vector3(0, 1, 0).cross(viewDir).normalize()
   const view: ViewFrame = {
     viewDir,
-    // Droite de l'écran à la vue initiale (caméra sans roulis : up = +Y).
-    right: new Vector3(0, 1, 0).cross(viewDir).normalize(),
+    right,
+    up: new Vector3().crossVectors(viewDir, right),
   }
 
   const box = new Box3()

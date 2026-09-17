@@ -17,12 +17,18 @@ type BasePlacement = {
 }
 
 /**
- * Pièce allongée et conique (baguette) : texte le long de l'axe, en partant du
- * bout épais (le manche).
+ * Pièce allongée (baguette, manche d'ombrelle) : texte le long de l'axe, en
+ * partant d'un de ses bouts.
  */
 export type ElongatedPlacement = BasePlacement & {
   placement: "elongated"
-  /** Marge entre le bout du manche et le début du texte (ratio de la longueur). */
+  /**
+   * Bout d'où part le texte : le plus épais (manche d'une baguette, défaut) ou
+   * le plus bas à la vue initiale (manche d'ombrelle, plus fin en bas, où il
+   * entre dans la poignée).
+   */
+  startFrom?: "thick" | "bottom"
+  /** Marge entre ce bout et le début du texte (ratio de la longueur). */
   marginRatio: number
   /** Hauteur des lettres, en ratio du diamètre au point le plus fin du texte. */
   heightRatio: number
@@ -94,5 +100,17 @@ export const ENGRAVING_PREVIEW: Record<string, EngravingPreviewConfig> = {
     startRatio: 0.36,
     maxLengthRatio: 0.5,
     heightRatio: 0.7,
+  },
+  ombrelle: {
+    placement: "elongated",
+    // Le fût du manche, sans la poignée (`Mat_Manche_02`) qui l'entoure en bas.
+    targetMesh: "Mat_Manche_01",
+    startFrom: "bottom",
+    // Le long du fût : poignée jusqu'à 21 %, bague métallique à partir de 57 %.
+    // Le texte tient entre 24 % et 54 %.
+    marginRatio: 0.24,
+    maxLengthRatio: 0.3,
+    // Lettres discrètes sur le fût (0.6 au départ, jugé trop gros).
+    heightRatio: 0.4,
   },
 }
