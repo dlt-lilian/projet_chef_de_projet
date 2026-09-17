@@ -13,7 +13,7 @@ import {
 } from "three"
 import { DecalGeometry } from "three/examples/jsm/geometries/DecalGeometry.js"
 import type { EngravingPreviewConfig } from "./engraving-preview"
-import { findMeshes, type MeshLayers } from "./three-helpers"
+import { findMeshes } from "./three-helpers"
 
 /**
  * Aperçu 3D de la gravure — PROTOTYPE (baguettes uniquement).
@@ -190,20 +190,121 @@ function computePose(
   }
 }
 
-/** Clair sur un fond sombre, brûlé sur un fond clair. */
-function engravingColor(layers: MeshLayers | undefined): string {
-  let luminance = 0.15 // bois noir d'origine du GLB
-  if (layers?.texturePath) {
-    const tint = layers.tint ?? "#ffffff"
-    luminance = (0.55 * parseInt(tint.slice(1, 3), 16)) / 255
-  } else if (layers?.color) {
-    const hex = layers.color
-    const r = parseInt(hex.slice(1, 3), 16)
-    const g = parseInt(hex.slice(3, 5), 16)
-    const b = parseInt(hex.slice(5, 7), 16)
-    luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+/**
+ * Teintes de la gravure, toujours translucides : le veinage ou le motif reste
+ * visible au travers, comme sur une pièce réellement marquée au laser.
+ * Sombre sur un fond clair, claire (inverse) sur un fond sombre.
+ */
+const DARK_ENGRAVING_COLOR = "rgba(0, 0, 0, 0.72)"
+const LIGHT_ENGRAVING_COLOR = "rgba(255, 246, 228, 0.82)"
+/** En deçà, le fond est jugé sombre (luminance relative, 0 = noir). */
+const DARK_BACKGROUND_LUMINANCE = 0.4
+
+/** Rayons d'échantillonnage le long et en travers de la zone gravée. */
+const SAMPLES_ALONG = 7
+const SAMPLES_ACROSS = 3
+/** Résolution à laquelle une texture est réduite pour être lue. */
+const SAMPLE_TEXTURE_PX = 256
+
+/** Pixels réduits de chaque image déjà lue (canvas composé, image, bitmap). */
+const pixelCache = new WeakMap<object, ImageData | null>()
+
+function readPixels(image: CanvasImageSource): ImageData | null {
+  const key = image as object
+  if (pixelCache.has(key)) return pixelCache.get(key) ?? null
+  let pixels: ImageData | null = null
+  try {
+    const canvas = document.createElement("canvas")
+    canvas.width = SAMPLE_TEXTURE_PX
+    canvas.height = SAMPLE_TEXTURE_PX
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!
+    ctx.drawImage(image, 0, 0, SAMPLE_TEXTURE_PX, SAMPLE_TEXTURE_PX)
+    pixels = ctx.getImageData(0, 0, SAMPLE_TEXTURE_PX, SAMPLE_TEXTURE_PX)
+  } catch {
+    // Image sans CORS (canvas « tainted ») ou pas encore décodée.
   }
-  return luminance < 0.4 ? "#efe2c2" : "#3b2413"
+  pixelCache.set(key, pixels)
+  return pixels
+}
+
+const luminanceOf = (r: number, g: number, b: number) =>
+  (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+
+/**
+ * Luminance moyenne de la surface SOUS le texte, telle qu'elle est rendue :
+ * texture du matériau (bois, motif composé…) multipliée par sa teinte.
+ *
+ * On lit les pixels réels plutôt que de déduire la teinte des options
+ * choisies : un motif peut être clair ou sombre, et seul son rendu le dit.
+ * Chaque rayon renvoie les UV du point touché, dans le jeu de coordonnées que
+ * la texture utilise (`map.channel` : 0 pour les textures du configurateur,
+ * 1 pour celles d'origine du GLB des baguettes).
+ */
+function sampleLuminance(
+  mesh: Mesh,
+  center: Vector3,
+  axis: Vector3,
+  normal: Vector3,
+  length: number,
+  height: number,
+  radius: number
+): number {
+  const material = mesh.material as MeshStandardMaterial
+  const tint = material.color.clone().convertLinearToSRGB()
+  const map = material.map
+  const pixels = map?.image ? readPixels(map.image as CanvasImageSource) : null
+  if (!map || !pixels) {
+    return luminanceOf(tint.r * 255, tint.g * 255, tint.b * 255)
+  }
+
+  const across = new Vector3().crossVectors(normal, axis)
+  const raycaster = new Raycaster()
+  const direction = normal.clone().negate()
+  const origin = new Vector3()
+  let total = 0
+  let count = 0
+
+  for (let i = 0; i < SAMPLES_ALONG; i++) {
+    for (let j = 0; j < SAMPLES_ACROSS; j++) {
+      const t = (i + 0.5) / SAMPLES_ALONG - 0.5
+      const s = (j + 0.5) / SAMPLES_ACROSS - 0.5
+      origin
+        .copy(center)
+        .addScaledVector(axis, t * length)
+        .addScaledVector(across, s * height)
+        .addScaledVector(normal, radius * 3)
+      raycaster.set(origin, direction)
+      const hit = raycaster.intersectObject(mesh, false)[0]
+      const uv = map.channel === 1 ? hit?.uv1 : hit?.uv
+      if (!uv) continue
+
+      // Coordonnées répétées (TEXCOORD_1 déborde de [0, 1]) : partie décimale.
+      const u = uv.x - Math.floor(uv.x)
+      const v = uv.y - Math.floor(uv.y)
+      const x = Math.min(pixels.width - 1, Math.floor(u * pixels.width))
+      const y = Math.min(
+        pixels.height - 1,
+        Math.floor((map.flipY ? 1 - v : v) * pixels.height)
+      )
+      const k = (y * pixels.width + x) * 4
+      total += luminanceOf(
+        pixels.data[k] * tint.r,
+        pixels.data[k + 1] * tint.g,
+        pixels.data[k + 2] * tint.b
+      )
+      count++
+    }
+  }
+
+  return count > 0
+    ? total / count
+    : luminanceOf(tint.r * 255, tint.g * 255, tint.b * 255)
+}
+
+function engravingColor(backgroundLuminance: number): string {
+  return backgroundLuminance < DARK_BACKGROUND_LUMINANCE
+    ? LIGHT_ENGRAVING_COLOR
+    : DARK_ENGRAVING_COLOR
 }
 
 /** Famille de Satoshi telle que next/font l'a nommée (nom haché). */
@@ -215,16 +316,18 @@ function fontFamily(): string {
 }
 
 /**
- * Dessine le texte sur un canvas au ratio de la zone gravée.
- * Retourne aussi la longueur monde retenue : le texte court garde la même
- * hauteur de lettres, le texte long est réduit pour tenir dans `maxLength`.
+ * Mesure le texte et retourne la longueur monde retenue — le texte court garde
+ * la même hauteur de lettres, le texte long est réduit pour tenir dans
+ * `maxLength` — ainsi que de quoi le dessiner sur un canvas au ratio de la zone.
+ *
+ * Mesure et dessin sont séparés : la couleur dépend du fond sous le texte, que
+ * l'on ne peut lire qu'une fois sa longueur (donc son emprise) connue.
  */
-function renderText(
+function layoutText(
   text: string,
-  color: string,
   height: number,
   maxLength: number
-): { canvas: HTMLCanvasElement; length: number } {
+): { length: number; draw: (color: string) => HTMLCanvasElement } {
   const family = fontFamily()
   const fontPx = Math.round(CANVAS_HEIGHT_PX * 0.72)
   const font = `${FONT_WEIGHT} ${fontPx}px ${family}`
@@ -237,18 +340,21 @@ function renderText(
   const pxPerUnit = CANVAS_HEIGHT_PX / height
   const length = Math.min(maxLength, textWidth / pxPerUnit)
 
-  const canvas = document.createElement("canvas")
-  canvas.width = Math.max(1, Math.min(4096, Math.round(length * pxPerUnit)))
-  canvas.height = CANVAS_HEIGHT_PX
-  const ctx = canvas.getContext("2d")!
-  const fit = Math.min(1, canvas.width / textWidth)
-  ctx.font = `${FONT_WEIGHT} ${Math.floor(fontPx * fit)}px ${family}`
-  ctx.fillStyle = color
-  ctx.textAlign = "center"
-  ctx.textBaseline = "middle"
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2)
+  const draw = (color: string) => {
+    const canvas = document.createElement("canvas")
+    canvas.width = Math.max(1, Math.min(4096, Math.round(length * pxPerUnit)))
+    canvas.height = CANVAS_HEIGHT_PX
+    const ctx = canvas.getContext("2d")!
+    const fit = Math.min(1, canvas.width / textWidth)
+    ctx.font = `${FONT_WEIGHT} ${Math.floor(fontPx * fit)}px ${family}`
+    ctx.fillStyle = color
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2)
+    return canvas
+  }
 
-  return { canvas, length }
+  return { length, draw }
 }
 
 /** Retire et libère tous les décalques du groupe. */
@@ -309,19 +415,27 @@ export async function buildEngraving(params: {
     const pose = computePose(mesh, config, viewDir, cameraRight)
     if (!pose) continue
 
-    const layers = (mesh.userData as { layers?: MeshLayers }).layers
-    const { canvas, length } = renderText(
-      text,
-      engravingColor(layers),
-      pose.height,
-      pose.maxLength
-    )
+    const { length, draw } = layoutText(text, pose.height, pose.maxLength)
 
     // Le texte part du manche : plus court que le maximum, il est recentré de
     // la moitié de la place laissée libre, côté manche.
     const center = pose.center
       .clone()
       .addScaledVector(pose.toHandle, (pose.maxLength - length) / 2)
+
+    const canvas = draw(
+      engravingColor(
+        sampleLuminance(
+          mesh,
+          center,
+          pose.axis,
+          pose.normal,
+          length,
+          pose.height,
+          pose.radius
+        )
+      )
+    )
 
     // Repère du projecteur : x = sens de lecture, z = hors de la surface,
     // y = z × x (haut des lettres) — base directe, donc texte non inversé.

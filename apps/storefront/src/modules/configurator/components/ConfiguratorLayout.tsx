@@ -23,6 +23,14 @@ import type { ConfiguratorViewerHandle } from "./ConfiguratorViewer"
 // PAS le viewer dans le bundle statique.
 const ConfiguratorViewer = lazy(() => import("./ConfiguratorViewer"))
 
+/**
+ * Produits jamais animés, quelle que soit la case « rotation automatique » de
+ * l'admin : la config en base primait et laissait tourner ces modèles. Sur les
+ * baguettes, la gravure n'est projetée que sur la face tournée vers la vue
+ * initiale — la rotation la cachait la moitié du temps.
+ */
+const FIXED_MODEL_HANDLES = new Set(["baguettes", "ombrelle"])
+
 /** Pause de frappe avant de redessiner la gravure sur le modèle. */
 const ENGRAVING_DEBOUNCE_MS = 200
 
@@ -210,7 +218,12 @@ export default function ConfiguratorLayout({
             <ConfiguratorViewer
               ref={viewerRef}
               glbPath={config.glbPath}
-              rotationSpeed={config.autoRotate === false ? 0 : 1}
+              rotationSpeed={
+                config.autoRotate === false ||
+                FIXED_MODEL_HANDLES.has(product.handle ?? "")
+                  ? 0
+                  : 1
+              }
               modelRotationDeg={modelRotationDeg}
               onModelReady={handleModelReady}
               posterSrc={posterSrc}
