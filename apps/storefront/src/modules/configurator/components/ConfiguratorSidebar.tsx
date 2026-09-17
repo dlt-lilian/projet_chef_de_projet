@@ -151,7 +151,13 @@ export default function ConfiguratorSidebar({
             déclencherait un aller-retour de caméra. */}
         <div
           className="flex flex-col gap-6"
-          onMouseLeave={() => setDesktopActive(null)}
+          // Champ en cours de saisie (gravure) : la souris peut quitter la
+          // liste sans que la caméra ne lâche le texte qu'on écrit.
+          onMouseLeave={(e) => {
+            if (!e.currentTarget.contains(document.activeElement)) {
+              setDesktopActive(null)
+            }
+          }}
           onBlur={(e) => {
             if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
               setDesktopActive(null)

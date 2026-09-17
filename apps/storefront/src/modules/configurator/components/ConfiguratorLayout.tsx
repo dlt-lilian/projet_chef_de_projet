@@ -88,28 +88,31 @@ export default function ConfiguratorLayout({
     void viewerRef.current?.setEngraving(controller.state.engraving)
   }, [config, controller, applyOption])
 
-  /** Option dont le menu est ouvert (mobile) ou survolée (desktop). */
-  const activeOptionRef = useRef<string | null>(null)
-
   // Aperçu 3D de la gravure (prototype : baguettes seulement). Redessiné après
   // une courte pause de frappe plutôt qu'à chaque touche.
   const engravingPreview = product.handle
     ? ENGRAVING_PREVIEW[product.handle]
     : undefined
   const engravingText = controller.state.engraving
+  // Texte au montage (ligne de panier rouverte) : affiché par handleModelReady,
+  // sans zoom — seule une saisie du visiteur doit déplacer la caméra.
+  const initialEngravingRef = useRef(engravingText)
   useEffect(() => {
-    if (!engravingPreview) return
+    if (!engravingPreview || engravingText === initialEngravingRef.current) {
+      return
+    }
+    initialEngravingRef.current = engravingText
     const timer = setTimeout(async () => {
       const viewer = viewerRef.current
       if (!viewer) return
       await viewer.setEngraving(engravingText)
-      // Premier caractère saisi avec la gravure ouverte : il n'y avait pas
-      // encore de texte à cadrer à l'ouverture du menu.
-      const active = config.options.find((o) => o.id === activeOptionRef.current)
-      if (active?.type === "engraving") viewer.focusEngraving()
+      // Cadre le texte à chaque saisie, sans dépendre du survol : à l'échelle
+      // de la vue initiale, des lettres sur une baguette restent illisibles.
+      if (engravingText.trim()) viewer.focusEngraving()
+      else viewer.resetView()
     }, ENGRAVING_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [engravingText, engravingPreview, config])
+  }, [engravingText, engravingPreview])
 
   // `config` est un nouvel objet à chaque rendu serveur (fetch admin / repli) :
   // on fige la rotation par ses VALEURS pour éviter que le viewer ne recharge le
@@ -129,7 +132,6 @@ export default function ConfiguratorLayout({
   // gravure), revient à la vue initiale du modèle.
   const handleActiveOption = useCallback(
     (optionId: string | null) => {
-      activeOptionRef.current = optionId
       const viewer = viewerRef.current
       if (!viewer) return
       const option = optionId

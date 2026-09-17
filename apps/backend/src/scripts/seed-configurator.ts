@@ -61,6 +61,9 @@ const PRODUCTS: SeedProduct[] = [
   {
     handle: "baguettes",
     glbPath: `${R2}/3D/baguettes-01KWHATP1VTEQNVFJXFX0B1TGX.glb`,
+    // Modèle fixe : la gravure n'est projetée que sur la face tournée vers la
+    // vue initiale, l'auto-rotation la cachait la moitié du temps.
+    autoRotate: false,
     options: [
       { id: "color", label: "Couleur du bois", type: "color", targetMesh: "Material_0", choices: COLOR_CHOICES },
       { id: "wood", label: "Teinte du bois", type: "texture", targetMesh: "Material_0", choices: WOOD_CHOICES },
@@ -107,6 +110,7 @@ const PRODUCTS: SeedProduct[] = [
     // Le nom de l'objet R2 garde « parapluie » : le renommer côté stockage
     // casserait les configs déjà en base. Sans effet SEO (asset non indexé).
     glbPath: `${R2}/3D/parapluie-01KWHATRDETE4AB94S8X16PJ67.glb`,
+    autoRotate: false,
     options: [
       { id: "color", label: "Couleur", type: "color", targetMesh: "Material_0", choices: COLOR_CHOICES },
       {

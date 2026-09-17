@@ -28,6 +28,9 @@ export const ENGRAVING_PREVIEW: Record<string, EngravingPreviewConfig> = {
   baguettes: {
     marginRatio: 0.05,
     maxLengthRatio: 0.42,
-    heightRatio: 0.5,
+    // 0.5 donnait des lettres d'environ 13 px en vue initiale. Au-delà de
+    // ~0.75, les bords du texte tombent sur la partie fuyante de la courbe et
+    // s'étirent.
+    heightRatio: 0.72,
   },
 }

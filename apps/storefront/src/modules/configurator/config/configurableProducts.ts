@@ -122,6 +122,9 @@ export function darkenToTint(darken = 0): string {
 export const PRODUCT_CONFIG: ProductConfigMap = {
   baguettes: {
     glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/baguettes-01KWHATP1VTEQNVFJXFX0B1TGX.glb",
+    // Modèle fixe : la gravure n'est projetée que sur la face tournée vers la
+    // vue initiale, l'auto-rotation la cachait la moitié du temps.
+    autoRotate: false,
     options: [
       {
         id: "color",
@@ -224,6 +227,7 @@ export const PRODUCT_CONFIG: ProductConfigMap = {
     // Le nom de l'objet R2 garde « parapluie » : le renommer côté stockage
     // casserait les configs déjà en base. Sans effet SEO (asset non indexé).
     glbPath: "https://pub-d7ca6a51b86f4ee9838bdb8d83486ccb.r2.dev/3D/parapluie-01KWHATRDETE4AB94S8X16PJ67.glb",
+    autoRotate: false,
     options: [
       {
         id: "color",
