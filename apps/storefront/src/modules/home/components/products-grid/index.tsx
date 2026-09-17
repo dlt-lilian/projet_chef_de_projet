@@ -2,6 +2,8 @@ import { listProducts } from "@lib/data/products"
 import ProductCard from "@modules/products/components/product-preview"
 import { getRegion } from "@lib/data/regions"
 import { HttpTypes } from "@medusajs/types"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import { Icon } from "@modules/common/components/my_ui/icon"
 
 type ProductGridProps = {
   regionId: string
@@ -70,6 +72,16 @@ export default async function ProductGrid({
           </li>
         ))}
       </ul>
+      <LocalizedClientLink
+        href="/store"
+        className="inline-flex items-center gap-2 self-center
+             bg-sky-950 text-white font-medium text-sm
+             px-5 py-2.5 rounded-xl
+             hover:bg-sky-900 transition-colors duration-150"
+      >
+        Voir toutes les options
+        <Icon name="arrow-right" size={16} />
+      </LocalizedClientLink>
     </section>
   )
 }

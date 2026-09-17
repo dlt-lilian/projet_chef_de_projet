@@ -24,8 +24,10 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
     shippingOptions = shipping_options
   }
 
+  // Colonne d'au moins la hauteur de l'écran, contenu en flex-1 : sur les pages
+  // courtes (connexion, inscription…) le pied de page reste collé en bas.
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <Nav />
       {customer && cart && (
         <CartMismatchBanner customer={customer} cart={cart} />
@@ -38,8 +40,8 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
           shippingOptions={shippingOptions}
         />
       )}
-      {props.children}
+      <div className="flex-1">{props.children}</div>
       <Footer />
-    </>
+    </div>
   )
 }

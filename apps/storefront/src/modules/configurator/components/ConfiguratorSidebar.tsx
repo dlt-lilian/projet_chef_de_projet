@@ -9,7 +9,7 @@ import { Icon } from "@modules/common/components/my_ui/icon"
 import ProductPrice from "@modules/products/components/product-price"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
 import { useParams, usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import {
   ConfiguratorOption,
   ConfiguratorProductConfig,
@@ -24,7 +24,8 @@ type ConfiguratorSidebarProps = {
   config: ConfiguratorProductConfig
   controller: UseProductConfiguratorReturn
   onOptionChange: (option: ConfiguratorOption, choiceId: string) => void
-  /** Menu mobile ouvert (id d'option) ou null si replié — pilote le zoom 3D. */
+  /** Option active (menu mobile ouvert, ou option survolée / focus sur desktop)
+      ou null — pilote le zoom 3D. */
   onActiveOptionChange?: (optionId: string | null) => void
 }
 
@@ -78,6 +79,17 @@ export default function ConfiguratorSidebar({
   const router = useRouter()
   const pathname = usePathname()
   const [isAdding, setIsAdding] = useState(false)
+
+  // Zoom contextuel desktop : toutes les options y sont dépliées, il n'y a donc
+  // pas de menu à ouvrir comme sur mobile. Le survol (ou le focus clavier) d'une
+  // option cadre son mesh ; quitter la liste revient à la vue initiale. La ref
+  // évite de relancer l'animation quand on reste sur la même option.
+  const desktopActiveRef = useRef<string | null>(null)
+  const setDesktopActive = (optionId: string | null) => {
+    if (desktopActiveRef.current === optionId) return
+    desktopActiveRef.current = optionId
+    onActiveOptionChange?.(optionId)
+  }
 
   const variant = product.variants?.[0]
   const currencyCode = variant?.calculated_price?.currency_code ?? "eur"
@@ -134,15 +146,31 @@ export default function ConfiguratorSidebar({
           Il est remonté dans ConfiguratorLayout, hors des branches
           responsives — un seul H1, visible à tous les breakpoints. */}
       <aside className="hidden md:flex flex-col gap-6 w-full md:w-[40%] md:max-w-[420px] md:min-w-[320px] p-6 md:border-l border-stone-200 bg-white">
-        <div className="flex flex-col gap-6">
+        {/* Le retour à la vue initiale est porté par la LISTE, pas par chaque
+            ligne : sinon le passage dans l'espace entre deux options
+            déclencherait un aller-retour de caméra. */}
+        <div
+          className="flex flex-col gap-6"
+          onMouseLeave={() => setDesktopActive(null)}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+              setDesktopActive(null)
+            }
+          }}
+        >
           {config.options.map((option) => (
-            <OptionRow
+            <div
               key={option.id}
-              option={option}
-              controller={controller}
-              onOptionChange={onOptionChange}
-              currencyCode={currencyCode}
-            />
+              onMouseEnter={() => setDesktopActive(option.id)}
+              onFocus={() => setDesktopActive(option.id)}
+            >
+              <OptionRow
+                option={option}
+                controller={controller}
+                onOptionChange={onOptionChange}
+                currencyCode={currencyCode}
+              />
+            </div>
           ))}
         </div>
 
