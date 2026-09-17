@@ -8,7 +8,13 @@ import {
   useState,
 } from "react"
 import Image from "next/image"
-import type { Object3D, Vector3 } from "three"
+import { Group, Vector3, type Object3D } from "three"
+import {
+  buildEngraving,
+  clearEngraving,
+  type EngravingPreviewConfig,
+  type EngravingResult,
+} from "../lib/engraving"
 import {
   ThreeContext,
   animateCameraTo,
@@ -48,6 +54,11 @@ export type ConfiguratorViewerHandle = {
   focusMeshes: (meshName: MeshTarget) => void
   /** Revient à la vue initiale du modèle. */
   resetView: () => void
+  /** Affiche le texte gravé sur le modèle (vide = retire). Sans effet si le
+      produit n'a pas d'aperçu de gravure. */
+  setEngraving: (text: string) => Promise<void>
+  /** Cadre la caméra face à la gravure. Retourne false s'il n'y en a pas. */
+  focusEngraving: () => boolean
 }
 
 type ConfiguratorViewerProps = {
@@ -68,6 +79,8 @@ type ConfiguratorViewerProps = {
   posterSrc?: string
   /** Texte alternatif du poster. Requis dès que `posterSrc` est fourni. */
   posterAlt?: string
+  /** Réglages de l'aperçu 3D de la gravure ; absent = pas d'aperçu. */
+  engravingPreview?: EngravingPreviewConfig
 }
 
 const ConfiguratorViewer = forwardRef<
@@ -81,6 +94,7 @@ const ConfiguratorViewer = forwardRef<
     onModelReady,
     posterSrc,
     posterAlt,
+    engravingPreview,
   },
   ref
 ) {
@@ -93,9 +107,45 @@ const ConfiguratorViewer = forwardRef<
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Gravure : groupe dans la scène (cf. buildEngraving), dernier texte demandé,
+  // et compteur qui invalide une reconstruction dépassée (chargement de police).
+  const engravingPreviewRef = useRef(engravingPreview)
+  engravingPreviewRef.current = engravingPreview
+  const engravingGroupRef = useRef<Group | null>(null)
+  const engravingTextRef = useRef("")
+  const engravingResultRef = useRef<EngravingResult | null>(null)
+  const engravingRunRef = useRef(0)
+
+  const refreshEngraving = async () => {
+    const ctx = ctxRef.current
+    const root = modelRef.current
+    const home = homeRef.current
+    const config = engravingPreviewRef.current
+    if (!ctx || !root || !home || !config) return
+    if (!engravingGroupRef.current) {
+      const group = new Group()
+      group.name = "configurator-engraving"
+      ctx.scene.add(group)
+      engravingGroupRef.current = group
+    }
+    const run = ++engravingRunRef.current
+    const result = await buildEngraving({
+      group: engravingGroupRef.current,
+      root,
+      config,
+      text: engravingTextRef.current,
+      homePosition: home.position,
+      homeTarget: home.target,
+      isStale: () => run !== engravingRunRef.current,
+    })
+    if (run === engravingRunRef.current) engravingResultRef.current = result
+  }
+
   useImperativeHandle(
     ref,
     () => ({
+      // La couleur de la gravure dépend du fond (claire sur bois sombre) :
+      // chaque changement de matière la redessine.
       async swapTexture(
         meshName: MeshTarget,
         texturePath: string,
@@ -104,16 +154,41 @@ const ConfiguratorViewer = forwardRef<
         const root = modelRef.current
         if (!root) return
         await swapTextureOnMesh(root, meshName, texturePath, tint)
+        void refreshEngraving()
       },
       async applyColor(meshName: MeshTarget, hex: string) {
         const root = modelRef.current
         if (!root) return
         await applyColorToMesh(root, meshName, hex)
+        void refreshEngraving()
       },
       async applyMotif(meshName: MeshTarget, path: string | null | undefined) {
         const root = modelRef.current
         if (!root) return
         await applyMotifToMesh(root, meshName, path)
+        void refreshEngraving()
+      },
+      setEngraving(text: string) {
+        engravingTextRef.current = text
+        return refreshEngraving()
+      },
+      focusEngraving() {
+        const ctx = ctxRef.current
+        const result = engravingResultRef.current
+        if (!ctx || !result) return false
+        const center = result.box.getCenter(new Vector3())
+        const size = result.box.getSize(new Vector3())
+        // Face au texte (et non dans l'axe de vue courant, comme focusMeshes) :
+        // l'auto-rotation a pu amener la caméra du côté non gravé.
+        const distance = Math.max(size.length() * 2.6, 0.3)
+        ctx.controls.autoRotate = false
+        ctx.controls.minDistance = 0.01
+        animateCameraTo(
+          ctx,
+          center.clone().addScaledVector(result.normal, distance),
+          center
+        )
+        return true
       },
       focusMeshes(meshName: MeshTarget) {
         const ctx = ctxRef.current
@@ -216,6 +291,12 @@ const ConfiguratorViewer = forwardRef<
       cancelled = true
       cancelAnimationFrame(rafId)
       window.removeEventListener("resize", handleResize)
+      // La gravure appartient à cette scène : un rechargement du modèle la
+      // reconstruit (via onModelReady) dans la suivante.
+      engravingRunRef.current++
+      if (engravingGroupRef.current) clearEngraving(engravingGroupRef.current)
+      engravingGroupRef.current = null
+      engravingResultRef.current = null
       disposeContext(ctx, modelRef.current)
       modelRef.current = null
       ctxRef.current = null

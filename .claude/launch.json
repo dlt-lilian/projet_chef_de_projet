@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "backend:dev"
+      ],
+      "port": 9000
+    },
+    {
+      "name": "storefront",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "storefront:dev"
+      ],
+      "port": 8000
+    }
+  ]
+}

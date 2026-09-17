@@ -2,7 +2,7 @@
 
 import { HttpTypes } from "@medusajs/types"
 import Image from "next/image"
-import { lazy, Suspense, useCallback, useMemo, useRef } from "react"
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from "react"
 import {
   ConfiguratorOption,
   ConfiguratorProductConfig,
@@ -10,6 +10,8 @@ import {
 } from "../config/configurableProducts"
 import { useProductConfigurator } from "../hooks/useProductConfigurator"
 import type { InitialConfiguration } from "../lib/persistence"
+// Constante pure (sans three.js) : n'alourdit pas le bundle statique.
+import { ENGRAVING_PREVIEW } from "../lib/engraving-preview"
 import ConfiguratorSidebar from "./ConfiguratorSidebar"
 import type { ConfiguratorViewerHandle } from "./ConfiguratorViewer"
 
@@ -20,6 +22,9 @@ import type { ConfiguratorViewerHandle } from "./ConfiguratorViewer"
 // `import type` ci-dessus : le type est effacé au build, il ne réintègre donc
 // PAS le viewer dans le bundle statique.
 const ConfiguratorViewer = lazy(() => import("./ConfiguratorViewer"))
+
+/** Pause de frappe avant de redessiner la gravure sur le modèle. */
+const ENGRAVING_DEBOUNCE_MS = 200
 
 type ConfiguratorLayoutProps = {
   product: HttpTypes.StoreProduct
@@ -80,7 +85,31 @@ export default function ConfiguratorLayout({
     }
     config.options.filter((o) => o.type !== "color").forEach(apply)
     config.options.filter((o) => o.type === "color").forEach(apply)
+    void viewerRef.current?.setEngraving(controller.state.engraving)
   }, [config, controller, applyOption])
+
+  /** Option dont le menu est ouvert (mobile) ou survolée (desktop). */
+  const activeOptionRef = useRef<string | null>(null)
+
+  // Aperçu 3D de la gravure (prototype : baguettes seulement). Redessiné après
+  // une courte pause de frappe plutôt qu'à chaque touche.
+  const engravingPreview = product.handle
+    ? ENGRAVING_PREVIEW[product.handle]
+    : undefined
+  const engravingText = controller.state.engraving
+  useEffect(() => {
+    if (!engravingPreview) return
+    const timer = setTimeout(async () => {
+      const viewer = viewerRef.current
+      if (!viewer) return
+      await viewer.setEngraving(engravingText)
+      // Premier caractère saisi avec la gravure ouverte : il n'y avait pas
+      // encore de texte à cadrer à l'ouverture du menu.
+      const active = config.options.find((o) => o.id === activeOptionRef.current)
+      if (active?.type === "engraving") viewer.focusEngraving()
+    }, ENGRAVING_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [engravingText, engravingPreview, config])
 
   // `config` est un nouvel objet à chaque rendu serveur (fetch admin / repli) :
   // on fige la rotation par ses VALEURS pour éviter que le viewer ne recharge le
@@ -100,6 +129,7 @@ export default function ConfiguratorLayout({
   // gravure), revient à la vue initiale du modèle.
   const handleActiveOption = useCallback(
     (optionId: string | null) => {
+      activeOptionRef.current = optionId
       const viewer = viewerRef.current
       if (!viewer) return
       const option = optionId
@@ -107,6 +137,8 @@ export default function ConfiguratorLayout({
         : undefined
       const target = option?.targetMesh
       if (target) viewer.focusMeshes(target)
+      // Gravure : face au texte s'il est affiché, sinon vue initiale.
+      else if (option?.type === "engraving" && viewer.focusEngraving()) return
       else viewer.resetView()
     },
     [config]
@@ -181,6 +213,7 @@ export default function ConfiguratorLayout({
               onModelReady={handleModelReady}
               posterSrc={posterSrc}
               posterAlt={posterAlt}
+              engravingPreview={engravingPreview}
             />
           </Suspense>
         </div>
