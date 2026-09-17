@@ -1,5 +1,6 @@
 import { ChevronUpDown } from "@medusajs/icons"
 import { clx } from "@modules/common/components/ui"
+import { FIELD_SURFACE_CLASS } from "@modules/common/components/my_ui/field-styles"
 import {
   SelectHTMLAttributes,
   forwardRef,
@@ -42,7 +43,11 @@ const NativeSelect = forwardRef<HTMLSelectElement, NativeSelectProps>(
           onFocus={() => innerRef.current?.focus()}
           onBlur={() => innerRef.current?.blur()}
           className={clx(
-            "relative flex items-center text-base-regular border border-ui-border-base bg-ui-bg-subtle rounded-md hover:bg-ui-bg-field-hover",
+            // Le <select> natif garde `outline-none` : l'anneau de focus est
+            // porté par ce conteneur, via focus-within.
+            "relative flex items-center",
+            FIELD_SURFACE_CLASS,
+            "focus-within:ring-2 focus-within:ring-sky-950",
             className,
             {
               "text-ui-fg-muted": isPlaceholder,

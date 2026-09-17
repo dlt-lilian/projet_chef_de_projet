@@ -1,4 +1,5 @@
 import { Label } from "@modules/common/components/ui"
+import { FIELD_SURFACE_CLASS } from "@modules/common/components/my_ui/field-styles"
 import React, { useEffect, useImperativeHandle, useState } from "react"
 
 import Eye from "@modules/common/icons/eye"
@@ -44,7 +45,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             name={name}
             placeholder=" "
             required={required}
-            className="pt-4 pb-1 block w-full h-11 px-4 mt-0 bg-ui-bg-field border rounded-md appearance-none focus:outline-none focus:ring-0 focus:shadow-borders-interactive-with-active border-ui-border-base hover:bg-ui-bg-field-hover"
+            className={`pt-4 pb-1 block w-full h-11 px-4 mt-0 appearance-none ${FIELD_SURFACE_CLASS}`}
             {...props}
             ref={inputRef}
           />

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { FIELD_CLASS } from "@modules/common/components/my_ui/field-styles"
 import { Button } from "@modules/common/components/my_ui"
 
 const SUBJECTS = [
@@ -47,9 +48,7 @@ export default function ContactForm() {
     setForm(initialState)
   }
 
-  const fieldClass =
-    "w-full bg-grey-20 px-4 py-2 rounded-xl text-sm text-grey-90 " +
-    "placeholder:text-grey-40 focus:outline-none focus:ring-2 focus:ring-primary"
+  const fieldClass = FIELD_CLASS
 
   const labelClass = "text-sm font-medium text-grey-90 mb-2 block"
 

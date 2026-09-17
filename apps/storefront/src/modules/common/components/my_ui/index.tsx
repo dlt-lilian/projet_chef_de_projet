@@ -4,6 +4,7 @@ import { forwardRef } from "react"
 import clsx from "clsx"
 import { ButtonHTMLAttributes, InputHTMLAttributes } from "react"
 import { Icon } from "./icon"
+import { FIELD_CLASS } from "./field-styles"
 
 // `Icon` a quitté ce module (voir ./icon) : il n'a pas besoin d'être client, et
 // le garder ici forçait `@iconify/react` — plus son enregistrement de
@@ -113,9 +114,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
               // text-like inputs
               !isBox && !isRange && !isFile && !isColor && [
-                "bg-gray-200 px-4 py-2 rounded-xl w-full",
-                "placeholder:text-gray-400 text-gray-900",
-                "focus:outline-none focus:ring-2 focus:ring-sky-950",
+                FIELD_CLASS,
                 variant === "search" && "pr-9",
               ],
 

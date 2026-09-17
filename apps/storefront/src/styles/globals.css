@@ -38,9 +38,10 @@
   select:-webkit-autofill,
   select:-webkit-autofill:hover,
   select:-webkit-autofill:focus {
-    border: 1px solid #212121;
-    -webkit-text-fill-color: #212121;
-    -webkit-box-shadow: 0 0 0px 1000px #fff inset;
+    /* Même fond que les champs (bg-gray-200) : sans quoi un champ pré-rempli
+       par le navigateur passe au blanc bordé de noir. */
+    -webkit-text-fill-color: #111827;
+    -webkit-box-shadow: 0 0 0px 1000px #e5e7eb inset;
     transition: background-color 5000s ease-in-out 0s;
   }
 
