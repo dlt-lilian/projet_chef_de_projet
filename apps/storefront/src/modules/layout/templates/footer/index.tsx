@@ -75,17 +75,17 @@ const socials = [
 
 export default async function Footer() {
   return (
-    <footer className="border-t border-grey-20 w-full bg-white">
+    <footer className="w-full bg-[#052f4a] text-[#f9fafb]">
       <div className="content-container flex flex-col w-full py-14 md:py-20">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-8">
           <div className="col-span-2 md:col-span-1">
             <LocalizedClientLink
               href="/"
-              className="font-semibold uppercase text-xl text-grey-90"
+              className="font-semibold uppercase text-xl"
             >
               Hinaso
             </LocalizedClientLink>
-            <p className="text-sm text-gray-600 mt-3 max-w-[260px] leading-relaxed">
+            <p className="text-sm mt-3 max-w-[260px] leading-relaxed">
               Accessoires japonais à configurer en 3D. Conçus et fabriqués en
               France.
             </p>
@@ -96,7 +96,7 @@ export default async function Footer() {
                   href={s.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-grey-70 hover:text-primary transition-colors"
+                  className="hover:opacity-70 transition-opacity"
                   aria-label={s.name}
                 >
                   <Icon name={s.name} size={18} />
@@ -106,15 +106,15 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h2 className="text-sm font-semibold text-grey-90 mb-4">
+            <h2 className="text-sm font-semibold mb-4">
               Boutique
             </h2>
-            <ul className="flex flex-col gap-2 text-sm text-gray-600">
+            <ul className="flex flex-col gap-2 text-sm">
               {shopLinks.map((l) => (
                 <li key={l.href}>
                   <LocalizedClientLink
                     href={l.href}
-                    className="hover:text-primary transition-colors"
+                    className="hover:opacity-70 transition-opacity"
                   >
                     {l.label}
                   </LocalizedClientLink>
@@ -124,15 +124,15 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h2 className="text-sm font-semibold text-grey-90 mb-4">
+            <h2 className="text-sm font-semibold mb-4">
               À propos
             </h2>
-            <ul className="flex flex-col gap-2 text-sm text-gray-600">
+            <ul className="flex flex-col gap-2 text-sm">
               {aboutLinks.map((l) => (
                 <li key={l.href}>
                   <LocalizedClientLink
                     href={l.href}
-                    className="hover:text-primary transition-colors"
+                    className="hover:opacity-70 transition-opacity"
                   >
                     {l.label}
                   </LocalizedClientLink>
@@ -142,13 +142,13 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h2 className="text-sm font-semibold text-grey-90 mb-4">Aide</h2>
-            <ul className="flex flex-col gap-2 text-sm text-gray-600">
+            <h2 className="text-sm font-semibold mb-4">Aide</h2>
+            <ul className="flex flex-col gap-2 text-sm">
               {helpLinks.map((l) => (
                 <li key={l.href}>
                   <LocalizedClientLink
                     href={l.href}
-                    className="hover:text-primary transition-colors"
+                    className="hover:opacity-70 transition-opacity"
                   >
                     {l.label}
                   </LocalizedClientLink>
@@ -157,13 +157,13 @@ export default async function Footer() {
               {/* Rouvre le panneau de consentement : retirer son accord doit
                   être aussi simple que de l'avoir donné (art. 7.3 RGPD). */}
               <li>
-                <CookiePreferencesLink className="text-left hover:text-primary transition-colors" />
+                <CookiePreferencesLink className="text-left hover:opacity-70 transition-opacity" />
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-grey-20 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+        <div className="border-t border-[#f9fafb]/20 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
           <span>
             © {new Date().getFullYear()} Hinaso. Tous droits
             réservés.
