@@ -20,9 +20,46 @@ export type UseProductConfiguratorReturn = {
 }
 
 /**
+ * Options qui se disputent la même surface : couleur unie ET texture posent la
+ * matière DE BASE d'un mesh (cf. `applyMeshLayers`, où poser l'une efface
+ * l'autre). Deux options qui visent le même mesh sont donc exclusives : sur les
+ * baguettes, « Bois laquée » et « Bois naturelle » ne peuvent pas coexister.
+ * Les motifs, eux, sont un calque par-dessus : ils ne sont jamais en conflit.
+ *
+ * `targetMesh` absent = tous les meshes du modèle (cf. `findMeshes`) : une telle
+ * option est en conflit avec toutes les autres de base.
+ */
+function baseLayerConflicts(
+  config: ConfiguratorProductConfig,
+  optionId: string
+): string[] {
+  const options = config.options.filter(
+    (o) => o.type === "color" || o.type === "texture"
+  )
+  const option = options.find((o) => o.id === optionId)
+  if (!option) return []
+  const meshesOf = (target: string | string[] | undefined) =>
+    target === undefined ? null : Array.isArray(target) ? target : [target]
+  const own = meshesOf(option.targetMesh)
+
+  return options
+    .filter((other) => {
+      if (other.id === optionId) return false
+      const theirs = meshesOf(other.targetMesh)
+      if (own === null || theirs === null) return true
+      return theirs.some((mesh) => own.includes(mesh))
+    })
+    .map((other) => other.id)
+}
+
+/**
  * Choix par défaut : le choix « par défaut » défini en admin, sinon le premier,
  * puis on surcharge avec la config initiale (rouverture d'un article du panier),
  * en ne gardant que les choix encore valides pour la config courante.
+ *
+ * Un groupe d'options exclusives (cf. `baseLayerConflicts`) n'en garde qu'une :
+ * sans ça, les deux s'affichaient cochées à l'ouverture alors qu'une seule est
+ * réellement rendue.
  */
 function buildInitialState(
   config: ConfiguratorProductConfig,
@@ -40,6 +77,21 @@ function buildInitialState(
       selections[option.id] = restored
     }
   }
+
+  // Résolution des conflits : le choix restauré depuis le panier l'emporte,
+  // sinon la couleur unie — c'est elle que le modèle affiche, les couleurs
+  // étant appliquées après les textures (cf. `handleModelReady`).
+  for (const option of config.options) {
+    if (option.type !== "color" && option.type !== "texture") continue
+    if (!selections[option.id]) continue
+    const conflicts = baseLayerConflicts(config, option.id)
+    const restoredHere = !!initial?.selections?.[option.id]
+    const restoredElsewhere = conflicts.some((id) => initial?.selections?.[id])
+    const wins = restoredHere || (!restoredElsewhere && option.type === "color")
+    if (!wins) continue
+    for (const id of conflicts) delete selections[id]
+  }
+
   return { selections, engraving: initial?.engraving ?? "" }
 }
 
@@ -64,12 +116,20 @@ export function useProductConfigurator(
     return map
   }, [config])
 
-  const setSelection = useCallback((optionId: string, choiceId: string) => {
-    setState((prev) => ({
-      ...prev,
-      selections: { ...prev.selections, [optionId]: choiceId },
-    }))
-  }, [])
+  const setSelection = useCallback(
+    (optionId: string, choiceId: string) => {
+      setState((prev) => {
+        const selections = { ...prev.selections, [optionId]: choiceId }
+        // Choisir une matière de base décoche celle qui la remplace sur le
+        // modèle (couleur unie ↔ texture du même mesh).
+        for (const id of baseLayerConflicts(config, optionId)) {
+          delete selections[id]
+        }
+        return { ...prev, selections }
+      })
+    },
+    [config]
+  )
 
   const setEngraving = useCallback((text: string) => {
     setState((prev) => ({ ...prev, engraving: text }))
