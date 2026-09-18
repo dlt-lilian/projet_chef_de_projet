@@ -47,6 +47,8 @@ const shopLinks = [
  * « path »), vérifier qu'elle répond en 200, puis remettre sa ligne ici.
  */
 const aboutLinks = [
+  { label: "L'entreprise", href: "/entreprise" },
+  { label: "Provenance de nos produits", href: "/provenance-de-nos-produits" },
   { label: "Le Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
 ]
