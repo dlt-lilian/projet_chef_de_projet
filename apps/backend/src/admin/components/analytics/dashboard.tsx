@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Button, Heading, Text, Badge, Label } from "@medusajs/ui"
+import { FunnelChart, type Funnel } from "./funnel-chart"
+import { TrendCharts, type SeriesPoint } from "./trend-charts"
+import {
+  formatBucketLabel,
+  formatDateTime,
+  formatMoney,
+  formatPercent,
+  type Granularity,
+} from "./format"
 
 // ─── Types renvoyés par GET /admin/analytics ──────────────────────────────────
 type CurrencyMetrics = {
@@ -7,13 +16,13 @@ type CurrencyMetrics = {
   orders_count: number
   revenue: number
   average_order_value: number | null
-  carts_count: number
-  carts_completed: number
+  funnel: Funnel
   abandonment_rate: number | null
+  series: SeriesPoint[]
 }
 
 type AnalyticsResponse = {
-  period: { from: string; to: string }
+  period: { from: string; to: string; granularity: Granularity }
   abandonment: { cohort_end: string | null; maturation_hours: number }
   by_currency: CurrencyMetrics[]
   totals: { orders_count: number; carts_count: number; carts_completed: number }
@@ -42,27 +51,6 @@ const PRESETS = [
   { label: "90 jours", days: 90 },
 ]
 
-const formatMoney = (value: number | null, currency: string): string => {
-  if (value == null) return "—"
-  try {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: currency.toUpperCase(),
-    }).format(value)
-  } catch {
-    return `${value.toFixed(2)} ${currency.toUpperCase()}`
-  }
-}
-
-const formatPercent = (value: number | null): string =>
-  value == null ? "—" : `${(value * 100).toFixed(1)} %`
-
-const formatDateTime = (iso: string): string =>
-  new Date(iso).toLocaleString("fr-FR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  })
-
 // ─── Tuile d'indicateur ───────────────────────────────────────────────────────
 function Metric({
   label,
@@ -90,6 +78,50 @@ function Metric({
   )
 }
 
+// ─── Vue tableau ──────────────────────────────────────────────────────────────
+// Contrepartie des courbes : les valeurs exactes, lisibles au lecteur d'écran
+// comme à l'impression, sans dépendre du survol.
+function SeriesTable({
+  series,
+  currency,
+  granularity,
+}: {
+  series: SeriesPoint[]
+  currency: string
+  granularity: Granularity
+}) {
+  return (
+    <div className="max-h-72 overflow-auto rounded-lg border border-ui-border-base">
+      <table className="w-full txt-compact-small">
+        <thead className="sticky top-0 bg-ui-bg-subtle text-ui-fg-muted">
+          <tr>
+            <th className="px-3 py-2 text-left font-normal">Période</th>
+            <th className="px-3 py-2 text-right font-normal">Commandes</th>
+            <th className="px-3 py-2 text-right font-normal">
+              Chiffre d'affaires
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-ui-border-base">
+          {series.map((point) => (
+            <tr key={point.bucket}>
+              <td className="px-3 py-1.5 text-ui-fg-subtle">
+                {formatBucketLabel(point.bucket, granularity)}
+              </td>
+              <td className="px-3 py-1.5 text-right text-ui-fg-base">
+                {point.orders_count}
+              </td>
+              <td className="px-3 py-1.5 text-right text-ui-fg-base">
+                {formatMoney(point.revenue, currency)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export function AnalyticsDashboard() {
   const today = useMemo(() => new Date(), [])
   const [from, setFrom] = useState(() =>
@@ -100,6 +132,7 @@ export function AnalyticsDashboard() {
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showTable, setShowTable] = useState(false)
 
   const applyPreset = (days: number) => {
     const now = new Date()
@@ -114,6 +147,8 @@ export function AnalyticsDashboard() {
       const params = new URLSearchParams({
         from: startOfLocalDay(from).toISOString(),
         to: endOfLocalDay(to).toISOString(),
+        // Découpage de la courbe en journées locales, pas en journées UTC.
+        tz_offset: String(new Date().getTimezoneOffset()),
       })
       const res = await fetch(`/admin/analytics?${params}`, {
         credentials: "include",
@@ -141,9 +176,10 @@ export function AnalyticsDashboard() {
     rows.find((r) => r.currency_code === currency) ?? rows[0] ?? null
   const otherOrders =
     (data?.totals.orders_count ?? 0) - (active?.orders_count ?? 0)
+  const granularity = data?.period.granularity ?? "day"
 
   return (
-    <div className="flex flex-col gap-y-5">
+    <div className="flex flex-col gap-y-6">
       {/* ─── Période ─────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-y-1">
@@ -214,7 +250,6 @@ export function AnalyticsDashboard() {
         </Text>
       ) : null}
 
-      {/* ─── Indicateurs ─────────────────────────────────────────────────── */}
       {!active && !loading && !error ? (
         <Text size="small" className="text-ui-fg-muted">
           Aucune commande ni panier sur cette période.
@@ -223,6 +258,7 @@ export function AnalyticsDashboard() {
 
       {active ? (
         <>
+          {/* ─── Indicateurs ───────────────────────────────────────────────── */}
           <div className="flex flex-wrap gap-4">
             <Metric
               label="Commandes"
@@ -247,15 +283,43 @@ export function AnalyticsDashboard() {
             <Metric
               label="Abandon de panier"
               value={formatPercent(active.abandonment_rate)}
-              hint={`${active.carts_completed} commandés sur ${active.carts_count} paniers`}
+              hint={`${active.funnel.completed} commandés sur ${active.funnel.with_items} paniers`}
             />
           </div>
 
+          {/* ─── Évolution ─────────────────────────────────────────────────── */}
+          <TrendCharts
+            series={active.series}
+            currency={active.currency_code}
+            granularity={granularity}
+          />
+
+          <div className="flex flex-col items-start gap-y-2">
+            <Button
+              size="small"
+              variant="transparent"
+              onClick={() => setShowTable((value) => !value)}
+            >
+              {showTable ? "Masquer le tableau" : "Afficher le tableau"}
+            </Button>
+            {showTable ? (
+              <SeriesTable
+                series={active.series}
+                currency={active.currency_code}
+                granularity={granularity}
+              />
+            ) : null}
+          </div>
+
+          {/* ─── Entonnoir ─────────────────────────────────────────────────── */}
+          <FunnelChart funnel={active.funnel} />
+
+          {/* ─── Notes de lecture ──────────────────────────────────────────── */}
           <div className="flex flex-col items-start gap-y-2">
             <Text size="xsmall" className="text-ui-fg-subtle">
-              Un panier compte dans le taux d'abandon dès qu'il contient au moins
-              un article. Les paniers créés dans les dernières{" "}
-              {data?.abandonment.maturation_hours} h sont exclus : ils peuvent
+              Un panier entre dans l'entonnoir dès qu'il contient au moins un
+              article. Les paniers créés dans les dernières{" "}
+              {data?.abandonment.maturation_hours} h en sont exclus : ils peuvent
               encore être finalisés.
               {data?.abandonment.cohort_end
                 ? ` Paniers créés jusqu'au ${formatDateTime(

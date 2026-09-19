@@ -1,7 +1,7 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { ChartBar } from "@medusajs/icons"
 import { Container, Heading, Text } from "@medusajs/ui"
-import { AnalyticsDashboard } from "../../components/analytics-dashboard"
+import { AnalyticsDashboard } from "../../components/analytics/dashboard"
 
 // ─── Page admin « Statistiques » ──────────────────────────────────────────────
 export default function AnalyticsPage() {
