@@ -45,6 +45,8 @@
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@iconify-json/hugeicons": "^1.2.26",
+    "@iconify-json/ic": "^1.2.4",
+    "@iconify-json/typcn": "^1.2.2",
     "@medusajs/types": "2.14.0",
     "@types/lodash": "^4.14.195",
     "@types/node": "17.0.21",

@@ -69,10 +69,32 @@ const helpLinks = [
   { label: "Cookies", href: "/cookies" },
 ]
 
+/**
+ * `library` est obligatoire ici : lucide a retiré les logos de marque de son
+ * jeu, donc ni TikTok ni Pinterest n'y existent. Chaque icône est empruntée à
+ * la collection qui la fournit — et doit être déclarée dans le USED de
+ * `scripts/generate-icons.mjs`, sinon le SVG rendu est vide (le composant
+ * Icon est hors ligne par construction, il n'y a aucun repli réseau).
+ */
 const socials = [
-  { name: "instagram", href: "https://instagram.com" },
-  { name: "facebook", href: "https://facebook.com" },
-  { name: "youtube", href: "https://youtube.com" },
+  {
+    name: "Instagram",
+    library: "lucide",
+    icon: "instagram",
+    href: "https://instagram.com",
+  },
+  {
+    name: "TikTok",
+    library: "ic",
+    icon: "baseline-tiktok",
+    href: "https://tiktok.com",
+  },
+  {
+    name: "Pinterest",
+    library: "typcn",
+    icon: "social-pinterest",
+    href: "https://pinterest.com",
+  },
 ]
 
 export default async function Footer() {
@@ -101,7 +123,7 @@ export default async function Footer() {
                   className="hover:opacity-70 transition-opacity"
                   aria-label={s.name}
                 >
-                  <Icon name={s.name} size={18} />
+                  <Icon name={s.icon} library={s.library} size={18} />
                 </a>
               ))}
             </div>

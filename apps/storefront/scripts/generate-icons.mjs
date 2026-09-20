@@ -26,12 +26,18 @@ const USED = {
   lucide: [
     "arrow-right", "chevron-left", "chevron-right", "chevron-down",
     "umbrella", "letter-text", "user-round", "shopping-cart", "home", "mail",
-    "menu", "package", "leaf", "hand-heart", "instagram", "facebook",
-    "youtube", "palette", "layers", "sparkles", "pen-line", "settings-2",
+    "menu", "package", "leaf", "hand-heart", "instagram",
+    "palette", "layers", "sparkles", "pen-line", "settings-2",
     "search", "cookie",
   ],
   hugeicons: ["chopsticks"],
   "lucide-lab": ["fan-handheld"],
+  // TikTok et Pinterest n'existent pas chez lucide, qui a retiré les logos de
+  // marque de son jeu. On emprunte donc le logo à la collection qui le
+  // fournit : deux jeux de plus dans node_modules, mais le sous-ensemble
+  // généré ici ne retient qu'une icône de chacun.
+  ic: ["baseline-tiktok"],
+  typcn: ["social-pinterest"],
 }
 
 let getIcons
