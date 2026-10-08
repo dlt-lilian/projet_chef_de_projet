@@ -17,6 +17,7 @@ import JsonLd from "@modules/common/components/json-ld"
 import { ConsentProvider } from "@lib/context/consent-context"
 import CookieConsent from "@modules/layout/components/cookie-consent"
 import GoogleTags from "@modules/analytics/components/google-tags"
+import DemoBanner from "@modules/layout/components/demo-banner"
 
 /**
  * Layout racine (porte <html>/<body>).
@@ -102,6 +103,7 @@ export default async function CountryLayout(props: {
       {/* Sous le provider, donc conditionnées au consentement : sans accord,
           aucune balise Google n'est insérée dans la page. */}
       <GoogleTags />
+      <DemoBanner />
       <main className="relative">{props.children}</main>
     </ConsentProvider>
     </body>
