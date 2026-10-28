@@ -131,10 +131,13 @@ export default async function seed_product_categories({
       continue;
     }
 
+    // Forme `products` et non `selector`/`update` : avec un selector, Medusa
+    // relit le produit en sélectionnant les clés de `update`, et `category_ids`
+    // n'est pas une colonne → « Entity 'Product' does not have property
+    // 'category_ids' ».
     await updateProductsWorkflow(container).run({
       input: {
-        selector: { id: product.id },
-        update: { category_ids: [...current, categoryId] },
+        products: [{ id: product.id, category_ids: [...current, categoryId] }],
       },
     });
     logger.info(
