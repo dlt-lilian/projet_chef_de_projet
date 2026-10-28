@@ -5,6 +5,13 @@ loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
+    // Par défaut Medusa garde 2 connexions Postgres ouvertes avec un keepAlive
+    // TCP, ce qui empêche Railway de mettre le back (et Postgres) en veille.
+    // On ferme les connexions inactives après 30 s et on coupe le keepAlive.
+    databaseDriverOptions: {
+      keepAlive: false,
+      pool: { min: 0, idleTimeoutMillis: 30000 },
+    },
     workerMode: (process.env.MEDUSA_WORKER_MODE as "shared" | "server" | "worker") || "shared",
     http: {
       storeCors: process.env.STORE_CORS!,
