@@ -110,6 +110,20 @@ const nextConfig = {
       },
     ]
   },
+  /**
+   * `DISABLE_INDEXING=true` (site de démo) : `noindex, nofollow` sur toutes les
+   * réponses. L'en-tête prime sur le `robots` des métadonnées de chaque page,
+   * sans avoir à toucher leur configuration SEO.
+   */
+  async headers() {
+    if (process.env.DISABLE_INDEXING !== "true") return []
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+    ]
+  },
   webpack(config) {
     config.module.rules.push({
       test: /\.(glb|gltf)$/,
